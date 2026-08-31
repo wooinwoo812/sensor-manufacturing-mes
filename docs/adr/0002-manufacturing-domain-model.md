@@ -3,7 +3,7 @@
 - Status: Proposed
 - Date: 2026-08-31
 - Owners: wooinwoo
-- Related: #2, #11, #12, #13, #14, #15, #16, #17
+- Related: #2, #11, #12, #13, #14, #15, #16, #17, #22
 
 ## Context
 
@@ -13,6 +13,9 @@
 - 전량 출고 후 반납이 닫힌 예약을 다시 여는 것처럼 계산된다.
 - 저장된 `READY`가 자재 격리·만료 뒤에도 남아 실제 시작 가능성과 충돌한다.
 - 전량 분할·합류된 입력 LOT가 완료되지 못해 작업지시 완료를 영구 차단한다.
+- 공정별 내부 합계는 맞지만 선행 공정 불량수량이 후속 공정에서 다시 투입된다.
+- 다른 작업지시 또는 BOM 외 자재의 예약을 현재 공정에서 소비할 수 있다.
+- 반납이 원 소비와 양수 `CONSUME` edge를 어떤 방식으로 보정하는지 재현할 수 없다.
 - 생산 완료, 검사 합격과 사후 격리를 동시에 표현하지 못한다.
 - 기준 revision 변경이 과거 작업지시와 검사 판정을 바꾼다.
 - 잘못된 실적을 수정·삭제해 원인과 정정 이력을 잃는다.
@@ -29,7 +32,7 @@
 - 현재 사실에서 다시 계산할 수 있는 시작 readiness
 - PostgreSQL transaction과 constraint로 검증 가능한 범위
 - React 화면부터 API·DB·test까지 같은 용어 사용
-- 1인 포트폴리오에서 설명 가능한 구현 복잡도
+- 1인 개발 범위에서 설명 가능한 구현 복잡도
 
 ## Evidence and assumptions
 
@@ -53,7 +56,7 @@
 
 ### 2. 관계형 aggregate와 append-only 사실·projection 조합
 
-기준정보와 현재 업무 상태는 aggregate로 관리하되, 재고 transaction·실제 소비·계보 edge·검사 결과·감사 이벤트는 확정 사실로 추가한다. 현재 잔량과 가용성은 원장과 유효 예약에서 계산한다. 예약은 총출고량으로 소진하고 반납·정정이 반영된 순소비량은 별도로 투영한다.
+기준정보와 현재 업무 상태는 aggregate로 관리하되, 재고 transaction·실제 소비·계보 edge·검사 결과·감사 이벤트는 확정 사실로 추가한다. 현재 잔량과 가용성은 원장과 유효 예약에서 계산한다. 예약은 릴리스된 `WorkOrderMaterialRequirement`에 귀속하고 총출고량으로 소진한다. 반납은 원 소비와 원 edge를 보존한 정정행으로 순소비와 유효 계보를 투영한다. 공정 불량은 즉시 생산 폐기해 선행 공정 유효 양품수량만 다음 공정으로 넘긴다.
 
 - 장점: 관계형 무결성, transaction, 현재 조회와 이력 설명을 균형 있게 제공한다.
 - 비용: 명령 경계와 projection 검증이 필요하고 단순 CRUD보다 코드가 많다.
@@ -73,7 +76,10 @@
 └─ 아니오
    ├─ 물리 수량이 움직였는가?
    │  ├─ 예 → InventoryTransaction과 실제 업무 사건 기록
-   │  └─ 아니오 → 예약은 MaterialAllocation에만 기록
+   │  └─ 아니오 → 예약은 릴리스된 WorkOrderMaterialRequirement의 MaterialAllocation에만 기록
+   ├─ 공정 수량을 완료하는가?
+   │  ├─ 예 → input = good + defect, defect 즉시 생산 폐기, 다음 input = 이전 good
+   │  └─ 아니오 → 선행 공정의 유효 양품수량을 변경하지 않음
    ├─ 현재 시작 가능한지 묻는가?
    │  ├─ 예 → 선행 공정·예약·품질·만료에서 readiness 계산 후 명령에서 재검증
    │  └─ 아니오 → 생산 진행 상태만 저장
@@ -82,7 +88,7 @@
    │  │        └─ 입력 잔량을 모두 사용했는가? → 입력 LOT SUPERSEDED
    │  └─ 아니오 → 계보를 만들지 않음
    ├─ 확정 사실이 잘못됐는가?
-   │  ├─ 예 → 원본을 보존하고 취소·정정 사건 추가
+   │  ├─ 예 → 원본을 보존하고 유형별 정정행·누적 상한을 가진 CorrectionEvent 추가
    │  └─ 아니오 → 일반 상태 전이 수행
    └─ 서로 다른 질문에 답하는 상태인가?
       ├─ 예 → 생산 진행·검사 판정·품질 disposition을 분리
@@ -95,13 +101,17 @@
 
 1. `InventoryTransaction`을 물리 재고의 진실 공급원으로 사용한다.
 2. `MaterialAllocation`은 예약만 표현하고 실제 출고와 계보를 만들지 않는다.
-3. 실제 투입은 출고 원장, `MaterialConsumption`, `CONSUME LotRelation`, 공정·생산 LOT·작업지시 상태와 감사를 한 transaction으로 기록한다. 예약잔량은 총출고로 소진하며 반납은 원 출고를 보존한 채 순소비와 계보만 보정한다.
-4. 생산 진행, 시작 readiness, 검사 실행·판정과 품질 disposition을 별도 상태 축 또는 projection으로 관리한다. readiness는 저장하지 않고 시작 명령에서 다시 검증한다.
-5. 발행된 BOM·route·검사규격 revision과 완료된 검사 결과는 불변으로 취급한다.
-6. 분할·합류·변환·일련번호는 사건과 append-only `LotRelation`으로 표현한다. 전량 변환 입력은 `SUPERSEDED`로 종결하고 작업지시 완료는 계보의 현재 잔량과 최종 산출을 기준으로 판정한다.
-7. 확정 사실은 update·delete하지 않고 원본을 연결한 취소·정정 사건으로 보정한다.
-8. `AuditEvent`는 설명 근거이며 재고·상태·계보의 진실 공급원으로 사용하지 않는다.
-9. 범용 event sourcing과 EPCIS 호환 계층은 현재 범위에 포함하지 않는다.
+3. 작업지시 릴리스는 발행된 BOM·route·검사규격, `WorkOrderMaterialRequirement`·`InspectionRequirement`와 초기 생산 LOT를 한 transaction에서 고정한다. 자재 예약은 릴리스 뒤에만 가능하다.
+4. 예약과 실제 소비는 같은 `WorkOrderMaterialRequirement`를 통해 WorkOrder·Material·요구수량을 검증한다. MVP 예약은 WorkOrder가 `RELEASED`일 때만 허용하며 다른 작업지시 예약, BOM 외 자재와 요구량 초과는 거부한다.
+5. 실제 투입은 출고 원장, `MaterialConsumption`, `CONSUME LotRelation`, 공정·생산 LOT·작업지시 상태와 감사를 한 transaction으로 기록한다. 예약잔량은 총출고로 소진한다.
+6. 반납은 원 출고·소비·edge를 보존하고 `CorrectionEvent`, `MaterialConsumptionCorrection`, `LotRelationCorrection`으로 순소비와 유효 계보를 같은 수량만큼 줄인다. 누적 정정은 원 수량을 초과할 수 없다.
+7. 공정 완료는 투입수량을 양품과 불량으로 전부 설명하고, 불량은 즉시 생산 폐기한다. 후속 공정 투입은 선행 공정의 유효 양품수량과 같아야 하며 MVP는 재작업과 불량 LOT 분리를 지원하지 않는다.
+8. 생산 진행, 시작 readiness, 검사 실행·판정과 품질 disposition을 별도 상태 축 또는 projection으로 관리한다. readiness는 저장하지 않고 시작 명령에서 다시 검증한다.
+9. 발행된 BOM·route·검사규격 revision과 완료된 검사 결과는 불변으로 취급한다.
+10. 분할·합류·변환·일련번호는 사건과 append-only `LotRelation`으로 표현한다. 전량 변환 입력은 `SUPERSEDED`로 종결하고 작업지시 완료는 계보의 현재 잔량과 최종 산출을 기준으로 판정한다.
+11. 확정 사실은 update·delete하지 않고 원본을 연결한 취소·정정 사건으로 보정한다.
+12. `AuditEvent`는 설명 근거이며 재고·상태·계보의 진실 공급원으로 사용하지 않는다.
+13. 범용 event sourcing과 EPCIS 호환 계층은 현재 범위에 포함하지 않는다.
 
 ## Enforcement boundary
 
@@ -109,12 +119,14 @@
 |---|---|---|
 | 같은 행의 음수·합계·필수값 | PostgreSQL constraint | 모든 쓰기 경로에 적용 |
 | 식별자·commandId 중복 | unique constraint | race에서도 단일 결과 보장 |
-| 예약 합계·실제 투입 | application service + transaction + lock/isolation | 여러 행과 aggregate를 함께 확인 |
+| 요구량별 예약 합계·실제 투입 | application service + transaction + lock/isolation | WorkOrder·Material·요구량과 여러 행을 함께 확인 |
+| 공정 간 양품·불량·WIP 보존 | domain service + transaction + integration test | 선행 실적과 LOT 잔량을 함께 확인 |
+| 정정 누적 상한·원본 연결 | FK·unique constraint + transaction + integration test | 원본 보존과 여러 원장의 유효수량을 함께 확인 |
 | 상태 전이·완료 게이트 | domain service + integration test | 업무 의미와 오류 코드 필요 |
 | 계보 순환 | transaction 안의 graph query + test | cross-row `CHECK`로 보장할 수 없음 |
 | 권한과 행위자 | API guard + server session | client 입력을 신뢰하지 않음 |
 
-`TraceNode` 다형 참조 무결성과 공정별 복수 검사규격 mapping의 물리 schema는 각각 #13·#14 전 ADR에서 확정한다.
+`TraceNode` 다형 참조 무결성과 공정별 복수 검사규격 mapping의 물리 schema는 각각 #13·#22 전 ADR에서 확정한다.
 
 ## Consequences
 
@@ -129,14 +141,18 @@
 
 - 원장 합계와 projection의 일치 검증이 필요하다.
 - append-only 정정 모델은 단순 update보다 API와 UI가 복잡하다.
+- 진행 중 추가 예약을 지원하지 않으므로 첫 공정 시작 전에 필요한 자재를 예약해야 한다.
 - 계보 순환과 cross-row 예약 경쟁은 schema 선언만으로 해결되지 않는다.
 - full event sourcing이 아니므로 임의 시점의 전체 aggregate 재생은 제공하지 않는다.
 
 ## Validation
 
-- [제조 도메인 계약](../domain/manufacturing-domain-contract.md)의 `RULE-01`~`RULE-25`를 Given/When/Then으로 검토한다.
+- [제조 도메인 계약](../domain/manufacturing-domain-contract.md)의 `RULE-01`~`RULE-28`을 Given/When/Then으로 검토한다.
 - 예약 후 계보 0건, 실제 투입 후 원장·소비·edge·감사 각 1건을 확인한다.
 - 전량 출고로 닫힌 예약에서 미사용분을 반납해도 예약은 닫힌 채이고 onHand·순소비·계보만 보정되는지 확인한다.
+- WO-A의 예약을 WO-B에서 소비하거나 BOM 외 자재·요구량 초과를 예약하면 거부되는지 확인한다.
+- 1공정 투입 10·양품 8·불량 2 뒤 2공정 투입 10은 거부되고 8만 허용되는지 확인한다.
+- 6 EA 소비·edge에서 2 EA 반납 시 원본 6을 보존하면서 유효 소비·edge가 모두 4가 되고 부분 실패는 rollback되는지 확인한다.
 - 예약 자재의 격리·만료 후 저장 상태 변경 없이 readiness가 `READY → BLOCKED`로 투영되는지 확인한다.
 - transaction 중간 실패 시 부분 기록이 없는지 통합 테스트한다.
 - 완료·PASS LOT의 사후 격리에서 세 상태축이 보존되는지 확인한다.
@@ -146,7 +162,7 @@
 
 ## Revisit triggers
 
-- 다사업장, 단위 변환, 대체 자재 또는 재작업 route가 범위에 들어온다.
+- 다사업장, 단위 변환, 대체 자재, 진행 중 보충 예약 또는 재작업 route가 범위에 들어온다.
 - 외부 파트너와 EPCIS·B2MML 등 표준 메시지를 교환해야 한다.
 - 원장 합계 조회가 목표 데이터 규모에서 허용 성능을 충족하지 못한다.
 - 법적·규제 요구로 전자서명, 보존기간 또는 감사 추적 요건이 추가된다.
