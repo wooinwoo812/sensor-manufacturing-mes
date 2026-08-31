@@ -10,6 +10,9 @@
 작업지시, 재고, 생산실적, 검사와 LOT 계보를 일반 CRUD와 하나의 종합 상태로 구현하면 다음 충돌이 생긴다.
 
 - 예약만 했는데 실제 재고와 계보가 바뀐다.
+- 전량 출고 후 반납이 닫힌 예약을 다시 여는 것처럼 계산된다.
+- 저장된 `READY`가 자재 격리·만료 뒤에도 남아 실제 시작 가능성과 충돌한다.
+- 전량 분할·합류된 입력 LOT가 완료되지 못해 작업지시 완료를 영구 차단한다.
 - 생산 완료, 검사 합격과 사후 격리를 동시에 표현하지 못한다.
 - 기준 revision 변경이 과거 작업지시와 검사 판정을 바꾼다.
 - 잘못된 실적을 수정·삭제해 원인과 정정 이력을 잃는다.
@@ -22,6 +25,8 @@
 - 예약과 실제 물리 사건의 명확한 분리
 - 재고·계보·검사 결과의 재현성과 감사 가능성
 - 생산 진행과 현재 품질 사용성의 독립 표현
+- 총출고로 소진되는 예약과 정정 가능한 순소비량의 분리
+- 현재 사실에서 다시 계산할 수 있는 시작 readiness
 - PostgreSQL transaction과 constraint로 검증 가능한 범위
 - React 화면부터 API·DB·test까지 같은 용어 사용
 - 1인 포트폴리오에서 설명 가능한 구현 복잡도
@@ -48,7 +53,7 @@
 
 ### 2. 관계형 aggregate와 append-only 사실·projection 조합
 
-기준정보와 현재 업무 상태는 aggregate로 관리하되, 재고 transaction·실제 소비·계보 edge·검사 결과·감사 이벤트는 확정 사실로 추가한다. 현재 잔량과 가용성은 원장과 유효 예약에서 계산한다.
+기준정보와 현재 업무 상태는 aggregate로 관리하되, 재고 transaction·실제 소비·계보 edge·검사 결과·감사 이벤트는 확정 사실로 추가한다. 현재 잔량과 가용성은 원장과 유효 예약에서 계산한다. 예약은 총출고량으로 소진하고 반납·정정이 반영된 순소비량은 별도로 투영한다.
 
 - 장점: 관계형 무결성, transaction, 현재 조회와 이력 설명을 균형 있게 제공한다.
 - 비용: 명령 경계와 projection 검증이 필요하고 단순 CRUD보다 코드가 많다.
@@ -69,8 +74,12 @@
    ├─ 물리 수량이 움직였는가?
    │  ├─ 예 → InventoryTransaction과 실제 업무 사건 기록
    │  └─ 아니오 → 예약은 MaterialAllocation에만 기록
+   ├─ 현재 시작 가능한지 묻는가?
+   │  ├─ 예 → 선행 공정·예약·품질·만료에서 readiness 계산 후 명령에서 재검증
+   │  └─ 아니오 → 생산 진행 상태만 저장
    ├─ 자재·LOT·일련번호 관계가 실제로 생겼는가?
    │  ├─ 예 → event와 append-only LotRelation 생성
+   │  │        └─ 입력 잔량을 모두 사용했는가? → 입력 LOT SUPERSEDED
    │  └─ 아니오 → 계보를 만들지 않음
    ├─ 확정 사실이 잘못됐는가?
    │  ├─ 예 → 원본을 보존하고 취소·정정 사건 추가
@@ -86,10 +95,10 @@
 
 1. `InventoryTransaction`을 물리 재고의 진실 공급원으로 사용한다.
 2. `MaterialAllocation`은 예약만 표현하고 실제 출고와 계보를 만들지 않는다.
-3. 실제 투입은 출고 원장, `MaterialConsumption`, `CONSUME LotRelation`, 공정 시작과 감사를 한 transaction으로 기록한다.
-4. 생산 진행, 검사 실행·판정과 품질 disposition을 별도 상태 축으로 관리한다.
+3. 실제 투입은 출고 원장, `MaterialConsumption`, `CONSUME LotRelation`, 공정·생산 LOT·작업지시 상태와 감사를 한 transaction으로 기록한다. 예약잔량은 총출고로 소진하며 반납은 원 출고를 보존한 채 순소비와 계보만 보정한다.
+4. 생산 진행, 시작 readiness, 검사 실행·판정과 품질 disposition을 별도 상태 축 또는 projection으로 관리한다. readiness는 저장하지 않고 시작 명령에서 다시 검증한다.
 5. 발행된 BOM·route·검사규격 revision과 완료된 검사 결과는 불변으로 취급한다.
-6. 분할·합류·변환·일련번호는 사건과 append-only `LotRelation`으로 표현한다.
+6. 분할·합류·변환·일련번호는 사건과 append-only `LotRelation`으로 표현한다. 전량 변환 입력은 `SUPERSEDED`로 종결하고 작업지시 완료는 계보의 현재 잔량과 최종 산출을 기준으로 판정한다.
 7. 확정 사실은 update·delete하지 않고 원본을 연결한 취소·정정 사건으로 보정한다.
 8. `AuditEvent`는 설명 근거이며 재고·상태·계보의 진실 공급원으로 사용하지 않는다.
 9. 범용 event sourcing과 EPCIS 호환 계층은 현재 범위에 포함하지 않는다.
@@ -127,9 +136,12 @@
 
 - [제조 도메인 계약](../domain/manufacturing-domain-contract.md)의 `RULE-01`~`RULE-25`를 Given/When/Then으로 검토한다.
 - 예약 후 계보 0건, 실제 투입 후 원장·소비·edge·감사 각 1건을 확인한다.
+- 전량 출고로 닫힌 예약에서 미사용분을 반납해도 예약은 닫힌 채이고 onHand·순소비·계보만 보정되는지 확인한다.
+- 예약 자재의 격리·만료 후 저장 상태 변경 없이 readiness가 `READY → BLOCKED`로 투영되는지 확인한다.
 - transaction 중간 실패 시 부분 기록이 없는지 통합 테스트한다.
 - 완료·PASS LOT의 사후 격리에서 세 상태축이 보존되는지 확인한다.
 - 분할·합류·일련번호 fixture의 upstream·downstream 결과와 순환 거부를 확인한다.
+- 전량 분할·합류 입력이 `SUPERSEDED`가 되고 후속 잔량 LOT가 완료된 뒤 작업지시가 완료되는지 확인한다.
 - 새 검사규격 revision이 과거 판정 snapshot을 바꾸지 않는지 회귀 테스트한다.
 
 ## Revisit triggers

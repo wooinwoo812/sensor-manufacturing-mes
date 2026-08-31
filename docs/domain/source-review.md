@@ -2,8 +2,8 @@
 
 | 항목 | 내용 |
 |---|---|
-| 문서 상태 | `Reviewed v0.1` |
-| 기준일 | 2026-08-31 |
+| 문서 상태 | `Reviewed v1.0` |
+| 기준일 | 2026-09-01 |
 | 관련 Issue | [#2 제조 용어와 핵심 불변조건을 정의](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/2) |
 | 적용 범위 | 센서 제조 MES 포트폴리오의 용어·상태·계보·품질 계약 |
 
@@ -31,11 +31,11 @@
 |---|---|---|---|---|
 | `SRC-01` | [ISA, ISA-95 Standard](https://www.isa.org/standards-and-publications/isa-standards/isa-95-standard) | ISA-95는 제조 운영과 기업 기능 사이의 정보 교환, 공통 용어와 Level 3 제조운영관리 활동을 다룬다. | 생산·재고·품질 실행을 MES 범위로 묶고 ERP·설비제어를 비범위로 둔다. | ISA-95 전체 적합성 또는 인증을 주장하지 않는다. |
 | `SRC-02` | [OPC Foundation, OPC UA for ISA-95 Job Control](https://reference.opcfoundation.org/specs/OPC-10031-4/4/) | Job Order는 수행할 작업과 자재 요구량을 나타내며 Job Response는 실제 수행 결과와 Material Actual을 보고한다. | 작업지시의 계획·요구사항과 공정실적·실제 투입을 분리한다. | OPC UA 통신 모델이나 ISA-95 명칭을 그대로 복제하지 않는다. |
-| `SRC-03` | [SAP Help, Reservations](https://help.sap.com/docs/SAP_S4HANA_ON-PREMISE/91b21005dded4984bcccf4a69ae1300c/37485192f5d746f2bfe85d9ad00bebf3.html) | 예약은 나중의 출고를 위해 자재를 준비하도록 요청하며 목적·수량·필요일을 가진다. | `MaterialAllocation`은 가용량을 보류하지만 물리 출고나 계보를 만들지 않는다. | SAP 문서 구조·이동유형·회계처리를 구현하지 않는다. |
+| `SRC-03` | [SAP Help, Reservations](https://help.sap.com/docs/SAP_S4HANA_ON-PREMISE/7b24a64d9d0941bda1afa753263d9e39/24c6aa5257bf3258e10000000a423f68.html) | 예약은 미래의 특정 목적을 위해 자재를 출고 가능하게 준비하도록 창고·사업장에 요청한다. 예약 item은 자재·수량·필요일을 가진다. | `MaterialAllocation`은 가용량을 보류하지만 물리 출고나 계보를 만들지 않는다. | SAP 문서 구조·이동유형·회계처리를 구현하지 않는다. |
 | `SRC-04` | [SAP Help, Goods Issue for the Manufacturing Order](https://help.sap.com/docs/SAP_S4HANA_ON-PREMISE/f899ce30af9044299d573ea30b533f1c/c339c95360267614e10000000a174cb4.html) | 제조오더 출고는 창고 재고와 예약수량을 실제 출고량만큼 줄인다. | 실제 출고·투입 시 예약잔량과 물리 재고를 함께 줄이는 계약을 둔다. | 모든 제조업이 같은 출고 시점과 절차를 쓴다고 일반화하지 않는다. |
 | `SRC-05` | [GS1, EPCIS 2.0.1 TransformationEvent](https://ref.gs1.org/standards/epcis/2.0.1/) | 변환 이벤트는 일부 또는 전체 투입 객체와 산출 객체의 관계, 수량과 공통 사건 식별자를 표현할 수 있다. | 소비·분할·합류·변환을 사건과 append-only 관계로 표현한다. | EPC·GS1 식별체계와 EPCIS API 적합성을 구현하지 않는다. |
 | `SRC-06` | [GS1, EPCIS 2.0.1 ErrorDeclaration](https://ref.gs1.org/standards/epcis/2.0.1/) | 오류 선언은 과거 이벤트를 수정하지 않고 오류 선언 시각·사유·교정 이벤트를 추가해 기존 이력을 보존한다. | 확정 실적·검사·계보의 덮어쓰기를 막고 취소·정정 사건으로 보정한다. | EPCIS의 오류 선언 구조를 그대로 사용하지 않는다. |
-| `SRC-07` | [NISTIR 8102, Quality Information Framework](https://www.nist.gov/publications/end-end-demonstration-quality-information-framework-qif-standard-international) | QIF는 분리된 제조 품질 언어 사이의 정보 손실을 줄이고 검사 계획부터 결과까지 연결하는 정보 모델을 다룬다. | 검사규격 revision, 명목 기준, 실제 측정값과 판정 당시 snapshot을 연결한다. | QIF·ISO 23952 적합성 또는 정밀측정 전체 기능을 주장하지 않는다. |
+| `SRC-07` | [NISTIR 8127, End-to-End QIF Technology Survey](https://nvlpubs.nist.gov/nistpubs/ir/2016/NIST.IR.8127.pdf) | 품질 정보 수명주기를 설계·계획·검사·분석으로 설명하고, 계획 명목점과 실제 측정점의 대응 및 결과의 명목·실측·추적정보를 다룬다. | 검사규격 revision, 명목 기준, 실제 측정값과 판정 당시 snapshot을 연결한다. | QIF 적합성 또는 정밀측정 전체 기능을 주장하지 않는다. |
 | `SRC-08` | [스마트공장 사업관리시스템, 시범공장 사례](https://www.smart-factory.kr/eng/factory.do?menuId=04) | 공개 사례에서 MES의 생산정보 수집, LOT 추적과 실적 모니터링을 제조 운영 가치로 제시한다. | LOT 추적과 예외 중심 운영 화면이 국내 제조 포트폴리오 주제에 부합하는지 확인한다. | 사례 기업의 수치·화면·공정을 fixture로 사용하지 않는다. |
 | `SRC-09` | [PostgreSQL 18, Constraints](https://www.postgresql.org/docs/18/ddl-constraints.html) | 같은 행의 수량식은 `CHECK`로 제한할 수 있지만 다른 행을 참조하는 `CHECK`는 지속적 정합성을 보장하지 못한다. | 행 내부 수량은 제약으로, 예약 합계·계보 순환은 transaction·query·test로 나눠 강제한다. | 아직 ORM schema나 trigger 방식을 확정하지 않는다. |
 | `SRC-10` | [PostgreSQL, Recursive Queries and Cycle Detection](https://www.postgresql.org/docs/current/queries-with.html#QUERIES-WITH-CYCLE) | 재귀 CTE는 그래프 경로와 순환을 탐지할 수 있다. | 계보 조회와 새 edge의 순환 거부가 PostgreSQL에서 검증 가능한지 확인한다. | 물리 schema와 성능 전략은 #13 ADR 전까지 확정하지 않는다. |
@@ -53,16 +53,27 @@
 | 검사 계획의 기준과 실제 측정·판정 근거를 함께 보존한다. | `SYNTHESIS` | `SRC-07` |
 | 정확한 상태명·수량식·완료 게이트·격리 흐름은 프로젝트가 정한다. | `PROJECT` | 공개 근거는 특정 애플리케이션 상태기계를 강제하지 않음 |
 
-## 5. 기존 계약 반례 재검증
+## 5. 계약 반례 전수 재검증
 
 | ID | 기존 표현의 위험 | 반례 | #2 결정 |
 |---|---|---|---|
 | `CHK-01` | 검사 상태에 진행과 판정이 혼재 | 입력 중인 검사는 `IN_PROGRESS`이면서 판정은 아직 없음 | 실행 상태와 판정 결과를 별도 축으로 분리 |
 | `CHK-02` | 자재 LOT의 `EXHAUSTED`를 수동 상태로 저장 | 반납·증가조정 후 재고가 다시 생기면 상태와 원장이 충돌 | `OPEN`·`EXHAUSTED`는 원장 잔량 projection으로 계산 |
-| `CHK-03` | 작업지시만 취소되고 하위 생산 LOT는 상태가 남음 | 릴리스 후 실적 없이 취소하면 `READY` LOT가 고아 상태가 됨 | 미착수 생산 LOT를 같은 transaction에서 `CANCELLED` 처리 |
+| `CHK-03` | 작업지시만 취소되고 하위 생산 LOT는 상태가 남음 | 릴리스 후 실적 없이 취소하면 `PLANNED` LOT가 고아 상태가 됨 | 미착수 생산 LOT를 같은 transaction에서 `CANCELLED` 처리 |
 | `CHK-04` | `HOLD`, `QUARANTINED`, `REJECTED`의 차이가 모호 | 판정 대기 보류와 사후 부적합 격리를 같은 의미로 읽음 | 보류·사건 기반 격리·최종 거부의 진입 근거를 분리 |
 | `CHK-05` | 관계 수량에 단위가 없음 | 투입 자재와 산출품이 서로 다른 단위를 사용 | 모든 수량에 기준단위 또는 명시적 `uom`을 결합 |
 | `CHK-06` | 검사규격 revision만 참조하면 과거 판정 재현이 불완전 | 기준정보가 잘못 수정되거나 비활성화됨 | revision 불변성과 판정 당시 기준 snapshot을 함께 보존 |
+| `CHK-07` | 생산 LOT의 `READY`를 저장 상태로 관리 | 예약 자재가 사후 격리·만료되면 저장된 `READY`와 실제 시작 가능 여부가 충돌 | 생산 진행 상태와 시작 readiness projection을 분리 |
+| `CHK-08` | 예약잔량을 순소비량으로 계산 | 전량 출고해 닫힌 예약에서 미사용분을 반납하면 예약이 다시 열린 것처럼 보임 | 예약은 총출고량으로 소진하고 순소비량은 별도 계산 |
+| `CHK-09` | LOT disposition만 격리 진실 공급원으로 사용 | 완제품 일련번호에는 LOT disposition이 없어 출하 차단을 표현하지 못함 | `PENDING`·`SCRAPPED` QuarantineTarget을 모든 TraceNode의 공통 차단 근거로 사용 |
+| `CHK-10` | 계보 acceptance에 변환이 있으나 fixture가 없음 | 분할·합류 예시만으로 1입력·1출력 변환을 검토할 수 없음 | 동일 단위 `TRANSFORM` fixture와 비범위 조건 추가 |
+| `CHK-11` | 작업지시 릴리스에 하위 LOT 존재만 요구 | LOT 계획수량 합계가 작업지시 계획수량보다 작거나 클 수 있음 | 릴리스 시 하나 이상 LOT와 계획수량 합계 일치를 요구 |
+| `CHK-12` | 상위 기획과 도메인 계약의 revision 엔터티명이 다름 | `Bom`과 `BomRevision`을 서로 다른 모델로 구현할 위험 | `BomRevision`·`ProcessRouteRevision`·`ProcessStepRevision`으로 통일 |
+| `CHK-13` | 실적 없는 작업지시 취소가 대기 공정·검사를 닫지 않음 | 작업지시는 취소됐지만 실행·검사 queue에 대기 항목이 남음 | 예약·LOT·대기 공정·검사·감사를 한 취소 transaction으로 정리 |
+| `CHK-14` | 작업지시 완료가 모든 소속 LOT의 `COMPLETED`만 요구 | 전량 분할·합류된 입력 LOT는 잔량이 없지만 완료 검사도 없어 작업지시가 영구 차단됨 | 전량 변환 입력의 `SUPERSEDED`와 계보 종결 기반 완료 projection 추가 |
+| `CHK-15` | 예약된 자재 LOT 격리 시 기존 예약 처리 불명확 | 예약을 숨기면 영향 작업을 놓치고, 그대로 투입하면 품질 차단이 깨짐 | 예약은 영향 근거로 유지하되 투입 차단, 폐기 시 예약 해제까지 원자 처리 |
+| `CHK-16` | 격리 case 자체를 `RELEASED` 또는 `SCRAPPED`로 종결 | 같은 사건에서 일부 대상 해제·일부 대상 폐기를 표현할 수 없음 | case는 `RESOLVED`, 대상별 처분은 `RELEASED`·`SCRAPPED`로 분리 |
+| `CHK-17` | `SCRAPPED` 격리대상을 일반 종결로만 취급 | 완제품이 폐기 후 다시 사용 가능으로 보이거나 진행 중 LOT가 작업지시를 영구 대기시킴 | 폐기를 영구 차단 근거와 생산 진행 종결로 반영 |
 
 ## 6. 미결정 항목
 
