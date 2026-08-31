@@ -9,11 +9,11 @@
 ## 핵심 시나리오
 
 ```text
-생산계획 → 자재 할당 → 작업지시 → 공정 실적
-         → 품질검사 → 재공품·재고 → 완료·출하 승인
+작업지시 릴리스 → 자재 예약 → 실제 출고·투입 → 공정 실적
+                → 품질검사 → 재공품·재고 → 완료·출하 승인
 ```
 
-불합격 자재 LOT가 발견되면 해당 자재를 사용한 생산 LOT와 완제품을 역추적하고, 영향 범위를 격리하는 흐름까지 구현합니다.
+불합격 자재 LOT가 발견되면 해당 자재를 사용한 생산 LOT와 완제품을 downstream으로 추적하고, 영향 범위를 격리하는 흐름까지 구현합니다.
 
 ## 이 프로젝트가 증명하는 것
 
@@ -34,7 +34,7 @@
 
 ## 제품 범위
 
-MVP의 상세 사용자·업무 흐름·불변조건은 [제품 비전](docs/product/vision.md)에 정의합니다. 개발 절차는 [Engineering Workflow](docs/engineering/workflow.md)와 [CONTRIBUTING.md](CONTRIBUTING.md)를 따릅니다.
+MVP의 상세 사용자·업무 흐름·불변조건은 [제품 비전](docs/product/vision.md)과 [제품·UX·기술 기획 크로스검토본](docs/product/product-plan-cross-review.md)에 정의합니다. 정보구조, 저해상도 wireframe, 상태 표현과 반응형 기준은 [UI 레이아웃·상태 계약](docs/product/ui-layout-contracts.md)을 따릅니다. 개발 절차는 [Engineering Workflow](docs/engineering/workflow.md)와 [CONTRIBUTING.md](CONTRIBUTING.md)를 따릅니다.
 
 ## 공개 범위
 
