@@ -2,7 +2,7 @@
 
 | 항목 | 내용 |
 |---|---|
-| 문서 상태 | `Review-ready v1.2` |
+| 문서 상태 | `Review-ready v1.3` |
 | 기준일 | 2026-09-01 |
 | 관련 Issue | [#2 제조 용어와 핵심 불변조건을 정의](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/2) |
 | 공개 근거 | [제조 도메인 공개 근거 재검증](source-review.md) |
@@ -227,7 +227,8 @@ HOLD → ACCEPTED | REJECTED | QUARANTINED
 QUARANTINED → ACCEPTED | HOLD | REJECTED
 ```
 
-- `READY`는 저장 상태가 아니다. 선행 공정 완료, 해당 route 위치의 필수 `ROUTE_ADVANCE` 검사 유효 `PASS`, 필수 예약 충족, 예약 자재의 품질 disposition·활성 격리·만료 여부를 현재 사실에서 계산한다.
+- `READY`는 저장 상태가 아니다. 대상 공정의 선행조건, 필수 예약 충족, 예약 자재의 품질 disposition·활성 격리·만료 여부를 현재 사실에서 계산한다.
+- 첫 공정에는 선행 공정과 선행 `ROUTE_ADVANCE` 검사가 없다. 후속 공정은 바로 직전 `ProcessStepRevision`의 실행이 `COMPLETED`이고 그 직전 공정에 귀속된 모든 필수 `ROUTE_ADVANCE` 검사의 유효 판정이 `PASS`여야 `READY`다.
 - 시작할 수 없으면 `BLOCKED`와 기계 판독 가능한 `reasonCodes[]`를 반환한다. 예: `PREREQUISITE_INCOMPLETE`, `INSPECTION_PENDING`, `INSPECTION_FAILED`, `INSPECTION_HELD`, `MATERIAL_SHORTAGE`, `MATERIAL_QUARANTINED`, `MATERIAL_EXPIRED`.
 - 실제 투입과 공정 시작 transaction이 성공할 때만 진행 상태가 `PLANNED → IN_PROCESS`로 바뀐다.
 - readiness는 사용자 안내용 projection이다. 실제 시작 명령은 예약과 재고를 다시 잠그고 검증하며, 동시 명령으로 조건이 달라지면 명시적 충돌을 반환한다.
@@ -293,7 +294,7 @@ PENDING → IN_PROGRESS → COMPLETED
     └────────────────→ CANCELLED  (작업지시 취소에 의해서만)
 ```
 
-- 선행 공정이 완료되지 않거나 해당 route 위치의 필수 `ROUTE_ADVANCE` 검사 유효 판정이 `PASS`가 아니면 후속 공정을 시작하거나 완료할 수 없다.
+- 첫 공정은 선행 검사 없이 시작한다. 후속 공정은 바로 직전 공정이 완료되지 않았거나 직전 공정의 필수 `ROUTE_ADVANCE` 검사 유효 판정이 `PASS`가 아니면 시작하거나 완료할 수 없다.
 - 한 생산 LOT와 `ProcessStepRevision` 조합에는 유효한 `ProcessExecution`이 정확히 하나이며 MVP는 한 공정의 부분 완료를 지원하지 않는다.
 - `routeWipAvailable`은 생산 LOT이 현재 route 위치에서 보유한 `traceRemaining`이다. 첫 공정·후속 공정·분할 또는 합류로 생성된 LOT 모두 시작 transaction에서 이 값을 잠그고 `ProcessExecution.inputQuantity`로 snapshot한다.
 - 직전 공정의 유효 양품수량은 분할·합류·변환 전 공정 WIP의 상한 근거다. 다음 공정은 분할 전 양품수량을 그대로 요구하지 않고, 현재 LOT에 남거나 새 LOT로 이동한 `routeWipAvailable`만 투입한다.
@@ -324,8 +325,9 @@ PENDING → IN_PROGRESS → COMPLETED
 - `FAIL`은 자동으로 과거 사실을 삭제하지 않는다. 품질 담당자가 `HOLD` 또는 `REJECTED` disposition을 결정하고 근거를 남긴다.
 - 원 `Inspection`과 `InspectionResult`는 수정하지 않는다. 정정은 하나의 `CorrectionEvent` 아래 `InspectionCorrection`과 전체 항목 `InspectionCorrectionResult` snapshot을 추가하고 server가 전체 판정을 다시 계산한다.
 - 유효 검사 snapshot은 원본에서 시작해 선형으로 이어진 정정 chain의 마지막 version이다. 직전 유효 version에는 후속 정정이 최대 하나만 연결되며 fork·순환·version 건너뛰기를 거부한다.
-- 후속 공정 시작, 계보 변환, 일련번호 생성 또는 생산 LOT 완료가 이미 원 판정에 의존했다면 검사 정정을 거부한다. 그 뒤 발견한 문제는 `QualityIncident`와 격리로 처리해 과거 수행 사실을 바꾸지 않는다.
-- 검사 정정은 유효 판정만 바꾸며 품질 disposition을 암묵적으로 되돌리지 않는다. 필요한 disposition 전이는 별도 권한·사유·감사를 가진 명령으로 수행한다.
+- `correctInspection`은 대상 생산 LOT의 `qualityDisposition = PENDING`이고 후속 공정 시작, 계보 변환, 일련번호 생성 또는 생산 LOT 완료가 아직 원 판정에 의존하지 않았을 때만 허용한다.
+- `ACCEPTED`·`HOLD`·`REJECTED`·`QUARANTINED`로의 품질 disposition 결정은 검사 판정의 후속 의존 사건이다. 이미 disposition이 결정됐거나 다른 의존 사건이 있으면 검사 정정을 거부하고 `QualityIncident`와 격리로 처리해 과거 수행 사실을 바꾸지 않는다.
+- 검사 정정 transaction은 Inspection과 ProductionLot을 잠근 뒤 유효 version, `qualityDisposition = PENDING`과 의존 사건 부재를 다시 검증한다. 정정 뒤 disposition은 `PENDING`으로 유지하며 별도 권한·사유·감사를 가진 품질 결정 명령으로만 바꾼다.
 - 자재 LOT의 전체 수입검사는 비범위지만 `PENDING`에서 벗어나는 최소 품질 결정은 행위자·근거·감사이력을 요구한다.
 
 ### 5.6 부적합 사건과 격리
@@ -423,7 +425,7 @@ QuarantineTarget: PENDING → RELEASED | SCRAPPED
 - 확정된 출고·투입·공정 완료·검사 판정·계보 관계는 update·delete하지 않는다.
 - 업무상 반대 사건으로 취소 가능한 경우 취소 transaction을 추가한다.
 - 잘못 기록된 소비·계보는 원본을 유지하고 `CorrectionEvent`와 원본별 정정행을 추가한다. 정정행의 수량은 양수이며 누적 정정량은 원 수량을 초과할 수 없다.
-- 잘못 기록된 검사는 원본을 유지하고 `CorrectionEvent`·`InspectionCorrection`·전체 `InspectionCorrectionResult` snapshot을 한 transaction에서 추가한다. server가 고정 기준과 정정 측정값으로 유효 판정을 다시 계산한다.
+- 잘못 기록된 검사는 원본을 유지하고 `qualityDisposition = PENDING`·의존 사건 부재를 잠금 뒤 재검증해 `CorrectionEvent`·`InspectionCorrection`·전체 `InspectionCorrectionResult` snapshot을 한 transaction에서 추가한다. server가 고정 기준과 정정 측정값으로 유효 판정을 다시 계산한다.
 - `effectiveConsumption = originalConsumption - Σ MaterialConsumptionCorrection.quantity`다.
 - `effectiveRelationQuantity = originalRelation.quantity - Σ LotRelationCorrection.quantity`다. 기본 계보 조회는 유효수량이 0보다 큰 edge만 탐색하고 상세·감사 조회는 원 수량·누적 정정·유효수량을 함께 표시한다.
 - `RETURN_UNUSED`는 반납 원장, CorrectionEvent, 소비 정정, 원 `CONSUME` edge 정정과 AuditEvent의 수량이 같아야 하며 한 transaction에서 생성한다.
@@ -450,10 +452,11 @@ QuarantineTarget: PENDING → RELEASED | SCRAPPED
 | `SPLIT` | 생산 LOT 정확히 1개 | 생산 LOT 2개 이상 | 동일 WorkOrder·Product·route 위치·`baseUom` |
 | `MERGE` | 생산 LOT 2개 이상 | 생산 LOT 정확히 1개 | 동일 WorkOrder·Product·route 위치·`baseUom` |
 | `TRANSFORM` | 생산 LOT 정확히 1개 | 생산 LOT 정확히 1개 | 동일 `baseUom`, 입력·출력 수량 보존 |
-| `SERIALIZE` | 생산 LOT 정확히 1개 | FinishedUnit 1개 이상 | Product `baseUom = EA`, 일련번호마다 1 EA |
+| `SERIALIZE` | 생산 LOT 정확히 1개 | FinishedUnit 1개 이상 | Product `baseUom = EA`, 최종 route 공정 완료, 일련번호마다 1 EA |
 
 - `SPLIT`·`MERGE`·`TRANSFORM` 입력은 모두 `IN_PROCESS`여야 하며 `HOLD`·`QUARANTINED`·`REJECTED`이면 거부한다.
 - 모든 계보 사건의 입력 LOT에는 `IN_PROGRESS` 공정이 없어야 하고 현재 route 위치의 필수 `ROUTE_ADVANCE` 검사 유효 판정이 `PASS`여야 한다. `PENDING`·`IN_PROGRESS`·`FAIL`·`HOLD` 검사는 사건 전체를 차단한다.
+- `SERIALIZE` 입력은 `IN_PROCESS`이고 `currentRoutePosition`이 릴리스된 `ProcessRouteRevision`의 마지막 `ProcessStepRevision`과 같아야 한다. 최종 공정 실행이 `COMPLETED`이고 미완료 후속 공정이 없음을 transaction에서 다시 검증한다. 중간 공정 LOT이나 최종 공정 미완료 LOT의 일련번호 생성은 거부한다.
 - 출력 생산 LOT는 입력과 같은 WorkOrder·Product·release revision·현재 route 위치를 참조하고 `IN_PROCESS + PENDING`으로 생성한다.
 - 완료된 선행 공정과 검사 사실은 입력 LOT에 보존하고 출력 LOT로 복제하지 않는다. 출력 LOT의 완료 게이트는 upstream event와 route 위치를 따라 선행 근거를 조회한다.
 - 한 사건이 입력 LOT의 `traceRemaining`을 모두 사용하면 입력 LOT를 같은 transaction에서 `SUPERSEDED`로 전이한다. 일부만 사용하면 잔량과 함께 `IN_PROCESS`를 유지한다.
@@ -548,9 +551,13 @@ PL-DEMO-001-B 2 EA ─┘
 PL-DEMO-001-A·PL-DEMO-001-B → SUPERSEDED
 PL-DEMO-002 → IN_PROCESS + PENDING
 
+PL-DEMO-002 최종 route 공정 COMPLETED
+PL-DEMO-002 최종 공정 ROUTE_ADVANCE 검사 PASS
 PL-DEMO-002 --SERIALIZE 1 EA / EVT-DEMO-105--> SN-DEMO-0001
 PL-DEMO-002 --SERIALIZE 1 EA / EVT-DEMO-105--> SN-DEMO-0002
 ```
+
+PL-DEMO-002가 중간 route 위치이거나 최종 공정이 미완료이면 같은 `SERIALIZE` 요청은 거부한다. 먼저 생성된 FinishedUnit이 이후 원천 LOT 완료만으로 미수행 공정을 건너뛰는 경로는 존재하지 않는다.
 
 #### 변환
 
@@ -577,7 +584,7 @@ MVP의 변환 fixture는 동일 기준단위의 입력·출력 수량을 보존�
 
 지원 판정방식은 `BETWEEN_INCLUSIVE`, `MIN_INCLUSIVE`, `MAX_INCLUSIVE`, `EXACT`, `ATTRIBUTE_SET`으로 제한한다. 규격이 새 revision으로 바뀌어도 과거 결과를 자동 재판정하지 않는다.
 
-판정 정정은 원본 항목을 수정하지 않고 전체 snapshot version을 추가한다. 예를 들어 원본 `PASS`의 측정값 오기입을 `FAIL`로 정정하면 원본과 정정 version을 모두 조회할 수 있고, 유효 판정은 마지막 정정의 `FAIL`이다. 정정 전에 이미 다음 공정·계보·완료가 원 판정에 의존했다면 정정 대신 `QualityIncident`를 생성한다.
+판정 정정은 원본 항목을 수정하지 않고 전체 snapshot version을 추가한다. 예를 들어 원본 `PASS`·`qualityDisposition = PENDING`의 측정값 오기입을 의존 사건 전에 `FAIL`로 정정하면 원본과 정정 version을 모두 조회할 수 있고, 유효 판정은 마지막 정정의 `FAIL`이며 disposition은 `PENDING`을 유지한다. 이미 disposition이 결정됐거나 다음 공정·계보·완료가 원 판정에 의존했다면 정정 대신 `QualityIncident`를 생성한다.
 
 ## 9. 핵심 불변조건과 Given/When/Then
 
@@ -603,7 +610,7 @@ MVP의 변환 fixture는 동일 기준단위의 입력·출력 수량을 보존�
 | `RULE-18` | 오래된 version의 수정은 최신값을 덮지 않는다. | aggregate version 7 | version 6으로 수정 | 충돌과 최신 version 반환 |
 | `RULE-19` | 계보 edge는 자기참조·중복·순환을 허용하지 않는다. | A→B→C 존재 | C→A 생성 | 거부, path 근거 반환 |
 | `RULE-20` | 계보 사건은 cardinality·호환성·수량 보존을 지키고 누적 outgoing이 입력 잔량을 넘지 않는다. | A: 입력 합계 10 EA; B: 입력 잔량 4 EA; C: SPLIT 입력 1·출력 1 | A: 출력 합계 9 EA; B: 5 EA 추가; C: 사건 확정 | 세 사건 모두 전체 거부 |
-| `RULE-21` | 완제품 일련번호는 고유하고 원천 LOT 하나를 가진다. | SN-DEMO-0001 존재 | 같은 번호 또는 두 번째 SERIALIZE | 거부 |
+| `RULE-21` | 완제품 일련번호는 고유하고 최종 route 공정을 완료한 `IN_PROCESS` 원천 LOT 하나를 가진다. | 2공정 route의 1공정만 완료한 LOT 또는 SN-DEMO-0001 존재 | 중간 공정 LOT에서 SERIALIZE 또는 같은 번호 재생성 | 최종 route 미도달 또는 중복으로 거부 |
 | `RULE-22` | 검사 결과는 적용 revision과 기준 snapshot을 보존한다. | 규격 r2로 PASS | r3 발행 | 과거 PASS·기준 유지 |
 | `RULE-23` | 사후 부적합은 과거 완료·합격을 지우지 않고 현재 사용성을 차단한다. | COMPLETED·PASS LOT | incident 격리 | 완료·PASS 유지, disposition QUARANTINED |
 | `RULE-24` | 격리·폐기·보류·거부·만료·종결 LOT의 available은 0이다. | onHand 20, reserved 5 | PENDING quarantine target 생성 | available 0, reserved 5는 보이되 투입 차단, 기존 소비 이력 유지 |
@@ -612,8 +619,8 @@ MVP의 변환 fixture는 동일 기준단위의 입력·출력 수량을 보존�
 | `RULE-27` | 공정 불량수량은 즉시 생산 폐기되어 후속 공정·계보 산출에 다시 포함될 수 없다. | A: 1공정 양품 8·불량 2; B: 양품 0·불량 10 | A: 후속 투입·분할 합계 9; B: 공정 완료 | A는 유효 WIP 8 초과로 거부, B의 LOT은 SCRAPPED·REJECTED 종결 |
 | `RULE-28` | 정정은 원본을 보존하고 누적 정정량과 연결된 원장·소비·edge 수량을 원자적으로 제한한다. | 출고·소비·CONSUME 6, 기존 정정 1 | 2 반납 중 edge 정정 실패 또는 6 추가 정정 | 전체 rollback 또는 원 수량 초과 거부, 유효수량 일치 유지 |
 | `RULE-29` | 부분 분할 뒤 각 LOT의 다음 공정 투입은 분할 전 양품이 아니라 각자의 현재 route WIP와 같아야 한다. | 1공정 양품 8 뒤 4만 자식 LOT로 분할 | 부모·자식의 2공정 시작 | 각 4 EA만 허용하고 합계 8 보존 |
-| `RULE-30` | 필수 `ROUTE_ADVANCE` 검사의 유효 `PASS` 전에는 다음 공정과 계보 변환을 수행할 수 없다. | 1공정 완료, 필수 검사 FAIL | 2공정 시작 또는 SPLIT | 동일 검사 근거로 전체 거부 |
-| `RULE-31` | 검사 정정은 원본 보존 선형 version이며 의존 사건 생성 뒤에는 품질 사건으로 전환한다. | 원 검사 PASS, 후속 사건 없음 | 측정값 정정으로 FAIL | 원본 보존·정정 snapshot 추가·유효 FAIL; 후속 사건이 있으면 정정 거부 |
+| `RULE-30` | 첫 공정은 선행 검사 없이 시작하고, 직전 공정의 필수 `ROUTE_ADVANCE` 유효 `PASS` 전에는 후속 공정과 계보 변환을 수행할 수 없다. | A: 첫 공정 대기; B: 1공정 완료·필수 검사 FAIL | A: 첫 공정 시작; B: 2공정 시작 또는 SPLIT | A 허용, B는 직전 검사 근거로 전체 거부 |
+| `RULE-31` | 검사 정정은 `qualityDisposition = PENDING`이고 의존 사건이 없을 때만 원본 보존 선형 version으로 허용한다. | A: 원 검사 PASS·PENDING·의존 사건 없음; B: 원 검사 FAIL 뒤 REJECTED | PASS를 FAIL로 정정 | A는 원본 보존·유효 FAIL·PENDING 유지, B는 정정 거부 후 QualityIncident 안내 |
 | `RULE-32` | 자재 요구량은 계획수량과 제품 기준단위당 소요량의 정확한 십진 곱이며 단위 불일치·초과 정밀도·암묵적 반올림을 허용하지 않는다. | 계획 3 EA, 단위당 0.125 KG | 작업지시 릴리스 | 0.375 KG snapshot; 자재 단위 불일치나 소수 6자리 초과면 전체 거부 |
 | `RULE-33` | 누적 출고와 해제는 예약량을 초과할 수 없고 두 명령은 같은 Allocation 잠금에서 직렬화된다. | 예약 10, 기존 출고 4 | 해제 6과 출고 1 동시 요청 | 하나만 먼저 성공하고 나머지는 최신 잔량 기준 거부 |
 
@@ -640,8 +647,8 @@ MVP의 변환 fixture는 동일 기준단위의 입력·출력 수량을 보존�
 | 기준 revision·요구사항·릴리스 | [#22](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/22) | `RULE-08`, `RULE-17`, `RULE-18`, `RULE-25`, `RULE-32` | 정확한 요구량·snapshot·초기 LOT·상태·감사 원자성 |
 | 수량 원장·부분 예약 | #12 | `RULE-01`~`RULE-04`, `RULE-07`, `RULE-17`, `RULE-18`, `RULE-24`~`RULE-26`, `RULE-33` | 동시 예약·출고/해제 경쟁·요구량 초과·소유권·품질 차단 |
 | 실제 투입·공정 transaction | #13 | `RULE-05`, `RULE-06`, `RULE-09`~`RULE-12`, `RULE-16`, `RULE-17`, `RULE-25`~`RULE-30`, `RULE-33` | 중간 실패 rollback·WorkOrder 귀속·부분 분할 WIP·검사 gate·정정 |
-| 규격 snapshot·판정·완료 게이트 | #14 | `RULE-13`~`RULE-16`, `RULE-22`, `RULE-23`, `RULE-25`, `RULE-27`, `RULE-30`, `RULE-31` | 경계값·revision 변경·공정 gate·원본 보존 정정·종결 LOT 완료 |
-| 분할·합류·일련번호 계보 | #15 | `RULE-16`, `RULE-19`~`RULE-21`, `RULE-25`, `RULE-27`~`RULE-30` | 순환·중복·부분 분할 WIP·검사 gate·유효수량·양방향 조회 |
+| 규격 snapshot·판정·완료 게이트 | #14 | `RULE-13`~`RULE-16`, `RULE-22`, `RULE-23`, `RULE-25`, `RULE-27`, `RULE-30`, `RULE-31` | 경계값·revision 변경·직전 공정 gate·PENDING 정정·종결 LOT 완료 |
+| 분할·합류·일련번호 계보 | #15 | `RULE-16`, `RULE-19`~`RULE-21`, `RULE-25`, `RULE-27`~`RULE-30` | 순환·중복·부분 분할 WIP·최종 route SERIALIZE·검사 gate·양방향 조회 |
 | 사후 부적합·격리 | #16 | `RULE-03`, `RULE-23`~`RULE-25`, `RULE-27` | 완료·합격 보존, downstream 차단과 생산 폐기 |
 | 감사 검색·redaction | #17 | `RULE-16`, `RULE-17`, `RULE-25` | 중요 명령 누락·권한 없음·민감값 제외 |
 
@@ -657,7 +664,9 @@ MVP의 변환 fixture는 동일 기준단위의 입력·출력 수량을 보존�
 - [x] 출고와 예약 해제가 경합해도 누적합이 예약량을 넘지 않고 오류를 0으로 숨기지 않는다. — §5.3, §6.2~§6.3
 - [x] 소비·분할·합류·변환·일련번호 fixture를 표현할 수 있다. — §7.4
 - [x] 공정 중·최종 검사와 revision snapshot을 설명할 수 있다. — §5.5, §8
-- [x] 공정 중 필수 검사가 다음 공정과 계보 변환을 차단하고 판정 정정이 원본 보존 version으로 표현된다. — §5.5, §6.4, §7.2, §8
+- [x] 첫 공정은 선행 검사 없이 시작하고 공정 중 필수 검사가 후속 공정과 계보 변환을 차단한다. — §5.2, §5.4, §5.5, §7.2
+- [x] `SERIALIZE`는 최종 route 공정을 완료한 `IN_PROCESS` LOT에서만 가능하다. — §7.2, §7.4
+- [x] 검사 정정은 `qualityDisposition = PENDING`이고 의존 사건이 없을 때만 원본 보존 version으로 표현된다. — §5.5, §6.4, §8
 - [x] BOM 단위당 소요량에서 작업지시 필요수량을 단위·십진 정밀도·무반올림 규칙으로 계산한다. — §3.2, §6.1
 - [x] 주요 상태의 허용·금지 전이가 정의되어 있다. — §5
 - [x] 최소 15개 불변조건이 Given/When/Then과 연결되어 있다. — §9의 33개 규칙

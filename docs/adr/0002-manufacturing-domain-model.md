@@ -16,11 +16,14 @@
 - 공정별 내부 합계는 맞지만 선행 공정 불량수량이 후속 공정에서 다시 투입된다.
 - 일부만 분할한 부모 LOT가 분할 전 양품수량을 다음 공정 투입으로 요구해 영구 차단된다.
 - 공정 중 필수 검사가 끝나지 않아도 다음 공정과 계보 변환을 실행할 수 있다.
+- 검사 gate의 기준 공정이 모호하면 첫 공정이 자기 검사 PASS를 시작 전에 요구해 교착된다.
+- 최종 route 도달 조건 없이 `SERIALIZE`하면 중간 공정을 건너뛴 완제품이 이후 원천 LOT 완료로 사용 가능해진다.
 - 다른 작업지시 또는 BOM 외 자재의 예약을 현재 공정에서 소비할 수 있다.
 - BOM 단위당 소요량에서 작업지시 자재 요구량을 만드는 산식·단위·반올림 규칙이 없다.
 - 예약잔량의 포화 계산이 출고와 해제의 누적 초과를 0으로 숨긴다.
 - 반납이 원 소비와 양수 `CONSUME` edge를 어떤 방식으로 보정하는지 재현할 수 없다.
 - 검사 판정을 보존하면서 어떤 version이 유효한지 계산할 정정 모델이 없다.
+- 검사 정정 전에 품질 disposition이 이미 결정되면 유효 판정과 되돌릴 수 없는 disposition이 모순될 수 있다.
 - 생산 완료, 검사 합격과 사후 격리를 동시에 표현하지 못한다.
 - 기준 revision 변경이 과거 작업지시와 검사 판정을 바꾼다.
 - 잘못된 실적을 수정·삭제해 원인과 정정 이력을 잃는다.
@@ -88,15 +91,16 @@
    │  │        └─ 다음 input → 분할·합류가 반영된 현재 LOT의 잠긴 route WIP
    │  └─ 아니오 → 현재 route WIP를 변경하지 않음
    ├─ 현재 시작 가능한지 묻는가?
-   │  ├─ 예 → 선행 공정·필수 검사 PASS·예약·품질·만료에서 readiness 계산 후 명령에서 재검증
+   │  ├─ 예 → 첫 공정은 선행 검사 없음, 후속 공정은 직전 공정·직전 검사 PASS와 예약·품질·만료 재검증
    │  └─ 아니오 → 생산 진행 상태만 저장
    ├─ 자재·LOT·일련번호 관계가 실제로 생겼는가?
-   │  ├─ 예 → 활성 공정 없음·필수 검사 PASS 확인 후 event와 append-only LotRelation 생성
+   │  ├─ 예 → 활성 공정 없음·현재 공정 검사 PASS 확인 후 event와 append-only LotRelation 생성
+   │  │        ├─ SERIALIZE인가? → IN_PROCESS·최종 route 공정 완료·미완료 후속 공정 없음 확인
    │  │        └─ 입력 잔량을 모두 사용했는가? → 입력 LOT SUPERSEDED
    │  └─ 아니오 → 계보를 만들지 않음
    ├─ 확정 사실이 잘못됐는가?
    │  ├─ 예 → 원본을 보존하고 유형별 정정행·누적 상한을 가진 CorrectionEvent 추가
-   │  │        └─ 검사에 후속 의존 사건이 있는가? → 정정 거부, QualityIncident로 통제
+   │  │        └─ 검사 LOT가 PENDING이 아니거나 후속 의존 사건이 있는가? → 정정 거부, QualityIncident로 통제
    │  └─ 아니오 → 일반 상태 전이 수행
    └─ 서로 다른 질문에 답하는 상태인가?
       ├─ 예 → 생산 진행·검사 판정·품질 disposition을 분리
@@ -116,14 +120,15 @@
 7. 실제 투입은 출고 원장, `MaterialConsumption`, `CONSUME LotRelation`, 공정·생산 LOT·작업지시 상태와 감사를 한 transaction으로 기록한다.
 8. 반납은 원 출고·소비·edge를 보존하고 `CorrectionEvent`, `MaterialConsumptionCorrection`, `LotRelationCorrection`으로 순소비와 유효 계보를 같은 수량만큼 줄인다. 누적 정정은 원 수량을 초과할 수 없다.
 9. 공정 완료는 투입수량을 양품과 불량으로 전부 설명하고 불량은 즉시 생산 폐기한다. 모든 공정 시작은 분할·합류를 반영한 현재 LOT의 잠긴 `routeWipAvailable`을 투입수량으로 사용한다.
-10. 필수 `ROUTE_ADVANCE` 검사의 유효 `PASS` 전에는 다음 공정과 분할·합류·변환·일련번호 생성을 차단한다. 진행 중 공정이 있는 LOT의 WIP 변경도 차단한다.
-11. 원 검사 결과는 불변이며 `InspectionCorrection`의 전체 snapshot 선형 version으로 유효 판정을 계산한다. 후속 의존 사건 뒤 발견한 오류는 정정하지 않고 `QualityIncident`로 통제한다.
-12. 생산 진행, 시작 readiness, 검사 실행·판정과 품질 disposition을 별도 상태 축 또는 projection으로 관리한다. readiness는 저장하지 않고 시작 명령에서 다시 검증한다.
-13. 발행된 BOM·route·검사규격 revision과 완료된 검사 원본은 불변으로 취급한다.
-14. 분할·합류·변환·일련번호는 사건과 append-only `LotRelation`으로 표현한다. 전량 변환 입력은 `SUPERSEDED`로 종결하고 작업지시 완료는 계보의 현재 잔량과 최종 산출을 기준으로 판정한다.
-15. 확정 사실은 update·delete하지 않고 원본을 연결한 취소·정정 사건으로 보정한다.
-16. `AuditEvent`는 설명 근거이며 재고·상태·계보의 진실 공급원으로 사용하지 않는다.
-17. 범용 event sourcing과 EPCIS 호환 계층은 현재 범위에 포함하지 않는다.
+10. 첫 공정에는 선행 검사 gate가 없다. 후속 공정은 직전 공정의 필수 `ROUTE_ADVANCE` 유효 `PASS` 전까지 차단하고, 계보 변환은 현재 완료 공정의 gate를 확인한다. 진행 중 공정이 있는 LOT의 WIP 변경도 차단한다.
+11. `SERIALIZE`는 `IN_PROCESS` LOT이 릴리스된 route의 최종 공정을 완료했고 미완료 후속 공정이 없을 때만 허용한다.
+12. 원 검사 결과는 불변이며 `InspectionCorrection`의 전체 snapshot 선형 version으로 유효 판정을 계산한다. 정정은 `qualityDisposition = PENDING`이고 후속 의존 사건이 없을 때만 허용하며, disposition 결정 뒤 발견한 오류는 `QualityIncident`로 통제한다.
+13. 생산 진행, 시작 readiness, 검사 실행·판정과 품질 disposition을 별도 상태 축 또는 projection으로 관리한다. readiness는 저장하지 않고 시작 명령에서 다시 검증한다.
+14. 발행된 BOM·route·검사규격 revision과 완료된 검사 원본은 불변으로 취급한다.
+15. 분할·합류·변환·일련번호는 사건과 append-only `LotRelation`으로 표현한다. 전량 변환 입력은 `SUPERSEDED`로 종결하고 작업지시 완료는 계보의 현재 잔량과 최종 산출을 기준으로 판정한다.
+16. 확정 사실은 update·delete하지 않고 원본을 연결한 취소·정정 사건으로 보정한다.
+17. `AuditEvent`는 설명 근거이며 재고·상태·계보의 진실 공급원으로 사용하지 않는다.
+18. 범용 event sourcing과 EPCIS 호환 계층은 현재 범위에 포함하지 않는다.
 
 ## Enforcement boundary
 
@@ -136,8 +141,9 @@
 | Allocation 출고·해제 누적 상한 | application service + transaction + 같은 aggregate lock | 경합 명령이 같은 과거 잔량을 동시에 소비하지 못하게 함 |
 | 공정 간 양품·불량·WIP 보존 | domain service + transaction + integration test | 선행 실적과 LOT 잔량을 함께 확인 |
 | 공정 검사 gate·계보 입력 상태 | domain service + transaction + integration test | 유효 판정과 활성 공정·route 위치를 함께 확인 |
+| `SERIALIZE` 최종 route gate | domain service + transaction + integration test | 릴리스된 route의 마지막 공정·실행 완료·후속 공정 부재를 함께 확인 |
 | 정정 누적 상한·원본 연결 | FK·unique constraint + transaction + integration test | 원본 보존과 여러 원장의 유효수량을 함께 확인 |
-| 검사 정정 선형성·의존 사건 차단 | FK·unique constraint + transaction + integration test | fork를 막고 이미 의존한 과거 수행 사실을 보호 |
+| 검사 정정 선형성·disposition·의존 사건 차단 | FK·unique constraint + aggregate lock + transaction + integration test | fork와 판정·품질 모순을 막고 이미 의존한 과거 수행 사실을 보호 |
 | 상태 전이·완료 게이트 | domain service + integration test | 업무 의미와 오류 코드 필요 |
 | 계보 순환 | transaction 안의 graph query + test | cross-row `CHECK`로 보장할 수 없음 |
 | 권한과 행위자 | API guard + server session | client 입력을 신뢰하지 않음 |
@@ -169,8 +175,9 @@
 - WO-A의 예약을 WO-B에서 소비하거나 BOM 외 자재·요구량 초과를 예약하면 거부되는지 확인한다.
 - 1공정 투입 10·양품 8·불량 2 뒤 2공정 투입 10은 거부되고 8만 허용되는지 확인한다.
 - 양품 8 중 4를 부분 분할한 뒤 부모·자식 LOT의 다음 공정 투입이 각각 4만 허용되는지 확인한다.
-- 공정 중 필수 검사가 PENDING·FAIL·HOLD이면 다음 공정과 계보 변환이 같은 요구사항으로 차단되는지 확인한다.
-- 검사 원본 PASS를 후속 사건 전에 FAIL로 정정하면 원본과 선형 정정 version이 함께 남고, 후속 사건 뒤에는 정정 대신 품질 사건을 요구하는지 확인한다.
+- 첫 공정은 선행 검사 없이 시작하고, 공정 중 필수 검사가 PENDING·FAIL·HOLD이면 직후 공정과 계보 변환이 같은 요구사항으로 차단되는지 확인한다.
+- 2공정 route의 1공정 완료·검사 PASS LOT에서 `SERIALIZE`를 거부하고 최종 공정 완료 뒤에만 허용하는지 확인한다.
+- 검사 원본 PASS·disposition PENDING을 의존 사건 전에 FAIL로 정정하면 원본과 선형 정정 version이 함께 남고 PENDING을 유지하는지 확인한다. ACCEPTED·HOLD·REJECTED·QUARANTINED 또는 다른 의존 사건 뒤에는 정정 대신 품질 사건을 요구한다.
 - 계획 3 EA와 단위당 0.125 KG가 0.375 KG로 고정되고 단위 불일치·소수 6자리 초과 결과는 전체 거부되는지 확인한다.
 - 예약 10에서 출고 4와 해제 6·출고 1을 경합시켜 한 명령만 최신 잔량 범위에서 성공하는지 확인한다.
 - 6 EA 소비·edge에서 2 EA 반납 시 원본 6을 보존하면서 유효 소비·edge가 모두 4가 되고 부분 실패는 rollback되는지 확인한다.
