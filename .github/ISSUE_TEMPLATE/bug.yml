@@ -1,0 +1,63 @@
+name: Bug
+description: 재현 가능한 잘못된 동작과 데이터 영향을 보고합니다.
+title: "fix: "
+labels:
+  - "type: bug"
+  - "status: triage"
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: 결함 요약
+      description: 기대한 업무 결과와 실제 결과의 차이를 한 문단으로 작성해 주세요.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 재현 절차
+      placeholder: |
+        1. 역할과 선행 데이터
+        2. 수행한 동작
+        3. 확인된 결과
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 기대 결과
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 실제 결과와 근거
+      description: 오류 메시지, 로그 식별자, 스크린샷 등 비밀정보를 제외한 근거를 첨부해 주세요.
+    validations:
+      required: true
+  - type: dropdown
+    id: impact
+    attributes:
+      label: 영향도
+      options:
+        - P0 — 데이터 손상·보안·핵심 흐름 중단
+        - P1 — 주요 기능 실패, 우회 가능
+        - P2 — 제한된 기능·표시 문제
+    validations:
+      required: true
+  - type: textarea
+    id: data_risk
+    attributes:
+      label: 데이터·도메인 위험
+      description: 재고, LOT 계보, 상태 전이, 권한 또는 감사이력에 미친 영향을 작성해 주세요.
+    validations:
+      required: true
+  - type: textarea
+    id: done
+    attributes:
+      label: 수정 완료 조건
+      placeholder: |
+        - [ ] 재현 테스트가 먼저 실패하고 수정 후 통과한다.
+        - [ ] 관련 회귀 시나리오가 통과한다.
+    validations:
+      required: true
