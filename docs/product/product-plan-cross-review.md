@@ -4,11 +4,11 @@
 
 | 항목 | 내용 |
 |---|---|
-| 문서 상태 | `Draft v0.2` · 1차 크로스검토 조건부 승인 반영본 |
+| 문서 상태 | `Draft v0.3` · repository-native 디자인 산출물 반영본 |
 | 기준일 | 2026-08-31 |
 | 관련 Issue | [#8 역할별 사용자 흐름과 정보구조를 설계](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/8) |
-| 1차 판정 | **조건부 승인** · 제품 방향 유지, Figma 전 데이터·상태 계약 보강 |
-| 다음 단계 | 보강 계약 재검증 → wireframe 및 화면 annotation 확정 |
+| 재검토 판정 | **승인** · 제품 방향과 데이터·상태 계약 확정 |
+| 다음 단계 | 저장소 내 wireframe·상태·반응형 계약 검증 → PR 병합 판단 |
 | 공개 원칙 | 회사·제품·사용자·LOT·공정·측정값은 모두 가상이며 특정 기업의 시스템을 복제하지 않음 |
 
 ## 1. 이 문서를 검토하는 방법
@@ -110,7 +110,7 @@ MVP는 제조 핵심 흐름을 깊게 구현한다. 범용 ERP, 설비 제어, �
 | 순서 | 사용자 | 화면 | 행동 | 시스템이 보장할 것 |
 |---:|---|---|---|---|
 | 1 | 생산계획 | `SCR-02C` 작업지시 상세 | 작업지시를 릴리스 | BOM·공정경로·검사규격 revision 고정 |
-| 2 | 자재 | `SCR-03D` 자재 할당 | 가용 자재 LOT의 일부 수량을 예약 | 가용량 초과와 품질 차단 LOT 거부, 계보는 아직 생성하지 않음 |
+| 2 | 자재 | `SCR-03D` 자재 예약 | 가용 자재 LOT의 일부 수량을 예약 | 가용량 초과와 품질 차단 LOT 거부, 계보는 아직 생성하지 않음 |
 | 3 | 현장 | `SCR-04B` 공정 실행 | 첫 공정을 시작하며 예약 자재를 실제 출고·투입 | 예약 감소, 재고 출고, 실제 투입과 계보 edge를 하나의 transaction으로 기록 |
 | 4 | 현장·품질 | `SCR-04B`·`SCR-05B` | 공정 실적과 공정 중 검사 입력 | 공정 순서·수량 합계·적용 검사규격 검증 |
 | 5 | 현장 | `SCR-04B` 공정 실행 | 생산 LOT 분할 또는 완제품 일련번호 생성 | 분할·변환 관계를 중복·순환 없이 append-only 기록 |
@@ -124,7 +124,7 @@ MVP는 제조 핵심 흐름을 깊게 구현한다. 범용 ERP, 설비 제어, �
 
 포트폴리오 데모는 정상 흐름만 보여주지 않는다. 다음 네 가지 차단을 짧게 재현하고, UI 메시지와 서버 규칙이 일치함을 보여준다.
 
-1. 가용재고보다 많은 자재 할당을 시도하면 저장되지 않는다.
+1. 가용재고보다 많은 자재 예약을 시도하면 저장되지 않는다.
 2. 예약만 있고 실제 출고·투입되지 않은 자재는 LOT 계보에 나타나지 않는다.
 3. 양품 수량과 불량 수량의 합이 투입 수량과 다르면 공정을 완료할 수 없다.
 4. 필수 검사 미완료 또는 불합격 상태에서는 생산 LOT를 완료할 수 없다.
@@ -133,7 +133,7 @@ MVP는 제조 핵심 흐름을 깊게 구현한다. 범용 ERP, 설비 제어, �
 
 ### 6.1 7개 업무영역과 하위 화면 — 제안
 
-`SCR-01`~`SCR-07`은 화면 7개가 아니라 전역 탐색에 노출되는 **업무영역·화면군**이다. Figma frame, route와 구현 Issue는 하위 ID를 사용한다.
+`SCR-01`~`SCR-07`은 화면 7개가 아니라 전역 탐색에 노출되는 **업무영역·화면군**이다. Markdown wireframe, route와 구현 Issue는 하위 ID를 사용한다.
 
 ```text
 운영 대시보드                                      SCR-01
@@ -150,7 +150,7 @@ MVP는 제조 핵심 흐름을 깊게 구현한다. 범용 ERP, 설비 제어, �
   ├─ BOM·소요량                                    SCR-03A
   ├─ 자재 LOT 목록                                 SCR-03B
   ├─ 자재 LOT 상세                                 SCR-03C
-  └─ 작업지시 자재 할당                            SCR-03D
+  └─ 작업지시 자재 예약                            SCR-03D
 품질                                               SCR-05
   ├─ 검사 대기열                                   SCR-05A
   ├─ 검사 실행                                     SCR-05B
@@ -204,11 +204,11 @@ MVP는 제조 핵심 흐름을 깊게 구현한다. 범용 ERP, 설비 제어, �
 - 위험 행동: 취소 시 대상·영향·사유를 재확인. MVP에서는 실제 투입·공정 실적이 없는 `DRAFT`·`RELEASED`만 취소 가능
 - 충돌 상태: 다른 사용자가 수정한 최신 버전과 내 입력의 차이를 보여주고 재조회 유도
 
-### `SCR-03` BOM·자재 LOT·재고·할당 화면군 — 제안
+### `SCR-03` BOM·자재 LOT·재고·예약 화면군 — 제안
 
 **목적**: 필요한 자재, 실제 투입 LOT와 잔여 가용량을 일치시킨다.
 
-- 하위 화면: `SCR-03A` BOM·소요량, `SCR-03B` 자재 LOT 목록, `SCR-03C` 자재 LOT 상세, `SCR-03D` 작업지시 자재 할당
+- 하위 화면: `SCR-03A` BOM·소요량, `SCR-03B` 자재 LOT 목록, `SCR-03C` 자재 LOT 상세, `SCR-03D` 작업지시 자재 예약
 - BOM: 제품·버전별 자재 요구량과 유효기간
 - 자재 LOT: 입고량, `onHand`, 가용량, 예약량, 소비량, 품질 disposition, 유효기간
 - 예약 패널: 요구량 대비 선택 LOT의 예약 합계와 부족량을 즉시 계산
@@ -334,7 +334,7 @@ DRAFT → RELEASED → IN_PROGRESS → COMPLETED
 ```text
 수량
   onHand   = 입고 + 반납 + 증가조정 - 실제출고 - 폐기 - 감소조정
-  reserved = 유효한 할당의 미출고 잔량 합계
+  reserved = 유효한 예약의 미출고 잔량 합계
   consumed = 생산 투입으로 확정된 실제출고 누계
   scrapped = 폐기로 확정된 누계
   available = 품질 disposition이 ACCEPTED일 때 max(onHand - reserved, 0), 그 외 0
@@ -500,17 +500,17 @@ GET  /traceability/nodes/{traceNodeId}
 
 ## 12. 디자인 산출물 계약
 
-Issue #8의 완료 산출물은 이 문서 하나가 아니다. 크로스검토 후 다음 Figma 산출물을 만든다.
+Issue #8의 디자인 산출물은 저장소에서 직접 version 관리하고 Pull Request로 검토한다. 별도 디자인 파일은 완료조건이 아니다.
 
-1. **00 Review Map**: 역할별 질문, `FLOW-01`, 미결정 사항과 변경 이력
-2. **01 IA**: 7개 업무영역 `SCR-01`~`SCR-07`과 하위 화면 ID의 관계·진입·이탈 경로
-3. **02 Critical Flow**: 릴리스 → 예약 → 실제 투입 → 공정·검사 → 분할·일련번호 → 부적합 → downstream 격리 wireframe
-4. **03 Screen Wireframes**: `SCR-02A`~`SCR-02C`, `SCR-03D`, `SCR-04A`~`SCR-04B`, `SCR-05A`~`SCR-05C`, `SCR-06A`~`SCR-06B`, `SCR-07A`
-5. **04 State Matrix**: 정상·로딩·빈 값·오류·권한 없음·충돌 상태
-6. **05 Foundations**: 색, 타이포그래피, 간격, 표, 상태 badge와 위험 행동 원칙
-7. **06 Handoff**: 화면 ID, 데이터 요구사항, interaction과 구현 Issue 연결
+1. **Review Map**: 이 문서의 역할별 질문, `FLOW-01`, 결정과 변경 이력
+2. **Information Architecture**: 6장의 7개 업무영역과 하위 화면 ID
+3. **Critical Flow**: 릴리스 → 예약 → 실제 투입 → 공정·검사 → 분할·일련번호 → 부적합 → downstream 격리
+4. **Screen Wireframes**: [UI 레이아웃·상태 계약](ui-layout-contracts.md)의 핵심 화면 저해상도 wireframe
+5. **State Matrix**: 생산 진행·검사 판정·품질 disposition과 공통 실패 상태
+6. **Responsive Contract**: 1440·1280·현장 1024px의 정보·행동 우선순위
+7. **Implementation Handoff**: 화면 ID, 구현 Issue와 PR screenshot·test 근거 연결
 
-모든 핵심 화면은 1440px에서 설계하고 1280px에서 열 우선순위를 검증한다. 현장 공정 화면은 1024px에서 핵심 입력과 대표 행동을 별도로 점검한다.
+실제 색·간격·component는 #9에서 code token과 내부 showcase route로 구현한다. 각 Feature PR은 자신의 정상·로딩·빈 값·오류·권한 없음·충돌 상태를 실제 React 화면과 viewport screenshot으로 검증한다.
 
 ## 13. 검증 전략
 
@@ -592,10 +592,10 @@ Issue #8의 완료 산출물은 이 문서 하나가 아니다. 크로스검토 
 | ID | 판정 | 채택안 | 조건·후속 근거 | 기록 위치 |
 |---|---|---|---|---|
 | `DEC-01` | 승인 | NestJS | 모듈 경계·validation·OpenAPI 규율 활용 | ADR |
-| `DEC-02` | 승인 | Tailwind CSS + Radix UI | 고밀도 표·폼·접근성 foundation을 Figma와 동기화 | ADR 또는 디자인 문서 |
+| `DEC-02` | 승인 | Tailwind CSS + Radix UI | 고밀도 표·폼·접근성 foundation을 CSS token·showcase route와 동기화 | ADR 또는 디자인 문서 |
 | `DEC-03` | 승인 | OpenAPI 생성 타입 | transport 타입을 domain model로 직접 사용하지 않음 | ADR |
 | `DEC-04` | 조건부 승인 | same-origin HttpOnly cookie 세션 | `Secure`·`SameSite`, unsafe method Origin 검증, CSRF token과 CORS 정책 확정 | ADR |
-| `DEC-05` | 승인 | 단계별 tree + 동등한 table | graph는 후순위이며 table 접근성과 대량 조회 경계를 먼저 검증 | Figma 검증 |
+| `DEC-05` | 승인 | 단계별 tree + 동등한 table | graph는 후순위이며 Markdown wireframe과 실제 UI PR에서 table 접근성·대량 조회 경계를 먼저 검증 | UI 계약 + 구현 PR |
 | `DEC-06` | 승인 | 진행 상태·품질 disposition·수량을 분리 | 생산 LOT뿐 아니라 자재 LOT에도 같은 원칙 적용 | 도메인 문서 + ADR |
 | `DEC-07` | 조건부 승인 | Docker 기반 단일 배포 단위 | 실제 hosting 제약을 확인하는 짧은 배포 Spike 필요 | 배포 Spike |
 
@@ -609,6 +609,17 @@ Issue #8의 완료 산출물은 이 문서 하나가 아니다. 크로스검토 
 | 검사규격 revision·사후 부적합 사건 | snapshot 규칙과 `QualityIncident` 추가 | `FLOW-01`, 9, 10 |
 | 핵심 흐름 방향·완료 주체 정정 | downstream/upstream 용어, 생산 LOT와 작업지시 완료 조건 분리 | `FLOW-01`, 7, 9 |
 | 7개 화면을 업무영역·화면군으로 세분화 | `SCR-01A`~`SCR-07B` 하위 ID 추가 | 6, 7, 12 |
+
+### 17.2 구현 전 ADR 대기열
+
+다음 항목은 기획 승인을 막지 않지만 관련 schema 구현 전에 결정해야 한다.
+
+| 항목 | 결정할 내용 | 결정 시점 |
+|---|---|---|
+| `ADR-QUEUE-01` | `TraceNode`가 MaterialLot·ProductionLot·FinishedUnit 중 정확히 하나를 참조하도록 PostgreSQL 참조 무결성을 강제하는 방식 | #13 schema 전 |
+| `ADR-QUEUE-02` | 공정별 복수 `InspectionSpecRevision`을 WorkOrder release snapshot과 ProductionLot 검사 요구사항에 매핑하는 방식 | #14 schema 전 |
+
+각 ADR은 선택지, migration 영향, 무결성 실패 사례와 테스트 전략을 포함한다.
 
 ## 18. 분야별 크로스검토 체크리스트
 
@@ -686,6 +697,6 @@ Issue #8의 완료 산출물은 이 문서 하나가 아니다. 크로스검토 
 - `SCR-01`~`SCR-07` 업무영역과 하위 화면 ID, `FLOW-01`의 이동이 모순되지 않는다.
 - `DEC-01`~`DEC-07`이 승인, 대안 선택 또는 별도 Spike로 분리됐다.
 - 분야별 차단 이슈가 해소됐거나 담당 Issue와 완료 기준을 가진다.
-- Figma wireframe 제작에 필요한 화면 ID, 상태와 데이터 요구사항이 충분하다.
+- 저장소 내 wireframe과 구현 handoff에 필요한 화면 ID, 상태와 데이터 요구사항이 충분하다.
 
-이 문서가 승인되어도 Issue #8이 자동으로 완료되는 것은 아니다. Figma IA·wireframe·상태표를 만들고 1440px, 1280px와 현장 1024px 기준의 walkthrough를 통과해야 Issue #8을 닫는다.
+이 문서와 [UI 레이아웃·상태 계약](ui-layout-contracts.md)이 승인되고 1440px, 1280px와 현장 1024px 기준의 문서 walkthrough를 통과하면 Issue #8의 설계 범위를 완료한다. 실제 시각 구현과 screenshot 검증은 #9와 각 Feature Issue의 완료조건으로 이어진다.
