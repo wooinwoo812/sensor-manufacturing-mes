@@ -4,11 +4,11 @@
 
 | 항목 | 내용 |
 |---|---|
-| 문서 상태 | `Draft v0.3` · repository-native 디자인 산출물 반영본 |
+| 문서 상태 | `Approved v0.6` · UX 계약 병합과 도메인 계약 v1.3 반영본 |
 | 기준일 | 2026-08-31 |
-| 관련 Issue | [#8 역할별 사용자 흐름과 정보구조를 설계](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/8) |
+| 관련 Issue | [#8 사용자 흐름·정보구조](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/8), [#2 제조 용어·불변조건](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/2) |
 | 재검토 판정 | **승인** · 제품 방향과 데이터·상태 계약 확정 |
-| 다음 단계 | 저장소 내 wireframe·상태·반응형 계약 검증 → PR 병합 판단 |
+| 다음 단계 | 제조 도메인 계약 확정 → 실행 가능한 TypeScript workspace 구축 |
 | 공개 원칙 | 회사·제품·사용자·LOT·공정·측정값은 모두 가상이며 특정 기업의 시스템을 복제하지 않음 |
 
 ## 1. 이 문서를 검토하는 방법
@@ -109,12 +109,12 @@ MVP는 제조 핵심 흐름을 깊게 구현한다. 범용 ERP, 설비 제어, �
 
 | 순서 | 사용자 | 화면 | 행동 | 시스템이 보장할 것 |
 |---:|---|---|---|---|
-| 1 | 생산계획 | `SCR-02C` 작업지시 상세 | 작업지시를 릴리스 | BOM·공정경로·검사규격 revision 고정 |
-| 2 | 자재 | `SCR-03D` 자재 예약 | 가용 자재 LOT의 일부 수량을 예약 | 가용량 초과와 품질 차단 LOT 거부, 계보는 아직 생성하지 않음 |
+| 1 | 생산계획 | `SCR-02C` 작업지시 상세 | 작업지시를 릴리스 | 계획수량×BOM 단위당 소요량을 정확히 계산하고 공정경로·검사규격 revision, 자재·검사 요구사항과 초기 생산 LOT를 한 transaction에서 고정 |
+| 2 | 자재 | `SCR-03D` 자재 예약 | 작업지시 자재 요구에 가용 자재 LOT의 일부 수량을 예약 | 같은 WorkOrder·Material·요구수량과 가용량을 검증하고 계보는 아직 생성하지 않음 |
 | 3 | 현장 | `SCR-04B` 공정 실행 | 첫 공정을 시작하며 예약 자재를 실제 출고·투입 | 예약 감소, 재고 출고, 실제 투입과 계보 edge를 하나의 transaction으로 기록 |
-| 4 | 현장·품질 | `SCR-04B`·`SCR-05B` | 공정 실적과 공정 중 검사 입력 | 공정 순서·수량 합계·적용 검사규격 검증 |
-| 5 | 현장 | `SCR-04B` 공정 실행 | 생산 LOT 분할 또는 완제품 일련번호 생성 | 분할·변환 관계를 중복·순환 없이 append-only 기록 |
-| 6 | 품질 | `SCR-05B` 검사 실행 | 최종 검사 후 생산 LOT 완료 | 해당 단계의 필수 검사와 품질 disposition을 확인; 모든 LOT 완료 시 작업지시 완료 |
+| 4 | 현장·품질 | `SCR-04B`·`SCR-05B` | 공정 실적과 공정 중 검사 입력 | 첫 공정은 선행 검사 없이 시작하고, 후속 공정은 직전 공정·검사 PASS·현재 LOT route WIP를 검증하며 불량을 즉시 폐기 |
+| 5 | 현장 | `SCR-04B` 공정 실행 | 생산 LOT 분할 또는 최종 공정 LOT의 완제품 일련번호 생성 | 진행 중 공정이 없고 현재 단계 필수 검사가 PASS여야 하며, `SERIALIZE`는 최종 route 공정 완료·미완료 후속 공정 없음까지 검증 |
+| 6 | 품질 | `SCR-05B` 검사 실행 | 최종 검사 후 생산 LOT 완료 | 해당 단계의 필수 검사와 품질 disposition을 확인; 모든 LOT가 완료·계보 대체·폐기로 종결되고 수량이 보존되면 작업지시 완료 |
 | 7 | 품질 | `SCR-05C` 부적합·격리 | 이미 사용된 원자재 LOT에 사후 부적합 사건 등록 | 과거 소비 이력은 보존하고 해당 LOT의 잔여 가용량을 0으로 계산 |
 | 8 | 품질 | `SCR-06B` LOT 계보 | 원자재 LOT에서 downstream 영향 범위 조회 | 생산 LOT·자식 LOT·완제품 일련번호를 정방향 추적 |
 | 9 | 품질 | `SCR-05C` 부적합·격리 | 영향 LOT와 완제품을 선택해 격리 | 대상·원천 사건·사유를 같은 transaction의 감사이력에 기록 |
@@ -122,12 +122,18 @@ MVP는 제조 핵심 흐름을 깊게 구현한다. 범용 ERP, 설비 제어, �
 
 ### `FLOW-02` 의도된 실패 시연 — 기준
 
-포트폴리오 데모는 정상 흐름만 보여주지 않는다. 다음 네 가지 차단을 짧게 재현하고, UI 메시지와 서버 규칙이 일치함을 보여준다.
+핵심 데모는 정상 흐름만 보여주지 않는다. 다음 열 가지 차단·보존을 짧게 재현하고, UI 메시지와 서버 규칙이 일치함을 보여준다.
 
 1. 가용재고보다 많은 자재 예약을 시도하면 저장되지 않는다.
 2. 예약만 있고 실제 출고·투입되지 않은 자재는 LOT 계보에 나타나지 않는다.
 3. 양품 수량과 불량 수량의 합이 투입 수량과 다르면 공정을 완료할 수 없다.
-4. 필수 검사 미완료 또는 불합격 상태에서는 생산 LOT를 완료할 수 없다.
+4. 선행 공정에서 폐기된 불량수량을 후속 공정에 다시 투입할 수 없다.
+5. 다른 작업지시의 예약, BOM 외 자재 또는 요구량 초과 소비는 거부된다.
+6. 필수 검사 미완료 또는 불합격 상태에서는 생산 LOT를 완료할 수 없다.
+7. 양품 8 EA 중 4 EA를 부분 분할하면 부모·자식 LOT의 다음 공정은 각각 현재 WIP 4 EA만 투입할 수 있다.
+8. 공정 중 필수 검사가 `PENDING`·`FAIL`·`HOLD`이면 다음 공정과 분할·합류·변환·일련번호 생성을 모두 차단한다.
+9. 중간 route 공정만 완료한 생산 LOT에서는 완제품 일련번호를 생성할 수 없다.
+10. 품질 disposition이 이미 결정된 검사는 판정을 정정하지 않고 사후 부적합 사건으로 처리한다.
 
 ## 6. 정보구조
 
@@ -311,74 +317,89 @@ DRAFT → RELEASED → IN_PROGRESS → COMPLETED
 - `DRAFT`: 계획 수정 가능
 - `RELEASED`: 유효한 BOM·공정경로·검사규격 revision이 고정됨
 - `IN_PROGRESS`: 하나 이상의 생산 LOT 또는 공정이 시작됨
-- `COMPLETED`: 소속 생산 LOT가 모두 `COMPLETED`임
+- `COMPLETED`: 모든 생산 LOT가 `COMPLETED`·`SUPERSEDED`·`SCRAPPED`로 종결되고 계획수량이 완료·일련번호·폐기로 모두 설명됨
 - `CANCELLED`: 실제 자재 투입과 공정 실적이 없는 `DRAFT`·`RELEASED`에서만 허용하며 사유와 행위자를 남김
+
+작업지시 `COMPLETED`는 실행 종결 상태이며 전량 양품을 뜻하지 않는다. 화면은 양품·일련번호·불량·폐기 수량을 별도로 표시한다.
 
 #### 생산 LOT
 
 ```text
-생산 진행: PLANNED → READY → IN_PROCESS → COMPLETED
+생산 진행: PLANNED → IN_PROCESS → COMPLETED
+                │        ├────→ SUPERSEDED  (전량 SPLIT·MERGE·TRANSFORM 입력)
+                │        └────→ SCRAPPED    (잔량 전부 폐기)
+                └─────────────→ CANCELLED    (작업지시 취소에 의해서만)
+
+시작 readiness projection: READY | BLOCKED(reasonCodes[])
 
 품질 disposition:
   PENDING → ACCEPTED | HOLD | REJECTED
-  ACCEPTED | HOLD | REJECTED → QUARANTINED  (부적합 사건·containment)
-  QUARANTINED → ACCEPTED | REJECTED          (근거 있는 해제·최종 처분)
+  ACCEPTED → QUARANTINED                     (부적합 사건·containment)
+  HOLD → ACCEPTED | REJECTED | QUARANTINED
+  QUARANTINED → ACCEPTED | HOLD | REJECTED   (근거 있는 해제·최종 처분)
 ```
 
-생산 진행과 품질 disposition은 서로 다른 상태 축이다. 공정 중 검사와 최종 검사는 각각 `Inspection`으로 존재하며, 생산 LOT에 단일 `INSPECTION_PENDING` 단계를 두지 않는다. `COMPLETED` 전이는 모든 공정 완료, 적용 가능한 필수 검사 통과와 `ACCEPTED` disposition을 함께 확인한다. 완료 후 사후 부적합으로 `QUARANTINED`가 되어도 생산 이력의 `COMPLETED` 사실은 덮어쓰지 않고 후속 사용·출하 가능성만 차단한다.
+`READY`는 저장 상태가 아니다. 첫 공정은 선행 공정·선행 검사를 요구하지 않고, 후속 공정은 바로 직전 공정 완료와 그 공정의 필수 `ROUTE_ADVANCE` 검사 PASS를 요구한다. 여기에 필수 예약, 예약 자재의 품질 disposition·활성 격리·만료 여부를 합쳐 계산한다. 사용자 안내용 projection이므로 실제 시작 명령은 조건을 다시 잠그고 검증하며 성공할 때만 진행 상태를 `IN_PROCESS`로 바꾼다.
+
+생산 진행과 품질 disposition은 서로 다른 상태 축이다. `SUPERSEDED`는 완료가 아니라 전량이 후속 LOT로 이동한 계보 종결이며 이후 실적은 후속 LOT에서 이어진다. `SCRAPPED`는 완료 전 잔량 전부의 폐기 종결이다. 공정 중 검사와 최종 검사는 각각 `Inspection`으로 존재하며, 생산 LOT에 단일 `INSPECTION_PENDING` 단계를 두지 않는다. `COMPLETED` 전이는 모든 공정 완료, 적용 가능한 필수 검사 통과와 `ACCEPTED` disposition을 함께 확인한다. 완료 후 사후 부적합으로 `QUARANTINED`·폐기되어도 생산 이력의 `COMPLETED` 사실은 덮어쓰지 않고 후속 사용·출하 가능성만 차단한다.
 
 #### 자재 LOT
 
-자재 LOT 전체에 `ALLOCATED`나 `CONSUMED` 상태를 두지 않는다. 한 LOT가 동시에 일부 가용·일부 예약·일부 소비될 수 있으므로 수량, 품질과 물류 생명주기를 분리한다.
+자재 LOT 전체에 `ALLOCATED`나 `CONSUMED` 상태를 두지 않는다. 한 LOT가 동시에 일부 가용·일부 예약·일부 소비될 수 있으므로 수량, 품질 disposition, 원장 기반 가용성 projection과 명시적 종결을 분리한다.
 
 ```text
 수량
   onHand   = 입고 + 반납 + 증가조정 - 실제출고 - 폐기 - 감소조정
-  reserved = 유효한 예약의 미출고 잔량 합계
-  consumed = 생산 투입으로 확정된 실제출고 누계
+  allocationRemaining = 예약수량 - 해당 예약의 총출고량 - 해제량
+  reserved = ACTIVE 예약의 allocationRemaining 합계
+  consumed = 정정되지 않은 유효 MaterialConsumption 수량 합계
   scrapped = 폐기로 확정된 누계
-  available = 품질 disposition이 ACCEPTED일 때 max(onHand - reserved, 0), 그 외 0
+  available = 품질 disposition이 ACCEPTED이고 PENDING·SCRAPPED 격리대상이 없고 closedAt이 없으며 만료되지 않았을 때 max(onHand - reserved, 0), 그 외 0
 
 품질 disposition
   PENDING → ACCEPTED | HOLD | REJECTED
-  ACCEPTED | HOLD | REJECTED → QUARANTINED
-  QUARANTINED → ACCEPTED | REJECTED
+  ACCEPTED → QUARANTINED
+  HOLD → ACCEPTED | REJECTED | QUARANTINED
+  QUARANTINED → ACCEPTED | HOLD | REJECTED
 
-물류 생명주기
-  OPEN → EXHAUSTED → CLOSED
+가용성 projection
+  onHand > 0 → OPEN
+  onHand = 0 → EXHAUSTED
+
+명시적 종결
+  closedAt != null → CLOSED
 ```
 
-`OPEN`·`EXHAUSTED`는 가능한 한 원장 잔량에서 계산하고 별도 수정 가능한 진실 공급원으로 만들지 않는다. MVP의 격리는 LOT 잔여량 전체에 적용한다. 격리 수량은 물리적 `onHand`에는 남지만 `available`에서는 제외되며, 격리 전 소비 이력은 downstream 영향 추적에 계속 사용한다.
+`OPEN`·`EXHAUSTED`는 원장 잔량에서 계산하고 별도 수정 가능한 상태로 만들지 않는다. 반납·증가조정으로 잔량이 생기면 다시 `OPEN`으로 투영될 수 있다. `CLOSED`만 추가 거래를 막는 명시적 종결이다. 만료된 LOT는 `onHand`에 남지만 `available`은 0이다. `RETURN_UNUSED`는 원 출고를 참조해 재고·소비·계보를 보정하되 원 출고 사실과 닫힌 예약을 되돌리지 않는다. MVP의 격리는 LOT 잔여량 전체에 적용한다. 기존 예약은 영향 작업지시를 보여주기 위해 남기되 투입은 차단하며, 폐기 처분 시 예약 해제·잔여 재고 폐기·품질상태·감사를 한 transaction에서 닫는다. 격리 전 소비 이력은 downstream 영향 추적에 계속 사용한다.
 
 #### 검사·부적합 사건·격리
 
 ```text
-검사: PENDING → IN_PROGRESS → PASS | FAIL | HOLD
+검사 실행: PENDING → IN_PROGRESS → COMPLETED
+                          └──────→ CANCELLED  (측정값·판정이 없을 때만)
+검사 판정: UNDECIDED → PASS | FAIL | HOLD
 부적합 사건: OPEN → ASSESSED → CONTAINED → CLOSED
-격리: OPEN → UNDER_REVIEW → RELEASED | SCRAPPED
+격리 case: OPEN → UNDER_REVIEW → RESOLVED
+격리 대상: PENDING → RELEASED | SCRAPPED
 ```
 
-`QualityIncident`는 원자재·생산 LOT 또는 완제품 일련번호에서 사후 발견된 부적합의 원천 사건이다. `QuarantineCase`는 그 사건의 downstream 영향 대상과 통제 결과를 기록한다. 전체 수입검사 모듈은 만들지 않지만 원자재 LOT에 사건을 등록하는 최소 흐름은 MVP에 포함한다.
+검사 실행 상태와 판정은 별도 축이다. `COMPLETED` 검사는 `PASS`, `FAIL`, `HOLD` 중 하나를 가져야 한다. `QualityIncident`는 원자재·생산 LOT 또는 완제품 일련번호에서 사후 발견된 부적합의 원천 사건이다. `QuarantineCase`와 `PENDING`·`SCRAPPED` QuarantineTarget은 downstream 영향 대상과 통제 결과를 기록하며, LOT뿐 아니라 완제품 일련번호의 사용·출하도 차단한다. 같은 case에서 대상별로 해제·폐기를 다르게 결정할 수 있고 모든 대상 처분 후 case를 해결한다. 전체 수입검사 모듈은 만들지 않지만 원자재 LOT에 사건을 등록하는 최소 흐름은 MVP에 포함한다.
 
 ### 9.2 핵심 불변조건 — 기준
 
-| ID | 규칙 | 강제 위치 | 최소 검증 |
-|---|---|---|---|
-| `RULE-01` | 자재 예약량은 가용량을, 실제 투입량은 해당 예약잔량과 `onHand`를 초과할 수 없다. | API + DB transaction | 동시 예약·출고 통합 테스트 |
-| `RULE-02` | `ACCEPTED`가 아니거나 폐기·만료된 자재 LOT는 신규 예약·투입할 수 없다. | Domain + API | 상태별 단위·통합 테스트 |
-| `RULE-03` | 선행 공정이 완료되지 않으면 후속 공정을 완료할 수 없다. | Domain | 순서 위반 단위 테스트 |
-| `RULE-04` | 공정 투입수량은 양품수량과 불량수량의 합과 같아야 한다. | Domain + DB constraint 검토 | 경계값 테스트 |
-| `RULE-05` | 필수 검사 누락·불합격·보류 상태에서는 LOT를 완료할 수 없다. | Domain | 상태 전이 테스트 |
-| `RULE-06` | 확정 실적과 판정은 덮어쓰지 않고 취소·정정 이벤트로 보정한다. | Domain + Audit | 정정 이력 통합 테스트 |
-| `RULE-07` | 동일한 상태 변경 명령이 재전송돼도 결과가 중복 반영되지 않는다. | API + DB | idempotency 통합 테스트 |
-| `RULE-08` | 중요한 변경은 행위자·시각·사유·전후 값·요청 ID를 남긴다. | Application + DB | 감사이력 통합 테스트 |
-| `RULE-09` | 오래된 버전의 수정은 최신 데이터를 덮어쓰지 않는다. | API + DB | optimistic lock 충돌 테스트 |
-| `RULE-10` | 자재 예약은 재고를 보류하지만 실제 투입이나 계보 edge를 만들지 않는다. | Domain + DB | 예약 후 계보 부재 테스트 |
-| `RULE-11` | 실제 투입은 예약 감소, 재고 출고, `InventoryTransaction`, `MaterialConsumption`, `LotRelation`과 감사이력을 하나의 transaction에 기록한다. | Application + DB | rollback·부분투입 통합 테스트 |
-| `RULE-12` | 확정된 계보 edge는 수정·삭제하지 않으며 같은 사건의 중복 edge와 순환 관계를 거부한다. | Domain + DB | idempotency·cycle 테스트 |
-| `RULE-13` | 검사 판정은 적용 규격 revision과 단위·하한·상한·판정방식 snapshot을 보존하며 이후 규격 변경으로 과거 결과를 재판정하지 않는다. | Domain + DB | revision 변경 회귀 테스트 |
-| `RULE-14` | 생산 LOT는 자신의 완료 게이트를 충족해야 하며 작업지시는 모든 소속 LOT가 `COMPLETED`일 때만 완료된다. | Domain | 다중 LOT 완료 테스트 |
-| `RULE-15` | 품질 차단 자재의 잔량은 `onHand`에는 포함되지만 `available`은 0이며 기존 소비·계보 이력은 보존한다. | Domain + Query | 사후 부적합 계산 테스트 |
+규칙 ID와 Given/When/Then의 단일 진실 공급원은 [제조 도메인 계약](../domain/manufacturing-domain-contract.md#9-핵심-불변조건과-givenwhenthen)의 `RULE-01`~`RULE-33`이다. 이 문서는 중복 ID를 정의하지 않고 검토 범주만 요약한다.
+
+| 범주 | 규칙 ID | 핵심 검증 |
+|---|---|---|
+| 수량·예약·실제 투입 | `RULE-01`~`RULE-07` | 음수·초과 예약·부분 소비·원자적 rollback |
+| revision·취소 | `RULE-08`~`RULE-10` | 릴리스 snapshot·실적 후 취소 차단·하위 LOT 정리 |
+| 공정·완료 게이트 | `RULE-11`~`RULE-15` | 선행 공정·공정 간 WIP·검사·다중 LOT 완료 |
+| 확정 이력·동시성 | `RULE-16`~`RULE-18`, `RULE-25` | 정정 사건·idempotency·낙관적 잠금·감사 필드 |
+| 계보·일련번호 | `RULE-19`~`RULE-21` | 중복·순환·수량 보존·일련번호 고유성 |
+| 검사·사후 품질 | `RULE-22`~`RULE-24` | 규격 snapshot·완료 사실 보존·가용량 차단 |
+| 요구 소유권·폐기·정정 | `RULE-26`~`RULE-28` | WorkOrder·Material·요구량 경계, 불량 재투입 차단, 원본 보존 정정 |
+| 부분 분할 WIP·검사 gate | `RULE-29`~`RULE-31` | 현재 LOT별 route WIP, 공정 진행 차단, 검사 정정 version |
+| 정확한 요구량·예약 경쟁 | `RULE-32`~`RULE-33` | 십진 곱·단위·무반올림, 출고+해제 상한과 직렬화 |
 
 클라이언트 검증은 빠른 피드백을 위한 보조 수단이다. 업무 불변조건의 최종 권한은 서버와 데이터베이스에 둔다.
 
@@ -388,23 +409,27 @@ DRAFT → RELEASED → IN_PROGRESS → COMPLETED
 
 | 영역 | 엔터티 | 핵심 책임 |
 |---|---|---|
-| 기준정보 | `Product`, `Material`, `Bom`, `BomItem`, `ProcessRoute`, `ProcessStep` | 제품·자재·공정 revision 정의 |
+| 기준정보·릴리스 | `Product`, `Material`, `BomRevision`, `BomItem`, `ProcessRouteRevision`, `ProcessStepRevision`, `WorkOrderMaterialRequirement`, `InspectionRequirement` | 제품·자재·공정 revision과 작업지시 요구사항 snapshot |
 | 생산 | `WorkOrder`, `ProductionLot`, `FinishedUnit`, `ProcessExecution`, `LotTransformationEvent`, `DefectRecord` | 계획, LOT 분할·합류, 일련번호와 공정 실적 |
-| 자재 | `MaterialLot`, `InventoryTransaction`, `MaterialAllocation`, `MaterialConsumption` | 수량 원장과 실제 투입 관계 |
-| 품질 | `InspectionSpec`, `InspectionSpecRevision`, `Inspection`, `InspectionResult`, `QualityIncident`, `QuarantineCase` | 규격 snapshot, 판정, 사후 부적합과 격리 결정 |
+| 자재 | `MaterialLot`, `InventoryTransaction`, `MaterialAllocation`, `MaterialAllocationRelease`, `MaterialConsumption` | 요구사항별 예약·해제, 수량 원장과 실제 투입 관계 |
+| 품질 | `InspectionSpecRevision`, `Inspection`, `InspectionResult`, `InspectionCorrection`, `InspectionCorrectionResult`, `QualityIncident`, `QuarantineCase`, `QuarantineTarget` | 규격 snapshot, 유효 판정 version, 사후 부적합과 대상별 격리 결정 |
 | 접근제어 | `User`, `Role`, `UserRole` | 데모 사용자와 역할 권한 |
 | 계보 | `TraceNode`, `LotRelation` | 자재·생산 LOT·완제품 일련번호의 공통 node와 append-only edge |
+| 정정 | `CorrectionEvent`, `MaterialConsumptionCorrection`, `LotRelationCorrection`, `InspectionCorrection` | 원 소비·CONSUME edge·검사를 보존한 유효수량·판정 보정 |
 | 감사 | `AuditEvent` | 중요한 명령과 상태 변경 이력 |
 
 ### 10.2 관계 원칙 — 제안
 
-- 하나의 `WorkOrder`는 하나 이상의 `ProductionLot`을 가지며 릴리스 시 적용 `Bom`, `ProcessRoute`, `InspectionSpecRevision`을 고정한다.
+- 하나의 `WorkOrder`는 릴리스 시 하나 이상의 계획 `ProductionLot`을 가지며 LOT 계획수량 합계는 작업지시 계획수량과 일치해야 한다. `requiredQuantity = plannedQuantity × quantityPerProductBaseUom`을 정확한 십진수로 계산하고 적용 `BomRevision`, `ProcessRouteRevision`, `InspectionSpecRevision`, `WorkOrderMaterialRequirement`와 `InspectionRequirement`를 한 transaction에서 고정한다. 실적 없이 작업지시를 취소하면 활성 예약 해제, 하위 생산 LOT와 대기 공정·검사의 `CANCELLED` 전이, 감사를 같은 transaction에서 수행한다.
 - `TraceNode`는 `MATERIAL_LOT`, `PRODUCTION_LOT`, `FINISHED_UNIT` 중 하나를 가리키는 추적 식별자다. 무제한 다형 관계 대신 허용 유형과 참조 무결성을 schema에서 제한한다.
-- `LotRelation(parentTraceNodeId, childTraceNodeId, relationType, quantity, eventId)`은 최소 `CONSUME`, `SPLIT`, `MERGE`, `TRANSFORM`, `SERIALIZE`를 표현한다.
-- `MaterialAllocation`은 예약의 근거일 뿐 계보가 아니다. 공정 시작의 실제 출고·투입에서 `MaterialConsumption`과 대응 `CONSUME` relation을 같은 transaction으로 생성한다.
-- 생산 LOT 분할·합류·변환은 `LotTransformationEvent`와 관계 edge를 같은 transaction으로 생성한다. 하나의 생산 LOT는 여러 `FinishedUnit` 일련번호로 연결될 수 있다.
+- `LotRelation(parentTraceNodeId, childTraceNodeId, relationType, quantity, uom, eventId)`은 최소 `CONSUME`, `SPLIT`, `MERGE`, `TRANSFORM`, `SERIALIZE`를 표현한다.
+- `MaterialAllocation`은 하나의 `WorkOrderMaterialRequirement`와 같은 Material의 자재 LOT를 참조하며 예약의 근거일 뿐 계보가 아니다. 해제는 `MaterialAllocationRelease`로 남기고 출고+해제가 예약량을 넘지 않도록 같은 Allocation 잠금에서 직렬화한다. 공정 시작의 실제 출고·투입에서 같은 WorkOrder 소유권과 요구량을 재검증하고 `MaterialConsumption`과 대응 `CONSUME` relation을 같은 transaction으로 생성한다.
+- 공정 완료는 투입을 양품+불량으로 전부 설명한다. 불량은 즉시 생산 폐기하고 후속 공정 투입은 분할·합류를 반영한 현재 LOT의 잠긴 `routeWipAvailable`과 같게 제한한다.
+- 미사용 자재 반납은 원 출고·소비·edge를 수정하지 않고 하나의 `CorrectionEvent` 아래 소비·`CONSUME` edge 정정행을 같은 수량으로 추가한다. 기본 계보는 유효 edge를, 상세는 원본·정정·유효수량을 함께 보여준다.
+- 생산 LOT 분할·합류·변환은 `LotTransformationEvent`와 관계 edge를 같은 transaction으로 생성한다. 입력은 동일 WorkOrder·Product·route 위치·기준단위이고 진행 중 공정이 없으며 현재 단계 필수 검사가 PASS여야 한다. 출력 LOT는 그 문맥을 상속한다. 입력 잔량을 전부 사용하면 `SUPERSEDED`로 종결한다.
+- `SERIALIZE`는 `IN_PROCESS` LOT이 릴리스된 route의 최종 공정을 완료했고 미완료 후속 공정이 없을 때만 허용한다. 하나의 최종 생산 LOT는 여러 `FinishedUnit` 일련번호로 연결될 수 있다.
 - `LotRelation.eventId`는 같은 업무 사건의 중복 edge를 막으며, 확정 후 update·delete하지 않는다. 새 edge는 자기참조와 순환을 거부한다.
-- `Inspection`은 적용 `InspectionSpecRevision`을 참조하고 판정 당시 항목·단위·하한·상한·판정방식을 snapshot으로 보존한다.
+- `Inspection`은 적용 `InspectionSpecRevision`을 참조하고 판정 당시 항목·단위·하한·상한·판정방식을 snapshot으로 보존한다. 정정은 `qualityDisposition = PENDING`이고 후속 의존 사건이 없을 때만 원본을 덮지 않는 전체 snapshot 선형 version으로 허용한다. disposition 결정이나 후속 공정·계보·완료 뒤에는 `QualityIncident`를 사용한다.
 - `QualityIncident`는 하나의 원천 `TraceNode`를 가리키며, `QuarantineCase`가 그 사건에서 파생된 영향 node와 격리 결정을 연결한다.
 - `AuditEvent`는 조회 편의를 위한 스냅샷이며 재고·상태의 진실 공급원으로 사용하지 않는다.
 - 삭제 대신 업무 상태와 취소 거래를 사용하고, 기준정보만 참조 여부에 따라 비활성화한다.
@@ -414,10 +439,11 @@ DRAFT → RELEASED → IN_PROGRESS → COMPLETED
 | 질문 | 진실 공급원 | 다른 모델과의 관계 |
 |---|---|---|
 | 현재 물리 재고는 얼마인가? | `InventoryTransaction` 합계 | `MaterialLot.onHand`를 임의 수정하지 않음 |
-| 얼마가 예약됐는가? | `MaterialAllocation`의 유효 미출고 잔량 | 예약은 물리 출고와 계보를 만들지 않음 |
+| 얼마가 예약됐는가? | `MaterialAllocation` 예약량-총출고-`MaterialAllocationRelease`의 정확한 차 | 예약은 물리 출고와 계보를 만들지 않고 음수를 0으로 숨기지 않음 |
 | 어느 자재가 실제 투입됐는가? | `MaterialConsumption` | 실제 출고 transaction과 같은 사건을 참조 |
 | LOT·일련번호가 어떻게 연결됐는가? | `LotRelation` | 소비·분할·합류·변환 사건에서 동기적으로 생성하며 수동 CRUD 금지 |
-| 어떤 품질 판단이 유효한가? | 최신 유효 `InspectionResult`, `QualityIncident`, `QuarantineCase` | 과거 판정은 snapshot과 정정 이력으로 보존 |
+| 어떤 품질 판단이 유효한가? | 원 검사에서 이어진 마지막 `InspectionCorrection` snapshot, `QualityIncident`, `QuarantineCase`, `QuarantineTarget` | 과거 판정은 원본과 정정 version으로 보존 |
+| 현재 사용·출하 가능한가? | 품질 disposition, `PENDING`·`SCRAPPED` QuarantineTarget, 재고·만료 projection | 생산 진행 상태와 분리 |
 | 누가 왜 바꿨는가? | `AuditEvent` | 설명 근거이며 업무 상태를 재계산하는 원장은 아님 |
 
 ## 11. 기술 구조
@@ -463,9 +489,11 @@ Docker Compose 로컬 실행 환경
 POST /work-orders
 POST /work-orders/{id}/release
 POST /work-orders/{id}/material-allocations
+POST /material-allocations/{id}/release
 POST /process-executions/{id}/start
 POST /process-executions/{id}/complete
 POST /inspections/{id}/decide
+POST /inspections/{id}/correct
 POST /quality-incidents
 POST /quality-incidents/{id}/quarantine
 GET  /traceability/nodes/{traceNodeId}
@@ -475,9 +503,10 @@ GET  /traceability/nodes/{traceNodeId}
 
 ### 11.4 정합성과 실패 처리 — 제안
 
-- 자재 예약은 `MaterialAllocation`과 예약 원장만 변경하며 실제 소비·계보와 분리한다.
-- 공정 시작의 실제 투입은 예약잔량 감소, `onHand` 출고, `InventoryTransaction`, `MaterialConsumption`, `LotRelation`과 `AuditEvent`를 하나의 DB transaction에서 처리한다.
-- `LotRelation`과 검사 판정 snapshot은 생성 후 일반 update·delete 대상이 아니다.
+- 자재 예약·해제는 `MaterialAllocation`과 append-only `MaterialAllocationRelease`만 변경하며 실제 소비·계보와 분리한다. 출고와 해제는 같은 Allocation 잠금에서 누적합 상한을 검증한다.
+- 공정 시작의 실제 투입은 예약을 참조한 출고 원장, 예약잔량 감소 projection, `MaterialConsumption`, `LotRelation`, `ProcessExecution`·생산 LOT·작업지시 상태와 `AuditEvent`를 하나의 DB transaction에서 처리한다.
+- 공정 시작은 현재 LOT의 route WIP를 잠가 투입수량으로 고정한다. 첫 공정은 선행 검사 없이 시작하고, 직전 공정의 필수 검사 PASS 전에는 후속 공정과 계보 변환을 차단한다. `SERIALIZE`는 최종 route 완료 조건을 추가로 검증한다.
+- `LotRelation`과 검사 판정 snapshot은 생성 후 일반 update·delete 대상이 아니다. 검사 정정은 `qualityDisposition = PENDING`이고 후속 의존 사건이 없을 때만 전체 snapshot 선형 version으로 추가한다.
 - 상태 변경 요청에는 idempotency key 또는 명령 ID를 사용한다.
 - 수정 가능한 aggregate는 version으로 optimistic concurrency를 검증한다.
 - 사용자에게는 도메인 오류 코드와 해결 행동을 제공하고 내부 stack trace는 노출하지 않는다.
@@ -492,11 +521,14 @@ GET  /traceability/nodes/{traceNodeId}
 
 | 명령·capability | 구현 Issue | 책임 |
 |---|---|---|
-| `reserveMaterial`, `releaseMaterialReservation` | #12 | 부분 예약·해제, 예약잔량과 가용량 동시성 보장 |
+| `releaseWorkOrder` | #22 | 정확한 BOM 요구량, 발행 revision, 자재·검사 요구사항, 초기 LOT와 상태·감사를 원자적으로 고정 |
+| `reserveMaterial`, `releaseMaterialReservation` | #12 | 작업지시 자재 요구별 부분 예약·append-only 해제, 출고+해제 상한·가용량 동시성 보장 |
 | `consumeMaterialReservation` | #13 | inventory module 안에서 실제 출고·소비·계보 transaction capability 구현 |
+| `returnUnusedMaterial` | #13 | 반납 원장과 소비·`CONSUME` edge 정정을 원본 보존 상태로 원자 처리 |
 | `startProcessExecution` | #13 | 공정 시작과 `consumeMaterialReservation`을 한 transaction boundary에서 orchestration |
+| `correctInspection` | #14 | 원 검사 보존, 전체 정정 snapshot·유효 판정과 후속 의존 사건 gate를 원자적으로 처리 |
 
-#13의 production service가 재고 테이블을 직접 수정하지 않고 inventory module의 `consumeMaterialReservation`을 호출한다. 실제 투입이 실패하면 공정 시작, 재고 출고, 소비·계보·감사 기록이 모두 rollback된다.
+#13의 production service가 재고 테이블을 직접 수정하지 않고 inventory module의 `consumeMaterialReservation`을 호출한다. Allocation의 요구사항, ProductionLot과 ProcessExecution이 같은 WorkOrder에 속하고 자재가 요구사항과 일치해야 한다. 실제 투입이 실패하면 공정 시작, 재고 출고, 소비·계보·감사 기록이 모두 rollback된다.
 
 ## 12. 디자인 산출물 계약
 
@@ -518,8 +550,8 @@ Issue #8의 디자인 산출물은 저장소에서 직접 version 관리하고 P
 
 | 층 | 검증 대상 | 필수 예시 |
 |---|---|---|
-| Domain unit | 상태 전이와 순수 업무 규칙 | `RULE-01`~`RULE-15` |
-| API integration | transaction, 권한, idempotency, concurrency | 동시 예약·실제 투입, 계보 중복·순환, 중복 완료 요청 |
+| Domain unit | 상태 전이와 순수 업무 규칙 | `RULE-01`~`RULE-33` 중 단일 aggregate 규칙 |
+| API integration | transaction, 권한, idempotency, concurrency | 동시 예약·출고/해제, 실제 투입, 부분 분할 WIP, 직전 검사 gate, 최종 route SERIALIZE, PENDING 검사 정정, 계보 중복·순환 |
 | Component | 표·폼·상태 표현과 접근성 | 오류·권한 없음·충돌 상태 |
 | E2E | 역할을 가로지르는 사용자 결과 | `FLOW-01`, `FLOW-02` |
 | Seed smoke | 새 환경에서 데모 재현 | 설치 → seed → 로그인 → 핵심 조회 |
@@ -533,6 +565,7 @@ Issue #8의 디자인 산출물은 저장소에서 직접 version 관리하고 P
 - UI 변경 PR에는 정상, 로딩, 빈 값, 오류, 권한 없음 상태 근거가 있다.
 - API·schema 변경은 migration과 rollback 영향을 기록한다.
 - 가상 데이터만 포함되고 비밀정보·실제 기업 데이터가 없다.
+- 외부 공개 전 commit author email, Issue·PR metadata, repository topic을 검사한다. 개인 이메일이 든 비공개 이력이 있으면 현재 저장소를 그대로 공개하지 않고 검증된 tree를 noreply author의 새 저장소에 clean import한다.
 
 이 목록은 최종 구현의 출시 게이트다. 현재 Draft PR #20에서 GitHub가 자동 실행하는 검사는 `PR title` 하나이며, 로컬 `git diff --check`와 기밀 문자열 검색은 서버 CI와 구분한다. #1에서 코드 검사와 함께 Markdown lint·저장소 내부 링크 검사를 자동화한다.
 
@@ -546,14 +579,15 @@ Issue #8의 디자인 산출물은 저장소에서 직접 version 관리하고 P
 | 4 | [#9](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/9) | token, app shell, 공통 상태 | 화면 간 일관성 확보 |
 | 5 | [#10](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/10) | 데모 인증·RBAC | 이후 모든 명령의 권한 경계 |
 | 6 | [#11](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/11) | 작업지시 수직 흐름, 감사기록 기반 | 첫 상태변경부터 append-only 감사 보장 |
-| 7 | [#12](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/12) | BOM·자재 LOT·부분 예약과 수량 원장 | 생산 실행 전 가용량·예약 경계 확정 |
-| 8 | [#13](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/13) | 공정 시작의 실제 출고·투입과 공정 실적 | 예약을 실제 소비·계보로 전환 |
-| 9 | [#14](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/14) | 검사규격 revision·판정 snapshot·완료 차단 | 재현 가능한 품질 게이트 완성 |
-| 10 | [#15](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/15) | 분할·합류·일련번호 양방향 추적 | 실제 투입 관계의 사용자 가치 증명 |
-| 11 | [#16](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/16) | 원자재 부적합 사건·영향 node 격리 | 추적 결과를 통제 행동으로 연결 |
-| 12 | [#17](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/17) | 감사이력 검색·redaction·누락 검증 | 누적된 감사 이벤트의 설명 가능성 완성 |
-| 13 | [#18](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/18) | 운영 대시보드 | 축적된 실제 데이터로 예외 요약 |
-| 14 | [#19](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/19) | 배포, README, 5분 데모 | 재현 가능한 포트폴리오 근거 완성 |
+| 7 | [#22](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/22) | 기준 revision·자재·검사 요구사항·초기 LOT와 작업지시 릴리스 | 예약·공정·검사보다 먼저 불변 snapshot 확정 |
+| 8 | [#12](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/12) | 자재 LOT·부분 예약과 수량 원장 | 릴리스된 요구사항 안에서 가용량·예약 경계 확정 |
+| 9 | [#13](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/13) | 공정 시작의 실제 출고·투입·정정과 공정 실적 | 예약을 실제 소비·계보로 전환하고 공정 간 수량 보존 |
+| 10 | [#14](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/14) | 검사 실행·판정 snapshot·완료 차단 | 재현 가능한 품질 게이트 완성 |
+| 11 | [#15](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/15) | 분할·합류·일련번호 양방향 추적 | 실제 투입 관계의 사용자 가치 증명 |
+| 12 | [#16](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/16) | 원자재 부적합 사건·영향 node 격리 | 추적 결과를 통제 행동으로 연결 |
+| 13 | [#17](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/17) | 감사이력 검색·redaction·누락 검증 | 누적된 감사 이벤트의 설명 가능성 완성 |
+| 14 | [#18](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/18) | 운영 대시보드 | 축적된 실제 데이터로 예외 요약 |
+| 15 | [#19](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/19) | 배포, README, 5분 데모 | 재현 가능한 공개 설명·검증 근거 완성 |
 
 대시보드를 뒤에 구현하는 이유는 가짜 지표를 먼저 만드는 대신 작업지시·자재·공정·품질의 실제 데이터와 상태를 요약하기 위해서다.
 
@@ -583,7 +617,8 @@ Issue #8의 디자인 산출물은 저장소에서 직접 version 관리하고 P
 | `RSK-06` | 감사로그가 민감정보 저장소가 됨 | 낮음/높음 | 요청 본문 전체를 무차별 저장 | 허용 필드, redaction, 로그 목적 분리 |
 | `RSK-07` | 특정 기업·제품을 연상시키는 자료가 포함됨 | 낮음/높음 | 실제 명칭·수치·화면 유사성 | 가상 데이터 검사와 PR 체크리스트 |
 | `RSK-08` | 디자인 완성도를 이유로 구현이 지연됨 | 중간/중간 | 모든 화면의 고해상도 시안 작업 | 핵심 wireframe·상태 계약 이후 구현 병행 |
-| `RSK-09` | 14개 PR의 순차 의존성으로 v1.0 일정이 무너짐 | 높음/높음 | 선행 PR 지연이 후속 기능을 연쇄 차단 | 수직 slice 축소, 문서·기반 병렬 검토, 절단 순서 즉시 적용, milestone 재산정 |
+| `RSK-09` | 15개 PR의 순차 의존성으로 v1.0 일정이 무너짐 | 높음/높음 | 선행 PR 지연이 후속 기능을 연쇄 차단 | 수직 slice 축소, 문서·기반 병렬 검토, 절단 순서 즉시 적용, milestone 재산정 |
+| `RSK-10` | 비공개 개발 이력의 개인정보·목적성 metadata가 외부에 노출됨 | 중간/높음 | author email·Issue·PR·topic 검사 없이 visibility 변경 | 현재 저장소 직접 공개 금지, clean import와 noreply author·secret scan을 공개 gate로 적용 |
 
 ## 17. 이번 리뷰에서 결정할 사항
 
@@ -598,6 +633,8 @@ Issue #8의 디자인 산출물은 저장소에서 직접 version 관리하고 P
 | `DEC-05` | 승인 | 단계별 tree + 동등한 table | graph는 후순위이며 Markdown wireframe과 실제 UI PR에서 table 접근성·대량 조회 경계를 먼저 검증 | UI 계약 + 구현 PR |
 | `DEC-06` | 승인 | 진행 상태·품질 disposition·수량을 분리 | 생산 LOT뿐 아니라 자재 LOT에도 같은 원칙 적용 | 도메인 문서 + ADR |
 | `DEC-07` | 조건부 승인 | Docker 기반 단일 배포 단위 | 실제 hosting 제약을 확인하는 짧은 배포 Spike 필요 | 배포 Spike |
+| `DEC-08` | 조건부 승인 | React + TypeScript + Vite | 고밀도 업무 폼·표·상태 UI, component test와 클라이언트 중심 배포에 적합하되 Next.js·Vue 등 실제 대안과 SSR 비필요성을 #1 ADR에서 비교 | ADR |
+| `DEC-09` | 조건부 승인 | PostgreSQL + Prisma | transaction·관계 무결성·migration 생산성을 우선하되 cross-row 불변조건의 강제 경계와 ORM escape hatch를 #1 ADR에서 검증 | ADR |
 
 ### 17.1 1차 크로스검토 필수 조건 반영표
 
@@ -610,16 +647,48 @@ Issue #8의 디자인 산출물은 저장소에서 직접 version 관리하고 P
 | 핵심 흐름 방향·완료 주체 정정 | downstream/upstream 용어, 생산 LOT와 작업지시 완료 조건 분리 | `FLOW-01`, 7, 9 |
 | 7개 화면을 업무영역·화면군으로 세분화 | `SCR-01A`~`SCR-07B` 하위 ID 추가 | 6, 7, 12 |
 
-### 17.2 구현 전 ADR 대기열
+### 17.2 2차 도메인 계약 교차검토 반영표
+
+| 차단 항목 | 결정·조치 | 근거 위치 |
+|---|---|---|
+| 공정 간 수량 보존 | 공정 불량 즉시 생산 폐기, 후속 투입 = 현재 LOT route WIP | 도메인 계약 §5.4, `RULE-12`, `RULE-27` |
+| 릴리스 구현 순환 | 기준 revision·요구사항 snapshot·초기 LOT를 #22로 분리해 #12 앞에 배치 | 도메인 계약 §6.1, 구현 순서 §14 |
+| 다른 작업지시 예약 소비 | `WorkOrderMaterialRequirement` 귀속과 WorkOrder·Material·요구량 재검증 | 도메인 계약 §4, §6.2~§6.3, `RULE-26` |
+| append-only 정정 공백 | CorrectionEvent와 소비·edge 정정행, 유효수량식·누적 상한 추가 | 도메인 계약 §5.3, §6.4, `RULE-28` |
+| 연결 Issue 용어·완료조건 불일치 | #12~#16을 v1.1 계약과 #22 의존관계로 재정렬 | 각 Issue 본문과 도메인 계약 §11 |
+
+### 17.3 3차 도메인 계약 fresh 검토 반영표
+
+| 차단 항목 | 결정·조치 | 근거 위치 |
+|---|---|---|
+| 부분 분할 뒤 다음 공정 수량 충돌 | 분할 전 양품이 아니라 부모·자식 각 LOT의 잠긴 `routeWipAvailable`을 투입 | 도메인 계약 §5.4, §7.4, `RULE-29` |
+| 공정 중 검사 gate 우회 | `ROUTE_ADVANCE` 유효 PASS 전 다음 공정과 모든 계보 변환 차단 | 도메인 계약 §5.2, §5.5, §7.2, `RULE-30` |
+| 검사 판정 정정 모델 부재 | 원본+전체 snapshot 선형 `InspectionCorrection`, 후속 의존 사건 뒤에는 `QualityIncident` | 도메인 계약 §4.4, §5.5, §6.4, `RULE-31` |
+| BOM 요구량 산식 부재 | 계획수량×제품 기준단위당 소요량, `numeric(18, 6)`, 단위 일치·무반올림 | 도메인 계약 §3.2, §6.1, `RULE-32` |
+| 예약 해제 초과 은폐 | 출고+해제≤예약량, 포화 계산 제거, 같은 Allocation 잠금과 경합 테스트 | 도메인 계약 §5.3, §6.2~§6.3, `RULE-33` |
+
+### 17.4 최종 조건부 승인 보완표
+
+| 잔여 항목 | 결정·조치 | 근거 위치 |
+|---|---|---|
+| 중간 공정 `SERIALIZE` 가능 | 입력 LOT `IN_PROCESS`, 최종 route 공정 완료, 미완료 후속 공정 없음까지 검증 | 도메인 계약 §7.2·§7.4, `RULE-21` |
+| 검사 정정과 disposition 충돌 | `qualityDisposition = PENDING`이고 다른 의존 사건이 없을 때만 정정; 결정 뒤에는 `QualityIncident` | 도메인 계약 §5.5·§6.4, `RULE-31` |
+| readiness 검사 위치 모호 | 첫 공정은 선행 검사 없음, 후속 공정은 바로 직전 공정의 `ROUTE_ADVANCE` PASS 요구 | 도메인 계약 §5.2·§5.4, `RULE-30` |
+
+### 17.5 구현 전 ADR 대기열
 
 다음 항목은 기획 승인을 막지 않지만 관련 schema 구현 전에 결정해야 한다.
 
 | 항목 | 결정할 내용 | 결정 시점 |
 |---|---|---|
 | `ADR-QUEUE-01` | `TraceNode`가 MaterialLot·ProductionLot·FinishedUnit 중 정확히 하나를 참조하도록 PostgreSQL 참조 무결성을 강제하는 방식 | #13 schema 전 |
-| `ADR-QUEUE-02` | 공정별 복수 `InspectionSpecRevision`을 WorkOrder release snapshot과 ProductionLot 검사 요구사항에 매핑하는 방식 | #14 schema 전 |
+| `ADR-QUEUE-02` | 공정별 복수 `InspectionSpecRevision`을 WorkOrder release snapshot과 ProductionLot 검사 요구사항에 매핑하는 방식 | #22 schema 전 |
+| `ADR-QUEUE-03` | pnpm workspace·React/Vite·NestJS·PostgreSQL/Prisma 조합과 단일 full-stack framework 등 실제 대안의 선택 기준·비용·재검토 조건 | #1 구현 전 |
+| `ADR-QUEUE-04` | OpenAPI 생성 타입과 schema 공유 대안, transport type과 domain model의 의존방향 | #1 구현 전 |
+| `ADR-QUEUE-05` | Tailwind CSS + Radix UI 기반 code-owned system, 완성형 UI library와 from-scratch component 대안의 접근성·커스터마이징·유지비 비교 | #9 구현 전 |
+| `ADR-QUEUE-06` | same-origin cookie session의 CSRF·Origin·CORS 경계와 대안 | #10 구현 전 |
 
-각 ADR은 선택지, migration 영향, 무결성 실패 사례와 테스트 전략을 포함한다.
+각 ADR은 문제·제약, 공개 근거와 프로젝트 가정, 실제 선택지, 선정·기각 이유, 수용 비용, decision tree, 검증과 재검토 조건을 포함한다.
 
 ## 18. 분야별 크로스검토 체크리스트
 
@@ -643,7 +712,7 @@ Issue #8의 디자인 산출물은 저장소에서 직접 version 관리하고 P
 
 - [ ] aggregate와 module 경계가 transaction 요구사항과 맞는다.
 - [ ] 재고 원장과 LOT 계보의 진실 공급원이 명확하다.
-- [ ] `RULE-01`~`RULE-15`를 서버와 DB에서 강제할 수 있다.
+- [ ] `RULE-01`~`RULE-33`의 강제 위치가 server·DB·transaction·query로 구분되어 있다.
 - [ ] 예약·실제 투입·계보 edge의 진실 공급원과 transaction 경계가 명확하다.
 - [ ] 분할·합류·일련번호 fixture를 현재 엔터티와 관계로 표현할 수 있다.
 - [ ] idempotency와 optimistic concurrency의 적용 범위가 과하거나 부족하지 않다.
@@ -657,7 +726,7 @@ Issue #8의 디자인 산출물은 저장소에서 직접 version 관리하고 P
 - [ ] 핵심 실패·동시성 시나리오가 자동 테스트 가능한 형태다.
 - [ ] seed/reset이 재현 가능하고 운영 환경의 파괴적 동작으로 이어지지 않는다.
 
-### 18.5 포트폴리오 검토
+### 18.5 공개 데모 검토
 
 - [ ] 5분 안에 문제, 설계 판단, 정상 흐름과 의도된 실패를 설명할 수 있다.
 - [ ] 프론트엔드 완성도와 백엔드 정합성이 한 수직 흐름에서 함께 드러난다.
@@ -693,10 +762,10 @@ Issue #8의 디자인 산출물은 저장소에서 직접 version 관리하고 P
 ## 20. 리뷰 완료 조건
 
 - `ASM-01`~`ASM-07`의 반례 또는 수용 여부가 확인됐다.
-- `RULE-01`~`RULE-15`에 누락된 핵심 불변조건이 없다.
+- `RULE-01`~`RULE-33`에 누락된 핵심 불변조건이 없다.
 - `SCR-01`~`SCR-07` 업무영역과 하위 화면 ID, `FLOW-01`의 이동이 모순되지 않는다.
 - `DEC-01`~`DEC-07`이 승인, 대안 선택 또는 별도 Spike로 분리됐다.
 - 분야별 차단 이슈가 해소됐거나 담당 Issue와 완료 기준을 가진다.
 - 저장소 내 wireframe과 구현 handoff에 필요한 화면 ID, 상태와 데이터 요구사항이 충분하다.
 
-이 문서와 [UI 레이아웃·상태 계약](ui-layout-contracts.md)이 승인되고 1440px, 1280px와 현장 1024px 기준의 문서 walkthrough를 통과하면 Issue #8의 설계 범위를 완료한다. 실제 시각 구현과 screenshot 검증은 #9와 각 Feature Issue의 완료조건으로 이어진다.
+이 문서와 [UI 레이아웃·상태 계약](ui-layout-contracts.md)은 PR #20에서 승인·병합되어 Issue #8의 설계 범위를 완료했다. #2의 [제조 도메인 계약](../domain/manufacturing-domain-contract.md)이 규칙 ID와 Given/When/Then의 단일 기준이며, 실제 시각 구현과 screenshot 검증은 #9와 각 Feature Issue의 완료조건으로 이어진다.
