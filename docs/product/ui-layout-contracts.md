@@ -4,7 +4,7 @@
 
 | 항목 | 내용 |
 |---|---|
-| 문서 상태 | `Draft v0.1` |
+| 문서 상태 | `Approved v1.0` |
 | 기준일 | 2026-08-31 |
 | 관련 Issue | [#8 역할별 사용자 흐름과 정보구조를 설계](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/8) |
 | 상위 계약 | [제품·UX·기술 기획 크로스검토본](product-plan-cross-review.md) |

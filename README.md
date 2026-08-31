@@ -34,7 +34,7 @@
 
 ## 제품 범위
 
-MVP의 상세 사용자·업무 흐름·불변조건은 [제품 비전](docs/product/vision.md)과 [제품·UX·기술 기획 크로스검토본](docs/product/product-plan-cross-review.md)에 정의합니다. 정보구조, 저해상도 wireframe, 상태 표현과 반응형 기준은 [UI 레이아웃·상태 계약](docs/product/ui-layout-contracts.md)을 따릅니다. 개발 절차는 [Engineering Workflow](docs/engineering/workflow.md)와 [CONTRIBUTING.md](CONTRIBUTING.md)를 따릅니다.
+MVP의 상세 사용자·업무 흐름은 [제품 비전](docs/product/vision.md)과 [제품·UX·기술 기획 크로스검토본](docs/product/product-plan-cross-review.md)에 정의합니다. 제조 용어·상태·수량·계보 불변조건은 [제조 도메인 계약](docs/domain/manufacturing-domain-contract.md), 공개 근거와 적용 한계는 [제조 도메인 공개 근거 재검증](docs/domain/source-review.md)을 따릅니다. 정보구조, 저해상도 wireframe, 상태 표현과 반응형 기준은 [UI 레이아웃·상태 계약](docs/product/ui-layout-contracts.md)을 따릅니다. 개발 절차는 [Engineering Workflow](docs/engineering/workflow.md)와 [CONTRIBUTING.md](CONTRIBUTING.md)를 따릅니다.
 
 ## 공개 범위
 

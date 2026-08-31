@@ -4,11 +4,11 @@
 
 | 항목 | 내용 |
 |---|---|
-| 문서 상태 | `Draft v0.3` · repository-native 디자인 산출물 반영본 |
+| 문서 상태 | `Approved v0.4` · UX 계약 병합과 도메인 계약 분리 반영본 |
 | 기준일 | 2026-08-31 |
-| 관련 Issue | [#8 역할별 사용자 흐름과 정보구조를 설계](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/8) |
+| 관련 Issue | [#8 사용자 흐름·정보구조](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/8), [#2 제조 용어·불변조건](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/2) |
 | 재검토 판정 | **승인** · 제품 방향과 데이터·상태 계약 확정 |
-| 다음 단계 | 저장소 내 wireframe·상태·반응형 계약 검증 → PR 병합 판단 |
+| 다음 단계 | 제조 도메인 계약 확정 → 실행 가능한 TypeScript workspace 구축 |
 | 공개 원칙 | 회사·제품·사용자·LOT·공정·측정값은 모두 가상이며 특정 기업의 시스템을 복제하지 않음 |
 
 ## 1. 이 문서를 검토하는 방법
@@ -318,10 +318,12 @@ DRAFT → RELEASED → IN_PROGRESS → COMPLETED
 
 ```text
 생산 진행: PLANNED → READY → IN_PROCESS → COMPLETED
+              └───────────────→ CANCELLED  (작업지시 취소에 의해서만)
 
 품질 disposition:
   PENDING → ACCEPTED | HOLD | REJECTED
-  ACCEPTED | HOLD | REJECTED → QUARANTINED  (부적합 사건·containment)
+  ACCEPTED → QUARANTINED                     (부적합 사건·containment)
+  HOLD → ACCEPTED | REJECTED | QUARANTINED
   QUARANTINED → ACCEPTED | REJECTED          (근거 있는 해제·최종 처분)
 ```
 
@@ -329,7 +331,7 @@ DRAFT → RELEASED → IN_PROGRESS → COMPLETED
 
 #### 자재 LOT
 
-자재 LOT 전체에 `ALLOCATED`나 `CONSUMED` 상태를 두지 않는다. 한 LOT가 동시에 일부 가용·일부 예약·일부 소비될 수 있으므로 수량, 품질과 물류 생명주기를 분리한다.
+자재 LOT 전체에 `ALLOCATED`나 `CONSUMED` 상태를 두지 않는다. 한 LOT가 동시에 일부 가용·일부 예약·일부 소비될 수 있으므로 수량, 품질 disposition, 원장 기반 가용성 projection과 명시적 종결을 분리한다.
 
 ```text
 수량
@@ -337,48 +339,48 @@ DRAFT → RELEASED → IN_PROGRESS → COMPLETED
   reserved = 유효한 예약의 미출고 잔량 합계
   consumed = 생산 투입으로 확정된 실제출고 누계
   scrapped = 폐기로 확정된 누계
-  available = 품질 disposition이 ACCEPTED일 때 max(onHand - reserved, 0), 그 외 0
+  available = 품질 disposition이 ACCEPTED이고 closedAt이 없을 때 max(onHand - reserved, 0), 그 외 0
 
 품질 disposition
   PENDING → ACCEPTED | HOLD | REJECTED
-  ACCEPTED | HOLD | REJECTED → QUARANTINED
+  ACCEPTED → QUARANTINED
+  HOLD → ACCEPTED | REJECTED | QUARANTINED
   QUARANTINED → ACCEPTED | REJECTED
 
-물류 생명주기
-  OPEN → EXHAUSTED → CLOSED
+가용성 projection
+  onHand > 0 → OPEN
+  onHand = 0 → EXHAUSTED
+
+명시적 종결
+  closedAt != null → CLOSED
 ```
 
-`OPEN`·`EXHAUSTED`는 가능한 한 원장 잔량에서 계산하고 별도 수정 가능한 진실 공급원으로 만들지 않는다. MVP의 격리는 LOT 잔여량 전체에 적용한다. 격리 수량은 물리적 `onHand`에는 남지만 `available`에서는 제외되며, 격리 전 소비 이력은 downstream 영향 추적에 계속 사용한다.
+`OPEN`·`EXHAUSTED`는 원장 잔량에서 계산하고 별도 수정 가능한 상태로 만들지 않는다. 반납·증가조정으로 잔량이 생기면 다시 `OPEN`으로 투영될 수 있다. `CLOSED`만 추가 거래를 막는 명시적 종결이다. MVP의 격리는 LOT 잔여량 전체에 적용한다. 격리 수량은 물리적 `onHand`에는 남지만 `available`에서는 제외되며, 격리 전 소비 이력은 downstream 영향 추적에 계속 사용한다.
 
 #### 검사·부적합 사건·격리
 
 ```text
-검사: PENDING → IN_PROGRESS → PASS | FAIL | HOLD
+검사 실행: PENDING → IN_PROGRESS → COMPLETED
+                          └──────→ CANCELLED  (측정값·판정이 없을 때만)
+검사 판정: UNDECIDED → PASS | FAIL | HOLD
 부적합 사건: OPEN → ASSESSED → CONTAINED → CLOSED
 격리: OPEN → UNDER_REVIEW → RELEASED | SCRAPPED
 ```
 
-`QualityIncident`는 원자재·생산 LOT 또는 완제품 일련번호에서 사후 발견된 부적합의 원천 사건이다. `QuarantineCase`는 그 사건의 downstream 영향 대상과 통제 결과를 기록한다. 전체 수입검사 모듈은 만들지 않지만 원자재 LOT에 사건을 등록하는 최소 흐름은 MVP에 포함한다.
+검사 실행 상태와 판정은 별도 축이다. `COMPLETED` 검사는 `PASS`, `FAIL`, `HOLD` 중 하나를 가져야 한다. `QualityIncident`는 원자재·생산 LOT 또는 완제품 일련번호에서 사후 발견된 부적합의 원천 사건이다. `QuarantineCase`는 그 사건의 downstream 영향 대상과 통제 결과를 기록한다. 전체 수입검사 모듈은 만들지 않지만 원자재 LOT에 사건을 등록하는 최소 흐름은 MVP에 포함한다.
 
 ### 9.2 핵심 불변조건 — 기준
 
-| ID | 규칙 | 강제 위치 | 최소 검증 |
-|---|---|---|---|
-| `RULE-01` | 자재 예약량은 가용량을, 실제 투입량은 해당 예약잔량과 `onHand`를 초과할 수 없다. | API + DB transaction | 동시 예약·출고 통합 테스트 |
-| `RULE-02` | `ACCEPTED`가 아니거나 폐기·만료된 자재 LOT는 신규 예약·투입할 수 없다. | Domain + API | 상태별 단위·통합 테스트 |
-| `RULE-03` | 선행 공정이 완료되지 않으면 후속 공정을 완료할 수 없다. | Domain | 순서 위반 단위 테스트 |
-| `RULE-04` | 공정 투입수량은 양품수량과 불량수량의 합과 같아야 한다. | Domain + DB constraint 검토 | 경계값 테스트 |
-| `RULE-05` | 필수 검사 누락·불합격·보류 상태에서는 LOT를 완료할 수 없다. | Domain | 상태 전이 테스트 |
-| `RULE-06` | 확정 실적과 판정은 덮어쓰지 않고 취소·정정 이벤트로 보정한다. | Domain + Audit | 정정 이력 통합 테스트 |
-| `RULE-07` | 동일한 상태 변경 명령이 재전송돼도 결과가 중복 반영되지 않는다. | API + DB | idempotency 통합 테스트 |
-| `RULE-08` | 중요한 변경은 행위자·시각·사유·전후 값·요청 ID를 남긴다. | Application + DB | 감사이력 통합 테스트 |
-| `RULE-09` | 오래된 버전의 수정은 최신 데이터를 덮어쓰지 않는다. | API + DB | optimistic lock 충돌 테스트 |
-| `RULE-10` | 자재 예약은 재고를 보류하지만 실제 투입이나 계보 edge를 만들지 않는다. | Domain + DB | 예약 후 계보 부재 테스트 |
-| `RULE-11` | 실제 투입은 예약 감소, 재고 출고, `InventoryTransaction`, `MaterialConsumption`, `LotRelation`과 감사이력을 하나의 transaction에 기록한다. | Application + DB | rollback·부분투입 통합 테스트 |
-| `RULE-12` | 확정된 계보 edge는 수정·삭제하지 않으며 같은 사건의 중복 edge와 순환 관계를 거부한다. | Domain + DB | idempotency·cycle 테스트 |
-| `RULE-13` | 검사 판정은 적용 규격 revision과 단위·하한·상한·판정방식 snapshot을 보존하며 이후 규격 변경으로 과거 결과를 재판정하지 않는다. | Domain + DB | revision 변경 회귀 테스트 |
-| `RULE-14` | 생산 LOT는 자신의 완료 게이트를 충족해야 하며 작업지시는 모든 소속 LOT가 `COMPLETED`일 때만 완료된다. | Domain | 다중 LOT 완료 테스트 |
-| `RULE-15` | 품질 차단 자재의 잔량은 `onHand`에는 포함되지만 `available`은 0이며 기존 소비·계보 이력은 보존한다. | Domain + Query | 사후 부적합 계산 테스트 |
+규칙 ID와 Given/When/Then의 단일 진실 공급원은 [제조 도메인 계약](../domain/manufacturing-domain-contract.md#9-핵심-불변조건과-givenwhenthen)의 `RULE-01`~`RULE-25`다. 이 문서는 중복 ID를 정의하지 않고 검토 범주만 요약한다.
+
+| 범주 | 규칙 ID | 핵심 검증 |
+|---|---|---|
+| 수량·예약·실제 투입 | `RULE-01`~`RULE-07` | 음수·초과 예약·부분 소비·원자적 rollback |
+| revision·취소 | `RULE-08`~`RULE-10` | 릴리스 snapshot·실적 후 취소 차단·하위 LOT 정리 |
+| 공정·완료 게이트 | `RULE-11`~`RULE-15` | 선행 공정·수율 합계·검사·다중 LOT 완료 |
+| 확정 이력·동시성 | `RULE-16`~`RULE-18`, `RULE-25` | 정정 사건·idempotency·낙관적 잠금·감사 필드 |
+| 계보·일련번호 | `RULE-19`~`RULE-21` | 중복·순환·수량 보존·일련번호 고유성 |
+| 검사·사후 품질 | `RULE-22`~`RULE-24` | 규격 snapshot·완료 사실 보존·가용량 차단 |
 
 클라이언트 검증은 빠른 피드백을 위한 보조 수단이다. 업무 불변조건의 최종 권한은 서버와 데이터베이스에 둔다.
 
@@ -398,9 +400,9 @@ DRAFT → RELEASED → IN_PROGRESS → COMPLETED
 
 ### 10.2 관계 원칙 — 제안
 
-- 하나의 `WorkOrder`는 하나 이상의 `ProductionLot`을 가지며 릴리스 시 적용 `Bom`, `ProcessRoute`, `InspectionSpecRevision`을 고정한다.
+- 하나의 `WorkOrder`는 릴리스 후 하나 이상의 `ProductionLot`을 가지며 적용 `Bom`, `ProcessRoute`, `InspectionSpecRevision`을 고정한다. 실적 없이 작업지시를 취소하면 활성 예약 해제와 하위 생산 LOT의 `CANCELLED` 전이를 같은 transaction에서 수행한다.
 - `TraceNode`는 `MATERIAL_LOT`, `PRODUCTION_LOT`, `FINISHED_UNIT` 중 하나를 가리키는 추적 식별자다. 무제한 다형 관계 대신 허용 유형과 참조 무결성을 schema에서 제한한다.
-- `LotRelation(parentTraceNodeId, childTraceNodeId, relationType, quantity, eventId)`은 최소 `CONSUME`, `SPLIT`, `MERGE`, `TRANSFORM`, `SERIALIZE`를 표현한다.
+- `LotRelation(parentTraceNodeId, childTraceNodeId, relationType, quantity, uom, eventId)`은 최소 `CONSUME`, `SPLIT`, `MERGE`, `TRANSFORM`, `SERIALIZE`를 표현한다.
 - `MaterialAllocation`은 예약의 근거일 뿐 계보가 아니다. 공정 시작의 실제 출고·투입에서 `MaterialConsumption`과 대응 `CONSUME` relation을 같은 transaction으로 생성한다.
 - 생산 LOT 분할·합류·변환은 `LotTransformationEvent`와 관계 edge를 같은 transaction으로 생성한다. 하나의 생산 LOT는 여러 `FinishedUnit` 일련번호로 연결될 수 있다.
 - `LotRelation.eventId`는 같은 업무 사건의 중복 edge를 막으며, 확정 후 update·delete하지 않는다. 새 edge는 자기참조와 순환을 거부한다.
@@ -518,7 +520,7 @@ Issue #8의 디자인 산출물은 저장소에서 직접 version 관리하고 P
 
 | 층 | 검증 대상 | 필수 예시 |
 |---|---|---|
-| Domain unit | 상태 전이와 순수 업무 규칙 | `RULE-01`~`RULE-15` |
+| Domain unit | 상태 전이와 순수 업무 규칙 | `RULE-01`~`RULE-25` 중 단일 aggregate 규칙 |
 | API integration | transaction, 권한, idempotency, concurrency | 동시 예약·실제 투입, 계보 중복·순환, 중복 완료 요청 |
 | Component | 표·폼·상태 표현과 접근성 | 오류·권한 없음·충돌 상태 |
 | E2E | 역할을 가로지르는 사용자 결과 | `FLOW-01`, `FLOW-02` |
@@ -643,7 +645,7 @@ Issue #8의 디자인 산출물은 저장소에서 직접 version 관리하고 P
 
 - [ ] aggregate와 module 경계가 transaction 요구사항과 맞는다.
 - [ ] 재고 원장과 LOT 계보의 진실 공급원이 명확하다.
-- [ ] `RULE-01`~`RULE-15`를 서버와 DB에서 강제할 수 있다.
+- [ ] `RULE-01`~`RULE-25`의 강제 위치가 server·DB·transaction·query로 구분되어 있다.
 - [ ] 예약·실제 투입·계보 edge의 진실 공급원과 transaction 경계가 명확하다.
 - [ ] 분할·합류·일련번호 fixture를 현재 엔터티와 관계로 표현할 수 있다.
 - [ ] idempotency와 optimistic concurrency의 적용 범위가 과하거나 부족하지 않다.
@@ -693,10 +695,10 @@ Issue #8의 디자인 산출물은 저장소에서 직접 version 관리하고 P
 ## 20. 리뷰 완료 조건
 
 - `ASM-01`~`ASM-07`의 반례 또는 수용 여부가 확인됐다.
-- `RULE-01`~`RULE-15`에 누락된 핵심 불변조건이 없다.
+- `RULE-01`~`RULE-25`에 누락된 핵심 불변조건이 없다.
 - `SCR-01`~`SCR-07` 업무영역과 하위 화면 ID, `FLOW-01`의 이동이 모순되지 않는다.
 - `DEC-01`~`DEC-07`이 승인, 대안 선택 또는 별도 Spike로 분리됐다.
 - 분야별 차단 이슈가 해소됐거나 담당 Issue와 완료 기준을 가진다.
 - 저장소 내 wireframe과 구현 handoff에 필요한 화면 ID, 상태와 데이터 요구사항이 충분하다.
 
-이 문서와 [UI 레이아웃·상태 계약](ui-layout-contracts.md)이 승인되고 1440px, 1280px와 현장 1024px 기준의 문서 walkthrough를 통과하면 Issue #8의 설계 범위를 완료한다. 실제 시각 구현과 screenshot 검증은 #9와 각 Feature Issue의 완료조건으로 이어진다.
+이 문서와 [UI 레이아웃·상태 계약](ui-layout-contracts.md)은 PR #20에서 승인·병합되어 Issue #8의 설계 범위를 완료했다. #2의 [제조 도메인 계약](../domain/manufacturing-domain-contract.md)이 규칙 ID와 Given/When/Then의 단일 기준이며, 실제 시각 구현과 screenshot 검증은 #9와 각 Feature Issue의 완료조건으로 이어진다.
