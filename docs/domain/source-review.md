@@ -2,9 +2,9 @@
 
 | 항목 | 내용 |
 |---|---|
-| 문서 상태 | `Review-ready v1.3` |
+| 문서 상태 | `Review-ready v1.4` |
 | 기준일 | 2026-09-01 |
-| 관련 Issue | [#2 제조 용어와 핵심 불변조건을 정의](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/2) |
+| 관련 Issue | [#2 제조 용어와 핵심 불변조건을 정의](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/2), [#23 v1.0 실행 계약을 정렬](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/23) |
 | 적용 범위 | 센서 제조 MES 프로젝트의 용어·상태·계보·품질 계약 |
 
 ## 1. 조사 원칙
@@ -39,18 +39,19 @@
 | `SRC-08` | [스마트공장 사업관리시스템, 시범공장 사례](https://www.smart-factory.kr/eng/factory.do?menuId=04) | 공개 사례에서 MES의 생산정보 수집, LOT 추적과 실적 모니터링을 제조 운영 가치로 제시한다. | LOT 추적과 예외 중심 운영 화면이 국내 제조 실행 프로젝트 주제에 부합하는지 확인한다. | 사례 기업의 수치·화면·공정을 fixture로 사용하지 않는다. |
 | `SRC-09` | [PostgreSQL 18, Constraints](https://www.postgresql.org/docs/18/ddl-constraints.html) | 같은 행의 수량식은 `CHECK`로 제한할 수 있지만 다른 행을 참조하는 `CHECK`는 지속적 정합성을 보장하지 못한다. | 행 내부 수량은 제약으로, 예약 합계·계보 순환은 transaction·query·test로 나눠 강제한다. | 아직 ORM schema나 trigger 방식을 확정하지 않는다. |
 | `SRC-10` | [PostgreSQL, Recursive Queries and Cycle Detection](https://www.postgresql.org/docs/current/queries-with.html#QUERIES-WITH-CYCLE) | 재귀 CTE는 그래프 경로와 순환을 탐지할 수 있다. | 계보 조회와 새 edge의 순환 거부가 PostgreSQL에서 검증 가능한지 확인한다. | 물리 schema와 성능 전략은 #13 ADR 전까지 확정하지 않는다. |
+| `SRC-11` | [SAP Help, Routing — Component Allocation](https://help.sap.com/docs/SAP_S4HANA_ON-PREMISE/d3a3eb7caa1842858bf0372e17ad3909/3b07414692aa4baa9c61347b4e2195a0.html) | BOM component를 route operation에 수동 배정할 수 있고 미배정 component는 production order 생성 시 첫 operation에 기본 배정한다. | v1.0의 모든 BOM 자재를 첫 route 공정에서 투입하는 단순 정책이 제조 모델로 성립하는지 교차검증한다. | SAP 호환성이나 모든 제조업의 자재 투입 시점을 주장하지 않는다. |
 
 ## 4. 근거에서 도출한 계약과 프로젝트 결정
 
 | 계약 | 분류 | 근거·이유 |
 |---|---|---|
-| MES는 생산·재고·품질 실행과 이력에 집중하고 회계·설비제어를 포함하지 않는다. | `SYNTHESIS` | `SRC-01`, `SRC-08`과 MVP 범위 |
+| MES는 생산·재고·품질 실행과 이력에 집중하고 회계·설비제어를 포함하지 않는다. | `SYNTHESIS` | `SRC-01`, `SRC-08`과 v1.0 범위 |
 | 계획 자재와 실제 투입 자재를 별도 사실로 관리한다. | `SYNTHESIS` | `SRC-02`~`SRC-04` |
-| 예약은 가용량을 보류하지만 물리 재고와 계보를 바꾸지 않는다. | `PROJECT` | `SRC-03`의 의미를 부분 예약 MVP에 적용 |
+| 예약은 가용량을 보류하지만 물리 재고와 계보를 바꾸지 않는다. | `PROJECT` | `SRC-03`의 의미를 v1.0 부분 예약에 적용 |
 | 실제 투입은 예약 감소·출고·소비·계보·감사를 하나의 transaction으로 기록한다. | `PROJECT` | `SRC-04`, 실패 시 부분 반영 방지 요구 |
 | 릴리스는 BOM·route·검사 revision과 작업지시별 자재·검사 요구사항을 예약 전에 고정한다. | `PROJECT` | `SRC-02`~`SRC-04`의 계획·요구와 실제 수행 분리, 구현 의존성 검증 |
 | 예약과 소비는 릴리스된 자재 요구의 WorkOrder·Material·수량 경계를 벗어나지 않는다. | `PROJECT` | `SRC-03`의 목적별 예약 의미와 교차 작업지시 오염 방지 요구 |
-| 공정 불량수량은 MVP에서 즉시 생산 폐기하며 다음 공정 입력은 분할·합류를 반영한 현재 LOT의 route WIP로 제한한다. | `PROJECT` | 공정 간·부분 분할 수량 보존 반례와 재작업 비범위 |
+| 공정 불량수량은 v1.0에서 즉시 생산 폐기하며 다음 공정 입력은 분할·합류를 반영한 현재 LOT의 route WIP로 제한한다. | `PROJECT` | 공정 간·부분 분할 수량 보존 반례와 재작업 비범위 |
 | 분할·합류·변환은 입력과 출력을 공통 사건으로 연결한다. | `SYNTHESIS` | `SRC-05` |
 | 확정 이력은 수정·삭제하지 않고 원본을 참조하는 정정 사건과 유형별 정정행으로 유효수량을 보정한다. | `SYNTHESIS` | `SRC-06`, 감사 가능성과 수량 상한 요구 |
 | 검사 정정은 품질 disposition 결정 전 `PENDING` 상태로 제한하고, 결정 뒤 발견한 오류는 품질 사건으로 통제한다. | `PROJECT` | 검사 유효 판정과 품질 disposition의 모순 방지 요구 |
@@ -58,6 +59,9 @@
 | 첫 공정은 선행 검사 없이 시작하고, 직전 공정의 필수 검사 유효 `PASS` 전에는 후속 공정과 계보 변환을 차단하며 `SERIALIZE`는 최종 공정 완료 뒤에만 허용한다. | `PROJECT` | 고신뢰성 흐름의 검사 gate 교착·우회와 중간 공정 일련번호 반례 |
 | 작업지시 자재 요구량은 계획수량과 제품 기준단위당 소요량의 정확한 십진 곱으로 고정한다. | `PROJECT` | 단위·정밀도·반올림에 따른 예약 경계 변동 방지 |
 | 예약 출고와 해제는 같은 Allocation에서 직렬화하고 누적합 상한을 강제한다. | `PROJECT` | 포화 계산이 초과 해제 오류를 숨기는 동시성 반례 |
+| 모든 BOM 자재는 작업지시 시작 전에 예약하고 유일한 초기 생산 LOT의 첫 route 공정에서만 실제 투입한다. | `PROJECT` | `SRC-11`의 허용 가능한 기본 배정과 현재 표준 fixture; 중간 공정 투입 요구 부재 |
+| 검사 판정과 LOT 품질 disposition은 별도 명령이며 권한·사유·감사를 요구한다. | `PROJECT` | 판정이 `PASS`여도 disposition이 `PENDING`이면 완료할 수 없는 상태기계 반례 |
+| 출하 업무는 구현하지 않고 현재 품질·격리 사실에서 읽기 전용 출하 적격성만 계산한다. | `PROJECT` | 비범위인 출하와 사용 차단 요구의 모순 제거 |
 | 정확한 상태명·수량식·완료 게이트·격리 흐름은 프로젝트가 정한다. | `PROJECT` | 공개 근거는 특정 애플리케이션 상태기계를 강제하지 않음 |
 
 ## 5. 계약 반례 전수 재검증
@@ -91,6 +95,11 @@
 | `CHK-25` | 검사 정정 version은 있으나 이미 결정된 품질 disposition과 충돌 | FAIL→REJECTED 뒤 PASS 정정은 PASS+REJECTED, PASS→ACCEPTED 뒤 FAIL 정정은 FAIL+ACCEPTED를 만듦 | `qualityDisposition = PENDING`이고 다른 의존 사건이 없을 때만 정정; disposition 결정 뒤에는 `QualityIncident`로 처리 |
 | `CHK-26` | BOM 단위당 소요량에서 작업지시 필요수량을 만드는 산식이 없음 | 같은 BOM·계획수량이어도 구현별 반올림으로 예약 상한이 달라짐 | 계획수량×단위당 소요량, `numeric(18, 6)`, 단위 일치와 무반올림 거부 계약 고정 |
 | `CHK-27` | 예약잔량의 `max(..., 0)`가 출고·해제 초과를 숨김 | 예약 10에서 출고 4와 해제 7을 기록해도 화면에는 잔량 0으로 정상처럼 표시 | 누적 출고+해제≤예약량을 강제하고 같은 Allocation 잠금에서 경합 직렬화 |
+| `CHK-28` | 모든 `startProcessExecution`이 자재 소비를 호출 | 후속 공정이 첫 공정에서 이미 투입한 같은 예약을 다시 출고하거나 자재 부족으로 영구 차단 | 생산 LOT의 첫 route 공정만 LOT 몫을 소비하고 후속 공정은 자재 거래 0건 |
+| `CHK-29` | 검사 판정은 있으나 품질 disposition 결정 command가 없음 | 최종검사 PASS 뒤에도 ProductionLot이 PENDING에 남아 완료 불가 | 자재·생산 LOT별 권한·사유·감사 품질 결정 command와 생산 LOT 승인·완료 transaction 추가 |
+| `CHK-30` | 출하를 비범위로 두면서 화면·완료 흐름에 출하 승인을 표현 | 구현할 entity·command 없이 사용자가 출하 업무까지 된다고 오해 | 출하 command를 제거하고 읽기 전용 `shipmentEligibility` projection으로 한정 |
+| `CHK-31` | 제품·BOM·route·검사·UI 예시가 서로 다른 식별자와 수량 사용 | Issue마다 다른 seed를 구현해 수직 흐름과 테스트가 연결되지 않음 | 하나의 `FIX-SENSOR-01` 기준과 격리된 실패 variant를 #22~#19에서 재사용 |
+| `CHK-32` | 여러 초기 생산 LOT를 허용하면서 첫 LOT 시작 후 추가 예약을 금지 | 남은 예약 자재가 격리되면 대체 예약도 작업지시 취소도 못 해 영구 차단 | v1.0은 계획수량 전체를 가진 초기 생산 LOT 하나만 릴리스하고 이후 분할·합류로 LOT을 나눔 |
 
 ## 6. 미결정 항목
 
@@ -104,7 +113,9 @@
 ## 7. 재검증 조건
 
 - 생산 방식이 단일 사업장·이산형 LOT 생산 범위를 벗어난다.
-- 단위 변환, 대체 자재, 재작업·재투입 또는 외주 공정이 MVP에 들어온다.
+- 단위 변환, 대체 자재, 재작업·재투입 또는 외주 공정이 v1.0 범위에 들어온다.
+- 중간 공정에서 새 자재를 투입하는 표준 fixture가 생겨 `BomItem → ProcessStepRevision` 매핑이 필요해진다.
+- 작업지시를 처음부터 여러 생산 LOT로 나누어 병렬 착수해야 한다.
 - 규제 준수나 특정 표준 적합성을 프로젝트 요구사항으로 추가한다.
 - PostgreSQL·ORM 선택 때문에 불변조건의 강제 위치가 달라진다.
 - #11~#16 구현 중 현재 상태기계로 표현할 수 없는 실제 반례가 발견된다.
