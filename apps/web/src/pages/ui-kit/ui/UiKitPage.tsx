@@ -22,12 +22,14 @@ import {
   Input,
   MetricCard,
   NumberInput,
+  PageHeading,
   PriorityBadge,
   Select,
   Skeleton,
   Toast,
   type DataTableColumn,
 } from "@/shared/ui";
+import { Main } from "@/widgets/app-shell";
 
 interface WorkOrderRow {
   id: string;
@@ -97,7 +99,12 @@ export function UiKitPage() {
   const [toastOpen, setToastOpen] = useState(false);
 
   return (
-    <div className="grid gap-6" data-testid="ui-kit-page">
+    <Main id="main-content" tabIndex={-1} data-testid="ui-kit-page">
+      <PageHeading
+        description="실제 제품 화면이 공유하는 토큰·입력·상태·복구 계약을 한곳에서 검증합니다."
+        title="UI 시스템 점검"
+      />
+      <div className="grid gap-6">
       <ShowcaseSection
         id="actions"
         title="행동과 피드백"
@@ -212,15 +219,15 @@ export function UiKitPage() {
         description="대표 행동과 차단 사유는 가로 스크롤 없이 읽을 수 있어야 합니다."
       >
         <FilterBar
-          resultLabel="총 2건 · 마지막 갱신 방금 전"
+          resultLabel="총 2건 · 기준 데이터 2026-09-02"
           actions={
             <>
               <Button size="compact" variant="ghost">
-                <RotateCcw className="size-3.5" aria-hidden="true" />
+                <RotateCcw className="size-4" aria-hidden="true" />
                 초기화
               </Button>
               <Button size="compact">
-                <Search className="size-3.5" aria-hidden="true" />
+                <Search className="size-4" aria-hidden="true" />
                 조회
               </Button>
             </>
@@ -272,14 +279,15 @@ export function UiKitPage() {
 
       <section className="rounded-panel border border-accent/30 bg-accent-soft p-5 text-sm leading-6 text-accent-strong">
         <div className="flex gap-3">
-          <PackageSearch className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
+          <PackageSearch className="mt-1 size-5 shrink-0" aria-hidden="true" />
           <p>
-            이 화면은 외부 템플릿 복사본이 아닙니다. 검증한 admin shell 패턴을 MES
-            정보 우선순위와 FSD 경계에 맞춰 다시 구현한 code-owned fixture입니다.
+            실제 제품 route가 사용하는 token과 공통 component의 정상·실패·복구
+            상태 조합을 이 화면에서 함께 검증합니다.
           </p>
         </div>
       </section>
-    </div>
+      </div>
+    </Main>
   );
 }
 
@@ -300,12 +308,12 @@ function ShowcaseSection({
 
   return (
     <section
-      className="rounded-panel border border-border bg-surface p-5 shadow-panel xl:p-6"
+      className="rounded-panel border border-border bg-surface p-5 xl:p-6"
       aria-labelledby={headingId}
     >
       <div className="mb-5 border-b border-border pb-4">
-        <span className="font-mono text-[0.6875rem] font-bold tracking-[0.12em] text-accent">
-          SHARED / UI
+        <span className="text-xs font-semibold text-accent-strong">
+          공통 컴포넌트
         </span>
         <h2 className="mt-1 text-lg font-bold text-text-strong" id={headingId}>
           {title}
