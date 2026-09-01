@@ -28,6 +28,7 @@
 - [NestJS First Steps](https://docs.nestjs.com/first-steps)는 runtime에 Node 20.19+를 요구하고 최신 Active LTS를 권장한다. 2026-09-01 기준 Nest CLI generator는 Node 24.15+를 요구한다.
 - [Prisma system requirements](https://docs.prisma.io/docs/orm/reference/system-requirements)는 Node 24와 TypeScript 5.4+를 지원한다. Prisma 8이 현재 major지만 [Prisma 7](https://www.prisma.io/docs/orm/v7)은 계속 지원된다.
 - [PostgreSQL 18.6](https://www.postgresql.org/about/news/postgresql-186-1711-1615-1519-1424-and-19-beta-3-released-3365/)은 2026-08-13 공개된 지원 버전이며 보안 수정이 포함된다.
+- [PostgreSQL Docker Official Image](https://hub.docker.com/_/postgres)의 18+ 계약은 version별 `PGDATA`를 사용하고 volume을 `/var/lib/postgresql`에 mount하도록 요구한다.
 - npm registry의 package metadata를 2026-09-01에 대조한 결과 `typescript-eslint@8.69.0`은 TypeScript `<6.1.0`을 지원한다. 따라서 지원 밖인 TypeScript 7 대신 TypeScript 6.0.3을 선택한다.
 
 공식 문서의 지원 범위는 이 조합이 제품에 자동으로 적합하다는 뜻이 아니다. 실제 적합성은 install, build, health endpoint, component/e2e test와 PostgreSQL healthcheck로 검증한다.
