@@ -5,8 +5,8 @@
  */
 import * as React from 'react'
 
-const MOBILE_BREAKPOINT = 768
-const MOBILE_QUERY = `(max-width: ${MOBILE_BREAKPOINT - 1}px)`
+const MOBILE_BREAKPOINT = 1024
+const MOBILE_QUERY = `(width < ${MOBILE_BREAKPOINT / 16}rem)`
 
 export function useIsMobile() {
   return React.useSyncExternalStore(

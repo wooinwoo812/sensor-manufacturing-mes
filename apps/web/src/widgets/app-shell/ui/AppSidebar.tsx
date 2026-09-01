@@ -9,7 +9,6 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/shared/ui";
-import { useLayout } from "../model/layout-context";
 import type { NavigationGroup } from "../model/navigation";
 import { AppTitle } from "./AppTitle";
 import { NavGroup } from "./NavGroup";
@@ -28,10 +27,8 @@ export function AppSidebar({
   pathname,
   showDevelopmentTools = import.meta.env.DEV,
 }: AppSidebarProps) {
-  const { collapsible, variant } = useLayout();
-
   return (
-    <Sidebar collapsible={collapsible} variant={variant}>
+    <Sidebar collapsible="icon" variant="inset">
       <SidebarHeader>
         <AppTitle />
       </SidebarHeader>

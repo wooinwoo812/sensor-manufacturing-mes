@@ -10,6 +10,9 @@ afterEach(() => {
 
 test("다크 테마를 선택하고 cookie에 저장한다", async () => {
   const user = userEvent.setup();
+  const themeColor = document.createElement("meta");
+  themeColor.name = "theme-color";
+  document.head.append(themeColor);
 
   render(
     <ThemeProvider defaultTheme="light" storageKey="theme-switch-test">
@@ -24,4 +27,6 @@ test("다크 테마를 선택하고 cookie에 저장한다", async () => {
     expect(document.documentElement).toHaveClass("dark");
   });
   expect(document.cookie).toContain("theme-switch-test=dark");
+  expect(themeColor).toHaveAttribute("content", "#020617");
+  themeColor.remove();
 });

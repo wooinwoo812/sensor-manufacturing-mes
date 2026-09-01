@@ -42,9 +42,9 @@ const navigation: AppShellProps["navigation"] = [
   },
 ];
 
-const routeTitles: Record<string, { title: string; screenId?: string }> = {
-  "/dashboard": { title: "운영 대시보드", screenId: "SCR-01A" },
-  "/dev/ui-kit": { title: "UI 시스템 점검", screenId: "ISSUE-09" },
+const routeTitles: Record<string, { title: string }> = {
+  "/dashboard": { title: "운영 대시보드" },
+  "/dev/ui-kit": { title: "UI 시스템 점검" },
   "/forbidden": { title: "접근 권한 없음" },
 };
 
@@ -55,8 +55,6 @@ export function resolveShellContext(pathname: string): AppShellConfiguration {
     navigation,
     pathname,
     pageTitle: current.title,
-    ...(current.screenId ? { screenId: current.screenId } : {}),
     currentRole: "시스템 관리자",
-    lastUpdatedAt: "방금 전",
   };
 }

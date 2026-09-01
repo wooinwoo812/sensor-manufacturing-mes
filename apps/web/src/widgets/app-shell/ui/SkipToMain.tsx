@@ -5,8 +5,8 @@
 export function SkipToMain() {
   return (
     <a
-      className={`fixed inset-s-44 z-999 -translate-y-52 bg-accent-strong px-4 py-2 text-sm font-medium whitespace-nowrap text-white opacity-95 shadow-sm transition hover:bg-accent-emphasis focus:translate-y-3 focus:transform focus-visible:ring-1 focus-visible:ring-focus`}
-      href='#main-content'
+      className="fixed start-4 top-0 z-skip -translate-y-full rounded-control bg-accent-strong px-4 py-2 text-sm font-medium whitespace-nowrap text-white shadow-panel transition-transform hover:bg-accent-emphasis focus:translate-y-4 focus-visible:ring-3 focus-visible:ring-focus/35 motion-reduce:transition-none"
+      href="#main-content"
     >
       본문으로 건너뛰기
     </a>

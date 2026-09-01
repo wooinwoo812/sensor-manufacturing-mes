@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import {
   Sidebar,
   SidebarContent,
@@ -39,5 +40,47 @@ describe("shadcn-admin 기반 반응형 사이드바", () => {
     expect(
       screen.getByRole("button", { name: "업무 메뉴 접기 또는 펼치기" }),
     ).toBeInTheDocument();
+  });
+
+  it("1024px 미만에서는 키보드로 overlay 메뉴를 열고 Escape로 닫는다", async () => {
+    const user = userEvent.setup();
+    const mediaQueryList = {
+      addEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+      matches: true,
+      media: "(width < 64rem)",
+      onchange: null,
+      removeEventListener: vi.fn(),
+    };
+    vi.stubGlobal("matchMedia", vi.fn(() => mediaQueryList));
+
+    render(
+      <SidebarProvider>
+        <Sidebar>
+          <SidebarContent>업무 메뉴 항목</SidebarContent>
+        </Sidebar>
+        <SidebarInset>
+          <SidebarTrigger />
+        </SidebarInset>
+      </SidebarProvider>,
+    );
+
+    const trigger = screen.getByRole("button", {
+      name: "업무 메뉴 접기 또는 펼치기",
+    });
+    trigger.focus();
+    await user.keyboard("{Enter}");
+
+    expect(
+      await screen.findByRole("dialog", { name: "업무 메뉴" }),
+    ).toBeInTheDocument();
+
+    await user.keyboard("{Escape}");
+    expect(
+      screen.queryByRole("dialog", { name: "업무 메뉴" }),
+    ).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+
+    vi.unstubAllGlobals();
   });
 });

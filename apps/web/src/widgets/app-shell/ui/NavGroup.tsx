@@ -5,9 +5,9 @@
 import { Link } from "@tanstack/react-router";
 import {
   Boxes,
+  ClipboardCheck,
   ClipboardList,
   Factory,
-  FlaskConical,
   GitBranch,
   History,
   LayoutDashboard,
@@ -36,7 +36,7 @@ const iconByName: Record<NavigationIcon, LucideIcon> = {
   dashboard: LayoutDashboard,
   execution: Factory,
   incident: ShieldAlert,
-  inspection: FlaskConical,
+  inspection: ClipboardCheck,
   material: PackageSearch,
   trace: GitBranch,
   users: Users,
@@ -63,7 +63,7 @@ export function NavGroup({ group, pathname }: NavGroupProps) {
               {item.to ? (
                 <SidebarMenuButton
                   asChild
-                  className="data-[active=true]:bg-sidebar-primary data-[active=true]:text-sidebar-primary-foreground data-[active=true]:shadow-sm"
+                  className="relative after:absolute after:inset-y-2 after:start-0 after:w-0.5 after:rounded-full after:bg-sidebar-primary after:opacity-0 data-[active=true]:font-semibold data-[active=true]:after:opacity-100"
                   isActive={item.to === pathname}
                   tooltip={item.label}
                 >
