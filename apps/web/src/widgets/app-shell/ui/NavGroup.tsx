@@ -63,6 +63,7 @@ export function NavGroup({ group, pathname }: NavGroupProps) {
               {item.to ? (
                 <SidebarMenuButton
                   asChild
+                  className="data-[active=true]:bg-sidebar-primary data-[active=true]:text-sidebar-primary-foreground data-[active=true]:shadow-sm"
                   isActive={item.to === pathname}
                   tooltip={item.label}
                 >

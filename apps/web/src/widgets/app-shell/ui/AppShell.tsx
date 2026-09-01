@@ -13,6 +13,7 @@ import { LayoutProvider } from "../model/layout-context";
 import type { NavigationGroup } from "../model/navigation";
 import { AppSidebar } from "./AppSidebar";
 import { Header } from "./Header";
+import { LayoutSettings } from "./LayoutSettings";
 import { SkipToMain } from "./SkipToMain";
 import { ThemeSwitch } from "./ThemeSwitch";
 
@@ -88,6 +89,7 @@ export function AppShell({
               </kbd>
             </ShadcnButton>
             <ThemeSwitch />
+            <LayoutSettings />
             <ShadcnButton aria-label="알림" size="icon" type="button" variant="ghost">
               <Bell />
             </ShadcnButton>
