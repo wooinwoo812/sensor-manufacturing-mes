@@ -11,6 +11,7 @@ export default tseslint.config(
       "**/dist/**",
       "**/node_modules/**",
       "apps/api/src/generated/**",
+      "apps/web/src/app/routeTree.gen.ts",
     ],
   },
   eslint.configs.recommended,
