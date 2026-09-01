@@ -1,4 +1,9 @@
 :root {
+  --mes-font-sans: Inter, Pretendard, "Noto Sans KR", system-ui, sans-serif;
+  --mes-font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  --mes-space-unit: 0.25rem;
+  --mes-leading-body: 1.55;
+
   --mes-color-canvas: #f2f5f6;
   --mes-color-surface: #ffffff;
   --mes-color-surface-subtle: #f6f8f9;
@@ -49,6 +54,10 @@
 }
 
 @theme inline {
+  --font-sans: var(--mes-font-sans);
+  --font-mono: var(--mes-font-mono);
+  --spacing: var(--mes-space-unit);
+  --leading-body: var(--mes-leading-body);
   --color-canvas: var(--mes-color-canvas);
   --color-surface: var(--mes-color-surface);
   --color-surface-subtle: var(--mes-color-surface-subtle);

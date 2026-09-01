@@ -18,9 +18,7 @@
     margin: 0;
     color: var(--mes-color-text);
     background: var(--mes-color-canvas);
-    font-family:
-      Inter, Pretendard, "Noto Sans KR", system-ui, -apple-system,
-      BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-family: var(--mes-font-sans);
     font-synthesis: none;
     text-rendering: optimizeLegibility;
   }
