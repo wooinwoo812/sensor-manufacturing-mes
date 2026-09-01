@@ -528,7 +528,7 @@ GET  /traceability/nodes/{traceNodeId}
 | `startProcessExecution` | #13 | 공정 시작과 `consumeMaterialReservation`을 한 transaction boundary에서 orchestration |
 | `correctInspection` | #14 | 원 검사 보존, 전체 정정 snapshot·유효 판정과 후속 의존 사건 gate를 원자적으로 처리 |
 
-#13의 production service가 재고 테이블을 직접 수정하지 않고 inventory module의 `consumeMaterialReservation`을 호출한다. Allocation의 요구사항, ProductionLot과 ProcessExecution이 같은 WorkOrder에 속하고 자재가 요구사항과 일치해야 한다. 실제 투입이 실패하면 공정 시작, 재고 출고, 소비·계보·감사 기록이 모두 rollback된다.
+Issue #13의 production service가 재고 테이블을 직접 수정하지 않고 inventory module의 `consumeMaterialReservation`을 호출한다. Allocation의 요구사항, ProductionLot과 ProcessExecution이 같은 WorkOrder에 속하고 자재가 요구사항과 일치해야 한다. 실제 투입이 실패하면 공정 시작, 재고 출고, 소비·계보·감사 기록이 모두 rollback된다.
 
 ## 12. 디자인 산출물 계약
 
