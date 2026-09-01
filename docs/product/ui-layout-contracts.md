@@ -8,6 +8,7 @@
 | 기준일 | 2026-08-31 |
 | 관련 Issue | [#8 역할별 사용자 흐름과 정보구조를 설계](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/8) |
 | 상위 계약 | [제품·UX·기술 기획 크로스검토본](product-plan-cross-review.md) |
+| Route 계약 | [MES Web Route 계약](route-contract.md) |
 | 구현 근거 | #9와 각 Feature PR의 component test·viewport screenshot |
 
 ## 1. 산출물 원칙
@@ -266,6 +267,7 @@
 
 | 계약 | 구현 Issue | PR 근거 |
 |---|---|---|
+| FSD·route·permission | #28 | route inventory, import boundary, redirect·error matrix |
 | AppShell·token·공통 상태 | #9 | component showcase, viewport screenshot, 접근성 검사 |
 | 작업지시 목록·상세 | #11 | 정상·빈 값·오류·권한 없음 screenshot |
 | 자재 예약 | #12 | 부분 예약·품질 차단·충돌 screenshot |
