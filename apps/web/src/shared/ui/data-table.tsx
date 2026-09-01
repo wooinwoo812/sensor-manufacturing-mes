@@ -17,7 +17,7 @@ interface DataTableProps<Row> {
 
 export function DataTable<Row>({ caption, columns, emptyMessage, getRowKey, rows }: DataTableProps<Row>) {
   return (
-    <div className="overflow-hidden rounded-panel border border-border bg-surface shadow-panel">
+    <div className="overflow-hidden rounded-panel border border-border bg-surface">
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-sm">
           <caption className="sr-only">{caption}</caption>

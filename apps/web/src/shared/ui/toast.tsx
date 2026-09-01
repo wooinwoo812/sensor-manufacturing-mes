@@ -30,7 +30,7 @@ export function Toast({ description, onOpenChange, open, title }: ToastProps) {
       onOpenChange={onOpenChange}
       open={open}
     >
-      <CheckCircle2 className="mt-0.5 size-5 text-success" aria-hidden="true" />
+      <CheckCircle2 className="mt-1 size-5 text-success" aria-hidden="true" />
       <div>
         <ToastPrimitive.Title className="text-sm font-bold text-text-strong">
           {title}

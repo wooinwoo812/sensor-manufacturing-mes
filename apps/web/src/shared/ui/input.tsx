@@ -15,7 +15,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     const descriptionId = `${inputId}-description`;
 
     return (
-      <div className="grid gap-1.5">
+      <div className="grid gap-2">
         <label
           className={cn("text-xs font-semibold text-text", hideLabel && "sr-only")}
           htmlFor={inputId}

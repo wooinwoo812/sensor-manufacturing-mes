@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { CircleAlert, CircleCheck, LoaderCircle } from "lucide-react";
 import {
   fetchApiHealth,
   type ApiHealthResponse,
@@ -47,13 +48,10 @@ export function ApiConnectionStatus({
   } as const;
 
   return (
-    <section className="rounded-panel border border-border bg-surface shadow-panel" aria-labelledby="api-status-heading">
+    <section className="rounded-panel border border-border bg-surface" aria-labelledby="api-status-heading">
       <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
         <div>
-          <span className="font-mono text-[0.6875rem] font-bold tracking-[0.12em] text-text-muted">
-            CONNECTION
-          </span>
-          <h2 className="mt-1 text-lg font-bold text-text-strong" id="api-status-heading">
+          <h2 className="text-lg font-bold text-text-strong" id="api-status-heading">
             API 연결 상태
           </h2>
         </div>
@@ -66,7 +64,7 @@ export function ApiConnectionStatus({
 
       {state.phase === "loading" ? (
         <div className="flex gap-3 px-5 py-6" role="status" aria-live="polite">
-          <span className="mt-0.5 size-5 animate-spin rounded-full border-[3px] border-border border-t-accent motion-reduce:animate-none" aria-hidden="true" />
+          <LoaderCircle className="mt-1 size-5 animate-spin text-warning-strong motion-reduce:animate-none" aria-hidden="true" />
           <div>
             <strong className="text-sm text-text-strong">API 연결을 확인하고 있습니다</strong>
             <p className="mt-1 text-xs leading-5 text-text-muted">
@@ -78,8 +76,8 @@ export function ApiConnectionStatus({
 
       {state.phase === "ready" ? (
         <div className="flex gap-3 px-5 py-6" role="status" aria-live="polite">
-          <span className="grid size-5 place-items-center rounded-full bg-success text-xs font-black text-white" aria-hidden="true">
-            ✓
+          <span className="grid size-5 place-items-center text-success-strong" aria-hidden="true">
+            <CircleCheck className="size-5" />
           </span>
           <div>
             <strong className="text-sm text-text-strong">API 연결 정상</strong>
@@ -92,8 +90,8 @@ export function ApiConnectionStatus({
 
       {state.phase === "error" ? (
         <div className="flex gap-3 px-5 py-6" role="alert">
-          <span className="grid size-5 place-items-center rounded-full bg-danger text-xs font-black text-white" aria-hidden="true">
-            !
+          <span className="grid size-5 place-items-center text-danger-strong" aria-hidden="true">
+            <CircleAlert className="size-5" />
           </span>
           <div>
             <strong className="text-sm text-text-strong">API에 연결할 수 없습니다</strong>
@@ -122,7 +120,7 @@ function cnStatusSignal(phase: ConnectionState["phase"]) {
     error: "border-danger-border bg-danger-soft text-danger-strong",
   } as const;
 
-  return `inline-flex min-h-7 items-center rounded-full border px-2.5 text-[0.6875rem] font-bold ${tones[phase]}`;
+  return `inline-flex min-h-6 items-center rounded-md border px-2 text-xs font-semibold ${tones[phase]}`;
 }
 
 function formatTime(timestamp: string) {

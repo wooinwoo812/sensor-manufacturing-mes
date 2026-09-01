@@ -61,8 +61,8 @@ function StatusAxis({
   label: string;
 }) {
   return (
-    <div className="grid gap-1.5">
-      <dt className="text-[0.6875rem] font-semibold text-text-muted">{label}</dt>
+    <div className="grid gap-2">
+      <dt className="text-xs font-semibold text-text-muted">{label}</dt>
       <dd>
         <Badge tone={config.tone}>{config.label}</Badge>
       </dd>

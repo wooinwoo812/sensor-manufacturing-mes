@@ -4,6 +4,7 @@ export { ConfirmDialog } from "./dialog";
 export { FilterBar } from "./filter-bar";
 export { Input, NumberInput, DateInput, type InputProps } from "./input";
 export { MetricCard } from "./metric-card";
+export { PageHeading } from "./page-heading";
 export { Select, type SelectOption, type SelectProps } from "./select";
 export {
   ConflictState,

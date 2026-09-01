@@ -16,6 +16,18 @@ test("loading 버튼은 중복 실행을 차단하고 진행 상태를 읽어준
   expect(button).toBeDisabled();
 });
 
+test("asChild 버튼은 단일 링크 요소에 동작과 스타일을 위임한다", () => {
+  render(
+    <Button asChild>
+      <a href="/dashboard">운영 대시보드로 이동</a>
+    </Button>,
+  );
+
+  expect(
+    screen.getByRole("link", { name: "운영 대시보드로 이동" }),
+  ).toHaveAttribute("href", "/dashboard");
+});
+
 test("입력 오류를 label과 설명으로 연결한다", () => {
   render(
     <Input

@@ -8,7 +8,7 @@ interface FilterBarProps {
 
 export function FilterBar({ actions, children, resultLabel }: FilterBarProps) {
   return (
-    <section className="rounded-panel border border-border bg-surface p-4 shadow-control" aria-label="조회 조건">
+    <section className="rounded-panel border border-border bg-surface p-4" aria-label="조회 조건">
       <div className="flex flex-wrap items-end gap-3">
         {children}
         {actions ? <div className="ml-auto flex items-center gap-2">{actions}</div> : null}

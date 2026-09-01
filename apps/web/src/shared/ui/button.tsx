@@ -9,7 +9,7 @@ import {
 import { cn } from "@/shared/lib";
 
 const buttonVariants = cva(
-  "inline-flex min-h-10 items-center justify-center gap-2 rounded-control border px-4 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-focus/35 focus-visible:ring-offset-2 focus-visible:ring-offset-surface disabled:pointer-events-none disabled:opacity-45 motion-reduce:transition-none",
+  "inline-flex min-h-10 items-center justify-center gap-2 rounded-control border px-4 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-focus/35 focus-visible:ring-offset-2 focus-visible:ring-offset-surface disabled:pointer-events-none disabled:opacity-45 aria-disabled:pointer-events-none aria-disabled:opacity-45 motion-reduce:transition-none",
   {
     variants: {
       variant: {
@@ -59,12 +59,25 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     },
     ref,
   ) => {
-    const Component = asChild ? Slot : "button";
+    if (asChild) {
+      return (
+        <Slot
+          aria-busy={loading || undefined}
+          aria-disabled={disabled || loading || undefined}
+          aria-label={loading ? loadingLabel : undefined}
+          className={cn(buttonVariants({ variant, size }), className)}
+          ref={ref}
+          {...props}
+        >
+          {children}
+        </Slot>
+      );
+    }
 
     return (
-      <Component
+      <button
         className={cn(buttonVariants({ variant, size }), className)}
-        disabled={asChild ? undefined : disabled || loading}
+        disabled={disabled || loading}
         ref={ref}
         {...props}
       >
@@ -73,7 +86,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ) : null}
         {loading ? <span className="sr-only">{loadingLabel}</span> : null}
         <span aria-hidden={loading || undefined}>{children}</span>
-      </Component>
+      </button>
     );
   },
 );

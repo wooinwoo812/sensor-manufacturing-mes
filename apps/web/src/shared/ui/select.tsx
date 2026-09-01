@@ -34,7 +34,7 @@ export function Select({
   const errorId = `${labelId}-error`;
 
   return (
-    <div className="grid gap-1.5">
+    <div className="grid gap-2">
       <span className="text-xs font-semibold text-text" id={labelId}>
         {label}
       </span>

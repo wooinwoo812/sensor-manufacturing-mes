@@ -16,7 +16,7 @@ export function MetricCard({ emphasis = "neutral", helper, icon: Icon, label, va
   }[emphasis];
 
   return (
-    <article className="rounded-panel border border-border bg-surface p-5 shadow-panel">
+    <article className="min-h-36 rounded-panel border border-border bg-surface p-5">
       <div className="flex items-start justify-between gap-4">
         <div>
           <span className="text-xs font-semibold text-text-muted">{label}</span>
@@ -26,7 +26,7 @@ export function MetricCard({ emphasis = "neutral", helper, icon: Icon, label, va
           <Icon className="size-4" aria-hidden="true" />
         </span>
       </div>
-      <p className="mt-3 border-t border-border pt-3 text-xs text-text-muted">{helper}</p>
+      <p className="mt-4 border-t border-border pt-3 text-xs text-text-muted">{helper}</p>
     </article>
   );
 }
