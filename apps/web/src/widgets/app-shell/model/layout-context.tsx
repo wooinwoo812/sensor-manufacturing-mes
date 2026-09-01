@@ -15,12 +15,12 @@ import { getCookie, setCookie } from "@/shared/lib";
 export type SidebarCollapsible = "offcanvas" | "icon" | "none";
 export type SidebarVariant = "inset" | "sidebar" | "floating";
 
-const LAYOUT_COLLAPSIBLE_COOKIE_NAME = "layout_collapsible";
-const LAYOUT_VARIANT_COOKIE_NAME = "layout_variant";
+const LAYOUT_COLLAPSIBLE_COOKIE_NAME = "layout_collapsible_base";
+const LAYOUT_VARIANT_COOKIE_NAME = "layout_variant_base";
 const LAYOUT_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
 
 const DEFAULT_COLLAPSIBLE: SidebarCollapsible = "icon";
-const DEFAULT_VARIANT: SidebarVariant = "sidebar";
+const DEFAULT_VARIANT: SidebarVariant = "inset";
 
 const collapsibleValues = new Set<SidebarCollapsible>([
   "offcanvas",

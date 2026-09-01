@@ -1,12 +1,18 @@
 import { Link } from "@tanstack/react-router";
-import { Bell, ChevronsUpDown, Search } from "lucide-react";
+import { Bell, SearchIcon } from "lucide-react";
 import type { ReactNode } from "react";
-import { Button, SidebarInset, SidebarProvider } from "@/shared/ui";
+import { cn, getCookie } from "@/shared/lib";
+import {
+  Avatar,
+  AvatarFallback,
+  ShadcnButton,
+  SidebarInset,
+  SidebarProvider,
+} from "@/shared/ui";
 import { LayoutProvider } from "../model/layout-context";
 import type { NavigationGroup } from "../model/navigation";
 import { AppSidebar } from "./AppSidebar";
 import { Header } from "./Header";
-import { Main } from "./Main";
 import { SkipToMain } from "./SkipToMain";
 
 export interface AppShellProps {
@@ -24,104 +30,78 @@ export type AppShellConfiguration = Omit<AppShellProps, "children">;
 export function AppShell({
   children,
   currentRole,
-  lastUpdatedAt,
   navigation,
-  pageTitle,
   pathname,
-  screenId,
 }: AppShellProps) {
+  const defaultOpen = getCookie("sidebar_state") !== "false";
+
   return (
     <LayoutProvider>
-      <SidebarProvider defaultOpen>
+      <SidebarProvider defaultOpen={defaultOpen}>
         <SkipToMain />
         <AppSidebar
           currentRole={currentRole}
           navigation={navigation}
           pathname={pathname}
         />
-
-        <SidebarInset className="@container/content min-w-0 bg-canvas text-text">
-          <Header
-            className="border-b border-border bg-surface/95 backdrop-blur"
-            fixed
-          >
-            <form
-              className="relative hidden max-w-md flex-1 md:block"
-              role="search"
-            >
-              <Search
-                className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-text-subtle"
-                aria-hidden="true"
-              />
-              <input
-                className="h-10 w-full rounded-control border border-border bg-surface-subtle pl-9 pr-3 text-sm text-text placeholder:text-text-subtle focus:border-accent focus:bg-surface focus:outline-none focus:ring-3 focus:ring-focus/25 disabled:cursor-not-allowed"
-                type="search"
-                aria-label="전역 업무 검색"
-                placeholder="작업지시·LOT·일련번호 검색"
-                disabled
-                title="LOT 계보 기능에서 연결됩니다"
-              />
-            </form>
-
-            <div className="ml-auto flex items-center gap-2">
-              <span className="hidden text-right text-[0.6875rem] leading-4 text-text-muted xl:block">
-                마지막 갱신
-                <strong className="ml-1 font-semibold text-text">
-                  {lastUpdatedAt}
-                </strong>
-              </span>
-              <Button size="icon" variant="ghost" aria-label="알림">
-                <Bell className="size-4" aria-hidden="true" />
-              </Button>
-              <Button className="hidden sm:inline-flex" variant="secondary">
-                <span className="grid size-6 place-items-center rounded-full bg-accent-soft text-[0.625rem] font-bold text-accent-strong">
-                  관
-                </span>
-                {currentRole}
-                <ChevronsUpDown
-                  className="size-3.5 text-text-subtle"
-                  aria-hidden="true"
-                />
-              </Button>
-            </div>
-          </Header>
-
-          <Main
-            fluid
-            id="main-content"
-            className="mx-auto w-full max-w-screen-2xl px-4 py-5 md:px-6 xl:px-8 xl:py-7"
-            tabIndex={-1}
-          >
+        <SidebarInset
+          className={cn(
+            "@container/content",
+            "has-data-[layout=fixed]:h-svh",
+            "peer-data-[variant=inset]:has-data-[layout=fixed]:h-[calc(100svh-(var(--spacing)*4))]",
+          )}
+        >
+          <Header>
             <nav
-              className="mb-3 flex items-center gap-2 text-xs text-text-muted"
-              aria-label="현재 위치"
+              aria-label="대시보드 보조 메뉴"
+              className="me-auto hidden items-center space-x-4 lg:flex xl:space-x-6"
             >
-              <Link className="hover:text-accent-strong" to="/dashboard">
-                홈
+              <Link className="text-sm font-medium" to="/dashboard">
+                개요
               </Link>
-              <span aria-hidden="true">/</span>
-              <span aria-current="page" className="text-text">
-                {pageTitle}
+              <span className="text-sm font-medium text-muted-foreground">
+                생산
+              </span>
+              <span className="text-sm font-medium text-muted-foreground">
+                품질
+              </span>
+              <span className="text-sm font-medium text-muted-foreground">
+                추적
               </span>
             </nav>
-            <div className="mb-6 flex flex-wrap items-end justify-between gap-3 border-b border-border pb-5">
-              <div>
-                {screenId ? (
-                  <span className="font-mono text-[0.6875rem] font-bold tracking-[0.12em] text-accent">
-                    {screenId}
-                  </span>
-                ) : null}
-                <h1 className="mt-1 text-2xl font-bold tracking-tight text-text-strong xl:text-[1.75rem]">
-                  {pageTitle}
-                </h1>
-              </div>
-              <span className="rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-text-muted">
-                개발 환경
-              </span>
-            </div>
-
-            {children}
-          </Main>
+            <ShadcnButton
+              aria-keyshortcuts="Meta+K Control+K"
+              className="group relative h-8 w-full flex-1 justify-start rounded-md bg-muted/25 text-sm font-normal text-muted-foreground shadow-none hover:bg-accent sm:w-40 sm:pe-12 md:flex-none lg:w-52 xl:w-64"
+              title="전역 검색은 LOT 계보 기능에서 연결됩니다"
+              type="button"
+              variant="outline"
+            >
+              <SearchIcon
+                aria-hidden="true"
+                className="absolute inset-s-1.5 top-1/2 -translate-y-1/2"
+                size={16}
+              />
+              <span className="ms-4">검색</span>
+              <kbd className="pointer-events-none absolute inset-e-[0.3rem] top-[0.3rem] hidden h-5 items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 select-none group-hover:bg-accent sm:flex">
+                <span className="text-xs">⌘</span>K
+              </kbd>
+            </ShadcnButton>
+            <ShadcnButton aria-label="알림" size="icon" type="button" variant="ghost">
+              <Bell />
+            </ShadcnButton>
+            <ShadcnButton
+              aria-label={`현재 역할: ${currentRole}`}
+              className="relative h-8 w-8 rounded-full"
+              size="icon"
+              type="button"
+              variant="ghost"
+            >
+              <Avatar className="h-8 w-8">
+                <AvatarFallback>관</AvatarFallback>
+              </Avatar>
+            </ShadcnButton>
+          </Header>
+          {children}
           <span className="sr-only" aria-live="polite">
             현재 경로 {pathname}
           </span>

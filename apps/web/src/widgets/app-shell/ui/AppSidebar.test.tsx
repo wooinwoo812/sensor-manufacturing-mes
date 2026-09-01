@@ -1,7 +1,23 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import type { AnchorHTMLAttributes, ReactNode } from "react";
 import { SidebarInset, SidebarProvider } from "@/shared/ui";
 import { LayoutProvider } from "../model/layout-context";
 import { AppSidebar } from "./AppSidebar";
+
+vi.mock("@tanstack/react-router", () => ({
+  Link: ({
+    children,
+    to,
+    ...props
+  }: AnchorHTMLAttributes<HTMLAnchorElement> & {
+    children: ReactNode;
+    to: string;
+  }) => (
+    <a href={to} {...props}>
+      {children}
+    </a>
+  ),
+}));
 
 describe("shadcn-admin 기반 MES 앱 사이드바", () => {
   it("MES 기본 레이아웃과 구현 예정 메뉴 상태를 함께 표시한다", () => {
@@ -31,7 +47,7 @@ describe("shadcn-admin 기반 MES 앱 사이드바", () => {
     );
 
     const sidebar = container.querySelector('[data-slot="sidebar"]');
-    expect(sidebar).toHaveAttribute("data-variant", "sidebar");
+    expect(sidebar).toHaveAttribute("data-variant", "inset");
     expect(sidebar).toHaveAttribute("data-collapsible", "");
 
     fireEvent.keyDown(window, { key: "b", ctrlKey: true });

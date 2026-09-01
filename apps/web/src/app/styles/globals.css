@@ -2,25 +2,24 @@
 @import "tw-animate-css";
 @import "./tokens.css";
 
+@custom-variant dark (&:is(.dark *));
+
 @layer base {
   * {
+    @apply border-border outline-ring/50;
     box-sizing: border-box;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
   }
 
   html {
-    min-width: 20rem;
-    min-height: 100%;
-    overflow-x: hidden;
-    background: var(--mes-color-canvas);
+    @apply overflow-x-hidden;
   }
 
   body {
-    min-width: 20rem;
-    min-height: 100vh;
+    @apply min-h-svh w-full bg-background text-foreground has-[div[data-variant="inset"]]:bg-sidebar;
     margin: 0;
-    color: var(--mes-color-text);
-    background: var(--mes-color-canvas);
-    font-family: var(--mes-font-sans);
+    font-family: "Inter", "Noto Sans KR", sans-serif;
     font-synthesis: none;
     text-rendering: optimizeLegibility;
   }
@@ -36,27 +35,67 @@
     font: inherit;
   }
 
-  button,
-  a {
-    -webkit-tap-highlight-color: transparent;
-  }
-
   button:not(:disabled),
   [role="button"]:not(:disabled) {
     cursor: pointer;
   }
 
-  ::selection {
-    color: var(--mes-color-text-strong);
-    background: var(--mes-color-accent-soft);
+  @media screen and (max-width: 767px) {
+    input,
+    select,
+    textarea {
+      font-size: 16px !important;
+    }
   }
 }
 
-@media screen and (max-width: 767px) {
-  input,
-  select,
-  textarea {
-    font-size: 16px !important;
+@utility container {
+  margin-inline: auto;
+  padding-inline: 2rem;
+}
+
+@utility no-scrollbar {
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@utility faded-bottom {
+  @apply after:pointer-events-none after:absolute after:inset-s-0 after:bottom-0 after:hidden after:h-32 after:w-full after:rounded-b-2xl after:bg-[linear-gradient(180deg,transparent_10%,var(--background)_70%)] md:after:block;
+}
+
+.CollapsibleContent {
+  overflow: hidden;
+}
+
+.CollapsibleContent[data-state="open"] {
+  animation: slideDown 300ms ease-out;
+}
+
+.CollapsibleContent[data-state="closed"] {
+  animation: slideUp 300ms ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    height: 0;
+  }
+
+  to {
+    height: var(--radix-collapsible-content-height);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    height: var(--radix-collapsible-content-height);
+  }
+
+  to {
+    height: 0;
   }
 }
 

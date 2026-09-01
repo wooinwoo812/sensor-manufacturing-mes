@@ -42,3 +42,34 @@ export {
   useSidebar,
 } from "./shadcn/sidebar";
 export { Separator } from "./shadcn/separator";
+export { Button as ShadcnButton } from "./shadcn/button";
+export {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "./shadcn/avatar";
+export {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "./shadcn/card";
+export {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut,
+  DropdownMenuTrigger,
+} from "./shadcn/dropdown-menu";
+export {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "./shadcn/tabs";
