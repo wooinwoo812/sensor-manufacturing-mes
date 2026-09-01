@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Code and documentation quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.25.0
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint source
+        run: pnpm lint
+
+      - name: Check TypeScript
+        run: pnpm typecheck
+
+      - name: Run tests
+        run: pnpm test
+
+      - name: Build applications
+        run: pnpm build
+
+      - name: Check documentation
+        run: pnpm docs:check
+
+      - name: Validate Prisma schema
+        run: pnpm db:validate
+
+      - name: Validate Docker Compose
+        run: docker compose config
+
+      - name: Start PostgreSQL
+        run: docker compose up -d --wait postgres
+
+      - name: Verify PostgreSQL connection
+        run: pnpm db:check
+
+      - name: Stop PostgreSQL
+        if: always()
+        run: docker compose down --volumes
