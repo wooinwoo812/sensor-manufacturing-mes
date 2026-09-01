@@ -1,10 +1,10 @@
 # MES 디자인 레퍼런스 후보군
 
-> 센서 제조 MES의 실제 업무 화면을 설계하기 위한 공개 레퍼런스 20개
+> 센서 제조 MES의 실제 업무 화면을 설계하기 위한 기준 후보 20개와 추가 조사 후보 순위
 
 | 항목 | 내용 |
 |---|---|
-| 문서 상태 | `Candidate review v1.0` |
+| 문서 상태 | `Candidate review v1.1` |
 | 기준일 | 2026-09-01 |
 | 관련 Issue | [#25 MES 화면 레퍼런스 후보군을 검토한다](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/25) |
 | 상위 계약 | [제품 비전](vision.md), [UI 레이아웃·상태 계약](ui-layout-contracts.md) |
@@ -34,7 +34,7 @@
 
 Full dark, neon, HUD, glassmorphism, 큰 gradient, 의미 없는 실시간 pulse와 KPI 카드 벽은 제외한다. Dark theme는 장시간 모니터링 수요가 검증된 뒤 별도로 비교한다.
 
-## 3. 후보 20개
+## 3. 기준 후보 20개
 
 우선순위는 `P1`이 1차 시안에 직접 사용, `P2`가 특정 화면에 선택 사용, `P3`가 비교·검증용이다.
 
@@ -178,7 +178,26 @@ Full dark, neon, HUD, glassmorphism, 큰 gradient, 의미 없는 실시간 pulse
 - 참고: 같은 content를 `Professional Light`, `Flat Design Light`, `Swiss Minimalist`로 비교해 typography·border·spacing 차이를 검증한다.
 - 제외: `Cyberpunk`, `Terminal`, `Glassmorphism`, `Luxury`, `Web3`는 MES 신뢰성과 반복 작업 효율을 떨어뜨리므로 시안 후보에서 제외한다.
 
-## 4. 화면별 조합
+## 4. 추가 조사 후보 순위
+
+기준 후보 20개는 유지한다. 아래 10개는 추가 조사에서 찾은 후보를 센서 제조 업무 적합도, 공개 화면의 구체성, 구조적 재사용성 순으로 정렬한 비교 목록이다. 이 순위는 제품이나 UI library의 설치 순서가 아니다.
+
+| 순위 | 추가 후보 | 우선순위·대상 | 추가 판단 |
+|---:|---|---|---|
+| 1 | `ADD-01` [Siemens Opcenter Execution Electronics 2510](https://blogs.sw.siemens.com/opcenter/whats-new-in-opcenter-execution-electronics-2510/) | `P1` · `SCR-03B`, `SCR-03D`, `SCR-04B`, `SCR-05C`, `SCR-06A` | 전자 제조의 material queue, HOLD·해제, defect, carrier·serial 실제 화면이 센서 제조 흐름과 가장 직접적으로 맞는다. |
+| 2 | `ADD-02` [Microsoft Dynamics 365 Production Floor Execution](https://learn.microsoft.com/en-us/dynamics365/supply-chain/production-control/production-floor-execution-use) | `P1` · `SCR-04A`, `SCR-04B` | touch·고대비 환경에서 작업 목록, 선택 상세, 수량 numpad와 대표 행동을 한 작업공간에 묶는다. Full dark 외형과 과도한 부가기능은 복제하지 않는다. |
+| 3 | `ADD-03` [Oracle Redwood Product Genealogy](https://docs.oracle.com/en/cloud/saas/readiness/scm/26a/mfg26a/26A-mfg-wn-f42315.htm) | `P1` · `SCR-06B`, `SCR-07A` | `Composition`, `Where Used`, `Transaction History`를 분리해 양방향 추적과 사건 근거를 table-first로 읽게 한다. Graph는 보조 보기로 비교한다. |
+| 4 | `ADD-04` [MPDV HYDRA X Operator Inspection](https://us.mpdv.com/industry-4-0/smart-factory-glossary/operator-inspection) | `P1` · `SCR-05B` | 검사 step과 현재 측정값, 허용범위, 단위, 측정도구를 함께 보여주는 실제 operator 검사 구조다. |
+| 5 | `ADD-05` [Siemens HMI Template Suite](https://cache.industry.siemens.com/dl/files/767/91174767/att_1096385/v1/91174767_HMITemplateSuite_V16_DOC_V3_en.pdf) | `P1` · 전역 시각 언어, `SCR-04B`, `SCR-05B` | 밝은 작업영역, 회색 navigation·status 영역, 제한된 accent·상태색과 최소 40px touch target이 정밀 작업대 가설을 뒷받침한다. |
+| 6 | `ADD-06` [Siemens Opcenter Execution Discrete 2501](https://blogs.sw.siemens.com/opcenter/whats-new-in-opcenter-execution-discrete-2501/) | `P2` · `SCR-02C`, `SCR-05B`, `SCR-06B` | quality execution과 work-order dependency network를 같은 제품 문맥에서 비교할 수 있다. SPC 자체는 현재 범위에 추가하지 않는다. |
+| 7 | `ADD-07` [PatternFly Usage and Behavior](https://www.patternfly.org/design-foundations/usage-and-behavior/) | `P2` · `SCR-02A`↔`SCR-02C`, `SCR-05A`↔`SCR-05B`, `SCR-06B` | expandable row, inline drawer와 drill-down 중 어떤 방식이 목록 문맥과 상세 근거를 함께 보존하는지 판단하는 기준으로 쓴다. |
+| 8 | `ADD-08` [Blueprint](https://blueprintjs.com/docs/) | `P2` · 전역 AppShell, `SCR-02A`, `SCR-03B`, `SCR-07A` | 복잡하고 data-dense한 desktop React interface에 최적화된 밀도와 control hierarchy를 비교한다. package 설치 근거로 사용하지 않는다. |
+| 9 | `ADD-09` [Elastic UI Data Grid](https://eui.elastic.co/docs/components/tabular-content/data-grid/) | `P2` · `SCR-02A`, `SCR-03B`, `SCR-05A`, `SCR-07A` | schema별 column, toolbar, keyboard shortcut, density·column 설정을 검토한다. 핵심 식별자와 차단 사유를 강제 truncation하지 않는다. |
+| 10 | `ADD-10` [Critical Manufacturing Mobile Cockpit](https://help.criticalmanufacturing.com/11.3/userguide/industrytemplates/medical/features/mobilecockpit/) | `P3` · `SCR-04B`, `SCR-06A` | scan-driven 흐름에서 check-in, dispatch, track-in/out의 탐색 단계를 줄이는 방식을 비교한다. handheld viewport 자체는 현재 제품 범위가 아니다. |
+
+이 표는 추가 후보의 검토 순서만 정하며 기존 1차 조합을 자동으로 변경하지 않는다.
+
+## 5. 화면별 조합
 
 | 제품 화면 | 1차 조합 | 검증할 질문 |
 |---|---|---|
@@ -192,7 +211,7 @@ Full dark, neon, HUD, glassmorphism, 큰 gradient, 의미 없는 실시간 pulse
 | `SCR-05C`·`SCR-06B` 격리·계보 | `REF-12` + `REF-13` + `REF-14` | 원천과 영향 범위, 선택 node 근거를 그래프와 표 양쪽에서 검증하는가? |
 | `SCR-07A` 감사이력 | `REF-05` + `REF-14` + `REF-18` | 행위자·시각·사유·전후 값·요청 ID를 한 사건으로 읽는가? |
 
-## 5. 1차 시안에 사용할 후보
+## 6. 1차 시안에 사용할 후보
 
 첫 시안은 후보 20개의 절충안이 아니다. 다음 8개만 직접 조합한다.
 
@@ -207,7 +226,7 @@ Full dark, neon, HUD, glassmorphism, 큰 gradient, 의미 없는 실시간 pulse
 
 `REF-20`의 세 스타일은 위 구조가 정해진 뒤 typography·spacing 비교에만 사용한다. 먼저 만들 화면은 AppShell 전체가 아니라 제품의 차별점과 주요 밀도를 동시에 검증할 수 있는 `SCR-06B` LOT 계보와 `SCR-02A` 작업지시 목록 두 장이다.
 
-## 6. 채택 전 검증 게이트
+## 7. 채택 전 검증 게이트
 
 - 1440×900에서 `SCR-02A` 필수 열이 가로 스크롤 없이 보인다.
 - 1024×768에서 `SCR-04B` 대상 LOT, 현재 공정, 투입·양품·불량 수량과 완료 행동이 첫 viewport에 보인다.
