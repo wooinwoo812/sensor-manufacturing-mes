@@ -14,6 +14,7 @@ import type { NavigationGroup } from "../model/navigation";
 import { AppSidebar } from "./AppSidebar";
 import { Header } from "./Header";
 import { SkipToMain } from "./SkipToMain";
+import { ThemeSwitch } from "./ThemeSwitch";
 
 export interface AppShellProps {
   children: ReactNode;
@@ -86,6 +87,7 @@ export function AppShell({
                 <span className="text-xs">⌘</span>K
               </kbd>
             </ShadcnButton>
+            <ThemeSwitch />
             <ShadcnButton aria-label="알림" size="icon" type="button" variant="ghost">
               <Bell />
             </ShadcnButton>
