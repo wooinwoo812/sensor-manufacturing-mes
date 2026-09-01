@@ -30,7 +30,7 @@
 - [Radix Dialog](https://www.radix-ui.com/primitives/docs/components/dialog)는 focus trap, Escape close, title·description announcement와 WAI-ARIA Dialog pattern을 제공한다.
 - [Radix Select](https://www.radix-ui.com/primitives/docs/components/select)는 keyboard navigation과 typeahead를 제공하면서 rendering과 style ownership은 호출자에게 둔다.
 - [Radix Toast](https://www.radix-ui.com/primitives/docs/components/toast)는 hover·focus·window blur 중 자동 닫힘 중지와 screen reader announcement를 제공한다.
-- [`shadcn-admin@e16c87f`](https://github.com/satnaing/shadcn-admin/commit/e16c87f213a5ba5e45964e9b67c792105ec74d26)를 고정 기준으로 삼아 UI·layout·context·hook·style source 123개를 원본 snapshot으로 보존했다. 활성 제품 code에는 primitive 30개와 data-table module 7개를 먼저 FSD `shared` layer로 이동했다.
+- [`shadcn-admin@e16c87f`](https://github.com/satnaing/shadcn-admin/commit/e16c87f213a5ba5e45964e9b67c792105ec74d26)를 고정 기준으로 삼아 UI·layout·context·hook·style source 123개를 원본 snapshot으로 보존했다. 활성 제품 code에는 primitive 30개와 data-table module 7개를 FSD `shared` layer로, `Header`·`Main`·`AppSidebar`·`NavGroup`과 layout context를 `widgets/app-shell`로 이동했다.
 - primitive가 접근성을 자동으로 완성한다는 가정은 하지 않는다. 우리 label, error message, heading과 업무 문맥은 component·axe·keyboard test로 별도 검증한다.
 
 ## Considered options
@@ -77,6 +77,14 @@ component가 MES domain enum을 알아야 하는가?
 외부 source를 실질적으로 복사·수정하는가?
 ├─ 예 → source commit·path·license를 THIRD_PARTY_NOTICES와 header에 기록
 └─ 아니오 → 참고 근거만 ADR에 기록
+
+좌측 업무영역이 제품의 1차 navigation인가?
+├─ 예 → sidebar variant + 전체 label을 기본으로 사용
+└─ 아니오 → content가 독립된 card처럼 보여야 할 때만 inset/floating 검토
+
+가로 공간이 부족한가?
+├─ desktop → icon collapse를 허용하고 tooltip·Ctrl+B를 함께 제공
+└─ mobile → overlay sheet로 전환하고 route 이동 시 자동으로 닫기
 ```
 
 ## Decision
@@ -87,6 +95,7 @@ component가 MES domain enum을 알아야 하는가?
 - icon은 Lucide 한 종류로 제한하고 의미는 text label과 함께 제공한다.
 - generic component는 `shared/ui`, 제조 상태 조합은 `entities/manufacturing-status`, shell은 `widgets/app-shell`이 소유한다.
 - `apps/web/vendor/shadcn-admin`에 고정 revision의 원본 UI source를 보존하고 build·test·lint 대상에서는 제외한다. 실제 제품 code는 이 snapshot에서 FSD layer로 이동한 뒤 MES token·route·접근성 문구와 test를 적용한다.
+- 원본의 기본 `inset` 대신 MES의 1차 업무영역 경계를 분명히 하는 `sidebar` variant를 기본으로 사용한다. desktop 축소 방식은 `icon`, mobile은 원본의 `Sheet` 전환을 유지하며 선택값은 검증한 뒤 cookie에 7일간 보존한다.
 - 이동한 각 source에는 원본 revision과 MIT provenance header를 유지하며 전체 license는 `THIRD_PARTY_NOTICES.md`에 기록한다.
 - dark mode는 #9 비범위다. 대비와 상태 의미를 충족한 light 업무 화면을 먼저 고정한다.
 - dependency version은 lockfile뿐 아니라 `apps/web/package.json`에도 정확히 고정한다.
