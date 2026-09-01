@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 @import "./tokens.css";
 
 @layer base {
@@ -9,6 +10,7 @@
   html {
     min-width: 20rem;
     min-height: 100%;
+    overflow-x: hidden;
     background: var(--mes-color-canvas);
   }
 
@@ -23,6 +25,10 @@
     text-rendering: optimizeLegibility;
   }
 
+  body[data-scroll-locked] {
+    overflow: unset !important;
+  }
+
   button,
   input,
   select,
@@ -35,9 +41,22 @@
     -webkit-tap-highlight-color: transparent;
   }
 
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
   ::selection {
     color: var(--mes-color-text-strong);
     background: var(--mes-color-accent-soft);
+  }
+}
+
+@media screen and (max-width: 767px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
   }
 }
 

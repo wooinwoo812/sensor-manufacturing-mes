@@ -2,7 +2,7 @@ import tailwindcss from "@tailwindcss/vite";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import react from "@vitejs/plugin-react";
 import { fileURLToPath, URL } from "node:url";
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 
 export default defineConfig({
   plugins: [
@@ -33,6 +33,7 @@ export default defineConfig({
   },
   test: {
     environment: "jsdom",
+    exclude: [...configDefaults.exclude, "vendor/**"],
     globals: true,
     setupFiles: "./src/test/setup-tests.ts",
   },

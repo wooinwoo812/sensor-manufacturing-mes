@@ -18,3 +18,26 @@ export {
   DataTable,
   type DataTableColumn,
 } from "./data-table";
+export {
+  DataTableBulkActions,
+  DataTableColumnHeader,
+  DataTablePagination,
+  DataTableToolbar,
+} from "./shadcn/data-table";
+export {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarRail,
+  SidebarTrigger,
+  useSidebar,
+} from "./shadcn/sidebar";
+export { Separator } from "./shadcn/separator";

@@ -166,8 +166,8 @@ Public API는 외부에 필요한 symbol만 export한다. `export *`로 내부 �
 
 | 원본 영역 | 우리 목적지 | 판단 |
 |---|---|---|
-| `src/components/ui/*` | `shared/ui/*` | 필요한 primitive만 이식하고 local token·test 적용 |
-| `src/components/data-table/*` | `shared/ui/data-table/*` | domain-neutral sorting·pagination·column control만 사용 |
+| `src/components/ui/*` | `shared/ui/shadcn/*` | 원본 primitive 전체를 이동하고 local token·test 적용 |
+| `src/components/data-table/*` | `shared/ui/shadcn/data-table/*` | 원본 sorting·pagination·column control을 이동하고 MES table에서 조합 |
 | `authenticated-layout` | `app/routes` + `widgets/app-shell` | route guard와 layout rendering을 분리해 재작성 |
 | `app-sidebar`, `header`, `main` | `widgets/app-shell/ui` | navigation data와 session action은 prop으로 주입 |
 | theme·layout context | `app/providers`, `app/styles` | 지원하기로 결정한 option만 유지 |
@@ -180,6 +180,11 @@ Public API는 외부에 필요한 symbol만 export한다. `export *`로 내부 �
 | logo·image·fake data | 이식하지 않음 | 외부 branding·demo 식별자 제거 |
 
 최초 조사 기준은 [`shadcn-admin@e16c87f`](https://github.com/satnaing/shadcn-admin/commit/e16c87f213a5ba5e45964e9b67c792105ec74d26)이며 구현 전에 upstream HEAD를 무조건 다시 복제하지 않는다.
+
+원본 UI source 123개는 `apps/web/vendor/shadcn-admin`에 고정 snapshot으로
+보존한다. 이 directory는 실행·검사 대상이 아니며, 활성 code는 해당 파일을
+FSD 목적지로 이동하고 import·token·업무 문구를 수정한 결과다. 따라서 전체
+template를 기준으로 시작하면서도 원본 demo route가 제품 runtime에 섞이지 않는다.
 
 이식 전 각 파일은 다음 질문을 통과해야 한다.
 

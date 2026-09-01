@@ -9,7 +9,7 @@ async function collectMarkdownFiles(directory) {
   const files = [];
 
   for (const entry of entries) {
-    if ([".git", "coverage", "dist", "node_modules"].includes(entry.name)) {
+    if ([".git", "coverage", "dist", "node_modules", "vendor"].includes(entry.name)) {
       continue;
     }
 

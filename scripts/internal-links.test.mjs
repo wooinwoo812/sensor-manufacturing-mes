@@ -26,3 +26,13 @@ test("깨진 상대 링크를 파일과 함께 반환한다", async (context) =>
     { file: "README.md", destination: "docs/missing.md" },
   ]);
 });
+
+test("고정된 vendor 원본의 문서는 제품 내부 링크 검사에서 제외한다", async (context) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "mes-doc-links-"));
+  context.after(() => rm(root, { force: true, recursive: true }));
+
+  await mkdir(path.join(root, "vendor"));
+  await writeFile(path.join(root, "vendor", "README.md"), "[원본 자산](missing.png)\n");
+
+  assert.deepEqual(await findBrokenInternalLinks(root), []);
+});
