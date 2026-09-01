@@ -76,14 +76,14 @@ Full dark, neon, HUD, glassmorphism, 큰 gradient, 의미 없는 실시간 pulse
 ### REF-06 Carbon Status Indicators
 
 - 원문: [Carbon Status Indicators](https://preview.carbondesignsystem.com/building-blocks/core/patterns/status-indicators)
-- 우선순위·대상: `P1` · 전 화면의 상태·우선순위·차단 표현
+- 우선순위·대상: `P1` · `SCR-01`~`SCR-07` 업무영역의 상태·우선순위·차단 표현
 - 참고: 색·모양·symbol·text를 함께 사용하고, 즉시 행동이 필요한 상태만 높은 주목도로 표현한다.
 - 제외: 모든 정상값에 badge를 붙이지 않는다. 생산 진행, 검사 결과, 품질 disposition, 위험도를 같은 색 체계로 섞지 않는다.
 
 ### REF-07 TypeUI Top Navbar Sidebar Application Shell
 
 - 원문: [TypeUI Application Shells](https://www.typeui.sh/prompts/shells)
-- 우선순위·대상: `P1` · 전역 AppShell
+- 우선순위·대상: `P1` · `SCR-01`~`SCR-07` 업무영역의 전역 AppShell
 - 참고: `Top Navbar Sidebar Application Shell`의 전역 검색·역할·사용자 영역과 업무영역 sidebar 구성을 1차 skeleton에 사용한다.
 - 제외: dashboard card 자리를 먼저 채우지 않는다. sidebar label을 icon-only로 축소하지 않는다.
 
@@ -174,7 +174,7 @@ Full dark, neon, HUD, glassmorphism, 큰 gradient, 의미 없는 실시간 pulse
 ### REF-20 Design Prompts Professional and Flat Design
 
 - 원문: [Design Prompts](https://www.designprompts.dev/)
-- 우선순위·대상: `P2` · 전역 시각 언어
+- 우선순위·대상: `P2` · `SCR-01`~`SCR-07` 업무영역의 전역 시각 언어
 - 참고: 같은 content를 `Professional Light`, `Flat Design Light`, `Swiss Minimalist`로 비교해 typography·border·spacing 차이를 검증한다.
 - 제외: `Cyberpunk`, `Terminal`, `Glassmorphism`, `Luxury`, `Web3`는 MES 신뢰성과 반복 작업 효율을 떨어뜨리므로 시안 후보에서 제외한다.
 
