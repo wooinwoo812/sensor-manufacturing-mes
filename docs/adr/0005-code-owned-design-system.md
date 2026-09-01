@@ -2,6 +2,7 @@
 
 - Status: Proposed
 - Date: 2026-09-01
+- Last updated: 2026-09-02
 - Owners: wooinwoo
 - Related: #9, #25, #28
 
@@ -30,7 +31,7 @@
 - [Radix Dialog](https://www.radix-ui.com/primitives/docs/components/dialog)는 focus trap, Escape close, title·description announcement와 WAI-ARIA Dialog pattern을 제공한다.
 - [Radix Select](https://www.radix-ui.com/primitives/docs/components/select)는 keyboard navigation과 typeahead를 제공하면서 rendering과 style ownership은 호출자에게 둔다.
 - [Radix Toast](https://www.radix-ui.com/primitives/docs/components/toast)는 hover·focus·window blur 중 자동 닫힘 중지와 screen reader announcement를 제공한다.
-- [`shadcn-admin@e16c87f`](https://github.com/satnaing/shadcn-admin/commit/e16c87f213a5ba5e45964e9b67c792105ec74d26)를 고정 기준으로 삼아 UI·layout·context·hook·style source 123개를 원본 snapshot으로 보존했다. 활성 제품 code에는 primitive 30개와 data-table module 7개를 FSD `shared` layer로, `Header`·`Main`·`AppSidebar`·`NavGroup`과 layout context를 `widgets/app-shell`로 이동했다.
+- [`shadcn-admin@e16c87f`](https://github.com/satnaing/shadcn-admin/commit/e16c87f213a5ba5e45964e9b67c792105ec74d26)를 고정 기준으로 삼아 UI·layout·context·hook·style source 123개를 원본 snapshot으로 보존했다. 활성 제품 code에는 primitive 30개와 data-table module 7개를 FSD `shared` layer로, `Header`·`Main`·`AppSidebar`·`NavGroup`을 `widgets/app-shell`로 이동했다. 제품 기능이 아닌 layout customizer context는 활성 runtime에서 제거했다.
 - primitive가 접근성을 자동으로 완성한다는 가정은 하지 않는다. 우리 label, error message, heading과 업무 문맥은 component·axe·keyboard test로 별도 검증한다.
 
 ## Considered options
@@ -78,9 +79,9 @@ component가 MES domain enum을 알아야 하는가?
 ├─ 예 → source commit·path·license를 THIRD_PARTY_NOTICES와 header에 기록
 └─ 아니오 → 참고 근거만 ADR에 기록
 
-별도 제품 visual direction이 승인됐는가?
-├─ 아니오 → 원본 shadcn-admin의 inset·중립 theme를 그대로 유지
-└─ 예 → 별도 ADR과 비교 근거가 있을 때만 token·variant 변경
+제품 visual 후보가 Owner의 1440·1280·1024px 검토를 통과했는가?
+├─ 아니오 → ADR을 Proposed로 유지하고 제품 React component에서 계속 비교
+└─ 예 → 선택 token·layout 근거를 고정하고 ADR을 Accepted로 변경
 
 가로 공간이 부족한가?
 ├─ desktop → icon collapse를 허용하고 tooltip·Ctrl+B를 함께 제공
@@ -95,9 +96,11 @@ component가 MES domain enum을 알아야 하는가?
 - icon은 Lucide 한 종류로 제한하고 의미는 text label과 함께 제공한다.
 - generic component는 `shared/ui`, 제조 상태 조합은 `entities/manufacturing-status`, shell은 `widgets/app-shell`이 소유한다.
 - `apps/web/vendor/shadcn-admin`에 고정 revision의 원본 UI source를 보존하고 build·test·lint 대상에서는 제외한다. 실제 제품 code는 이 snapshot에서 FSD layer로 이동한 뒤 MES token·route·접근성 문구와 test를 적용한다.
-- 화면 기반은 원본 shadcn-admin의 inset variant와 중립 기본 theme를 그대로 사용한다. 원본의 light·dark·system 전환과 cookie 저장도 유지하되, 별도 MES 색상과 shell 장식은 디자인 결정 전까지 추가하지 않는다. desktop 축소 방식은 icon, mobile은 원본의 Sheet 전환을 유지한다.
+- 화면 기반은 원본 shadcn-admin의 inset variant, desktop icon collapse와 mobile Sheet 전환을 유지한다. layout customizer는 제품 기능이 아니므로 제거하고 shell 형태를 고정한다.
+- 현재 시각 후보는 light mode에서 canvas보다 한 단계 어두운 cool-neutral navigation plane, 흰 업무 surface와 cobalt interaction accent를 사용한다. dark mode의 navigation은 deep slate로 분리하되 success·warning·danger는 본문 데이터와 위험 행동에만 사용한다.
+- gradient·glow·glass header와 고정 panel shadow를 사용하지 않는다. panel은 명도차·border·spacing으로 나누고 overlay만 shadow를 사용한다.
 - 이동한 각 source에는 원본 revision과 MIT provenance header를 유지하며 전체 license는 `THIRD_PARTY_NOTICES.md`에 기록한다.
-- 원본 dark mode 동작은 보존한다. MES 고유 색상을 추가할 경우의 dark 대비 재설계만 후속 범위로 둔다.
+- light·dark·system 전환과 cookie 저장을 유지한다. dark mode는 light token을 단순 반전하지 않고 surface와 semantic soft token을 별도로 정의하며 browser `theme-color`도 canvas와 함께 갱신한다.
 - dependency version은 lockfile뿐 아니라 `apps/web/package.json`에도 정확히 고정한다.
 
 ### 상태 표현
@@ -109,10 +112,10 @@ component가 MES domain enum을 알아야 하는가?
 
 ### 반응형
 
-- 1440px: 240px sidebar와 넓은 업무 표를 유지한다.
-- 1280px: 208px sidebar로 줄이되 menu label을 icon만으로 대체하지 않는다.
-- 1024px: 같은 route와 상태를 유지하고 공정 대상·대표 행동을 우선한다.
-- 1024px 미만: sidebar를 modal navigation으로 전환한다. 이는 모바일 전용 IA가 아니라 접근 가능한 fallback이다.
+- 1024px 이상: sidebar를 256px로 고정해 긴 한국어 업무명과 `예정` 상태를 줄임 없이 유지한다. 사용자가 직접 icon collapse를 선택할 수 있다.
+- 1280px 이상: dashboard의 생산 비교와 조치 목록을 4:3으로 병렬 배치한다.
+- 1024px: 같은 route와 상태를 유지하되 dashboard 상세 panel은 단일 열로 쌓아 약 752px의 본문 폭을 온전히 사용한다.
+- 1024px 미만: JavaScript media query와 Tailwind breakpoint를 함께 전환하고 sidebar를 modal navigation으로 제공한다. 이는 모바일 전용 IA가 아니라 접근 가능한 fallback이다.
 
 ## Consequences
 
@@ -146,6 +149,6 @@ component가 MES domain enum을 알아야 하는가?
 
 - 세 기능 이상에서 같은 고급 table 동작을 별도로 구현한다.
 - Radix wrapper가 요구 markup을 막거나 측정된 bundle 병목이 된다.
-- dark mode 또는 고대비 mode가 실제 사용자 요구가 된다.
+- 고대비 mode 또는 현장 모니터별 별도 명도 보정이 실제 사용자 요구가 된다.
 - 1024px 현장 검증에서 sidebar와 대표 행동 우선순위가 실패한다.
 - 외부 UI 이식량이 local 구현량보다 커져 provenance·update 비용이 반복된다.
