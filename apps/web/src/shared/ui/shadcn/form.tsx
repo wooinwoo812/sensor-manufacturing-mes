@@ -2,6 +2,7 @@
  * Adapted from shadcn-admin@e16c87f213a5ba5e45964e9b67c792105ec74d26.
  * Copyright (c) 2024 Sat Naing. MIT License; see THIRD_PARTY_NOTICES.md.
  */
+/* eslint-disable react-refresh/only-export-components -- upstream shadcn API가 component와 form hook을 함께 노출한다. */
 import * as React from 'react'
 import {
   Controller,
