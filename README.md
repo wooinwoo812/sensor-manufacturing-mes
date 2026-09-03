@@ -4,7 +4,7 @@
 
 `Sensor Manufacturing MES`는 고신뢰성 센서 제조를 가상 시나리오로 삼아, 작업지시부터 공정 실적·품질 판정·재고·LOT 계보까지 추적하는 업무시스템입니다.
 
-현재 상태: **설계 및 기반 구축 중**
+현재 상태: **실행 가능한 기반 구축 중**
 
 ## 핵심 시나리오
 
@@ -22,9 +22,9 @@
 - 생산·자재·품질 업무를 데이터 모델과 불변조건으로 해석하는 능력
 - 이슈, ADR, 테스트 근거, Pull Request를 통해 의사결정을 추적하는 개발 방식
 
-## 예정 기술 구성
+## 기반 기술 구성
 
-- Web: React, TypeScript, Vite, TanStack Query, TanStack Table
+- Web: React, TypeScript, Vite, TanStack Router, Tailwind CSS, Radix UI
 - API: Node.js, NestJS, REST API
 - Data: PostgreSQL, Prisma
 - Quality: Vitest, Playwright, ESLint, TypeScript
@@ -32,9 +32,46 @@
 
 기술 선택은 구현 전에 ADR로 근거를 남기고, 필요 이상으로 도구를 늘리지 않습니다.
 
+선정 이유와 기각한 대안은 [ADR-0003](docs/adr/0003-full-stack-foundation.md)에 기록합니다.
+
+## 개발 시작
+
+### 요구 버전
+
+- Node.js `24.20.0` LTS
+- pnpm `11.25.0` — Corepack으로 고정
+- Docker와 Docker Compose
+
+### 설치와 실행
+
+```bash
+corepack pnpm install --frozen-lockfile
+corepack pnpm db:up
+corepack pnpm db:check
+corepack pnpm dev
+```
+
+- Web: <http://localhost:5173>
+- API health: <http://localhost:3000/api/health>
+- PostgreSQL: `localhost:5432`
+
+기본 local 값은 [`.env.example`](.env.example)에 있으며 실제 `.env`와 비밀값은 commit하지 않습니다. Web 개발 서버는 `/api` 요청만 NestJS로 proxy합니다.
+
+### 품질 검사
+
+```bash
+corepack pnpm lint
+corepack pnpm typecheck
+corepack pnpm test
+corepack pnpm build
+corepack pnpm docs:check
+```
+
+`corepack pnpm check`는 위 검사를 같은 순서로 모두 실행합니다. CI도 동일한 root 명령을 사용하고 PostgreSQL healthcheck와 연결 확인을 추가로 수행합니다.
+
 ## 제품 범위
 
-MVP의 상세 사용자·업무 흐름은 [제품 비전](docs/product/vision.md)과 [제품·UX·기술 기획 크로스검토본](docs/product/product-plan-cross-review.md)에 정의합니다. 제조 용어·상태·수량·계보 불변조건은 [제조 도메인 계약](docs/domain/manufacturing-domain-contract.md), 공개 근거와 적용 한계는 [제조 도메인 공개 근거 재검증](docs/domain/source-review.md)을 따릅니다. 정보구조, 저해상도 wireframe, 상태 표현과 반응형 기준은 [UI 레이아웃·상태 계약](docs/product/ui-layout-contracts.md)을 따릅니다. 개발 절차는 [Engineering Workflow](docs/engineering/workflow.md)와 [CONTRIBUTING.md](CONTRIBUTING.md)를 따릅니다.
+MVP의 상세 사용자·업무 흐름은 [제품 비전](docs/product/vision.md)과 [제품·UX·기술 기획 크로스검토본](docs/product/product-plan-cross-review.md)에 정의합니다. 제조 용어·상태·수량·계보 불변조건은 [제조 도메인 계약](docs/domain/manufacturing-domain-contract.md), 공개 근거와 적용 한계는 [제조 도메인 공개 근거 재검증](docs/domain/source-review.md)을 따릅니다. 정보구조, 저해상도 wireframe, 상태 표현과 반응형 기준은 [UI 레이아웃·상태 계약](docs/product/ui-layout-contracts.md)을 따릅니다. frontend layer·slice·state 소유권은 [Frontend 구조 계약](docs/engineering/frontend-architecture.md), token·공통 component·상태축은 [Frontend 디자인 시스템 계약](docs/engineering/frontend-design-system.md), 전체 URL·parameter·permission은 [MES Web Route 계약](docs/product/route-contract.md)을 따릅니다. 개발 절차는 [Engineering Workflow](docs/engineering/workflow.md)와 [CONTRIBUTING.md](CONTRIBUTING.md)를 따릅니다.
 
 ## 공개 범위
 

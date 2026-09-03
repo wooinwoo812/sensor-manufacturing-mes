@@ -1,0 +1,264 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum RoleCode {
+  PRODUCTION_PLANNER
+  MATERIAL_MANAGER
+  SHOP_FLOOR_OPERATOR
+  QUALITY_ENGINEER
+  SYSTEM_ADMIN
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique @db.VarChar(254)
+  displayName  String     @db.VarChar(100)
+  passwordHash String     @db.VarChar(255)
+  isActive     Boolean    @default(true)
+  isDemo       Boolean    @default(false)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  roles        UserRole[]
+
+  @@index([isDemo, isActive])
+}
+
+model Role {
+  code  RoleCode   @id
+  label String     @db.VarChar(50)
+  users UserRole[]
+}
+
+model UserRole {
+  userId   String
+  roleCode RoleCode
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role     Role      @relation(fields: [roleCode], references: [code], onDelete: Restrict)
+  sessions Session[]
+
+  @@id([userId, roleCode])
+  @@index([roleCode])
+}
+
+model Session {
+  id         String    @id @default(cuid())
+  tokenHash  String    @unique @db.Char(64)
+  csrfToken  String    @db.VarChar(64)
+  userId     String
+  activeRole RoleCode
+  createdAt  DateTime  @default(now())
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  userRole   UserRole  @relation(fields: [userId, activeRole], references: [userId, roleCode], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+  @@index([expiresAt])
+}
+
+enum WorkOrderStatus {
+  DRAFT
+  RELEASED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum WorkOrderPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+model WorkOrder {
+  id              String            @id @default(cuid())
+  orderNumber     String            @unique @db.VarChar(20)
+  productCode     String            @db.VarChar(30)
+  productName     String            @db.VarChar(100)
+  plannedQuantity Int
+  unit            String            @db.VarChar(10)
+  dueDate         DateTime
+  status          WorkOrderStatus   @default(DRAFT)
+  priority        WorkOrderPriority @default(NORMAL)
+  progressPercent Int               @default(0)
+  currentStepName String?           @db.VarChar(60)
+  blockedReason   String?           @db.VarChar(120)
+  memo            String?           @db.VarChar(500)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  processSteps       ProcessStepExecution[]
+  materialAllocations MaterialAllocation[]
+  inspections        Inspection[]
+
+  @@index([status, dueDate])
+  @@index([dueDate])
+}
+
+enum QualityDisposition {
+  PENDING
+  ACCEPTED
+  HOLD
+  QUARANTINED
+  REJECTED
+}
+
+model Material {
+  id        String       @id @default(cuid())
+  code      String       @unique @db.VarChar(30)
+  name      String       @db.VarChar(100)
+  unit      String       @db.VarChar(10)
+  isActive  Boolean      @default(true)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  lots      MaterialLot[]
+}
+
+model MaterialLot {
+  id                  String            @id @default(cuid())
+  lotNumber           String            @unique @db.VarChar(24)
+  materialId          String
+  receivedQuantity    Int
+  onHand              Int
+  reservedQuantity    Int
+  consumedQuantity    Int               @default(0)
+  scrappedQuantity    Int               @default(0)
+  qualityDisposition  QualityDisposition @default(PENDING)
+  expiresAt           DateTime?
+  receivedAt          DateTime          @default(now())
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  material            Material          @relation(fields: [materialId], references: [id], onDelete: Restrict)
+  allocations         MaterialAllocation[]
+
+  @@index([qualityDisposition, expiresAt])
+  @@index([materialId])
+}
+
+enum ProcessReadiness {
+  WAITING
+  READY
+  IN_PROGRESS
+  COMPLETED
+  BLOCKED
+}
+
+model ProcessStepExecution {
+  id                 String          @id @default(cuid())
+  workOrderId        String
+  sequence           Int
+  processStepName    String          @db.VarChar(60)
+  productionLotNumber String         @db.VarChar(24)
+  readiness          ProcessReadiness @default(WAITING)
+  blockedReasonCodes String[]        @default([])
+  startedAt          DateTime?
+  completedAt        DateTime?
+  goodQuantity       Int?
+  defectQuantity     Int?
+  executionMemo      String?         @db.VarChar(300)
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  workOrder          WorkOrder       @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+
+  @@index([readiness])
+  @@index([workOrderId, sequence])
+  @@unique([workOrderId, sequence, productionLotNumber])
+}
+
+enum InspectionGate {
+  ROUTE_ADVANCE
+  LOT_COMPLETE
+}
+
+enum InspectionExecutionStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum InspectionVerdict {
+  PASS
+  FAIL
+  HOLD
+}
+
+model Inspection {
+  id               String                    @id @default(cuid())
+  inspectionNumber String                    @unique @db.VarChar(24)
+  workOrderId      String
+  productionLotNumber String                 @db.VarChar(24)
+  processStepName  String                    @db.VarChar(60)
+  gate             InspectionGate
+  specName         String                    @db.VarChar(100)
+  executionStatus  InspectionExecutionStatus @default(PENDING)
+  verdict          InspectionVerdict?
+  verdictMemo      String?                   @db.VarChar(300)
+  completedAt      DateTime?
+  createdAt        DateTime                  @default(now())
+  updatedAt        DateTime                  @updatedAt
+  workOrder        WorkOrder                 @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+
+  @@index([executionStatus, verdict])
+  @@index([workOrderId])
+}
+
+enum AuditAction {
+  SESSION_LOGIN
+  SESSION_LOGOUT
+  WORK_ORDER_CREATED
+  WORK_ORDER_RELEASED
+  WORK_ORDER_CANCELLED
+  MATERIAL_RESERVED
+  MATERIAL_RESERVATION_RELEASED
+  MATERIAL_LOT_DISPOSITION_DECIDED
+  PROCESS_STARTED
+  PROCESS_COMPLETED
+  INSPECTION_VERDICTED
+}
+
+model AuditEvent {
+  id         String     @id @default(cuid())
+  occurredAt DateTime
+  actorId    String     @db.VarChar(64)
+  actorRole  RoleCode
+  actorName  String     @db.VarChar(100)
+  action     AuditAction
+  entityType String     @db.VarChar(40)
+  entityId   String     @db.VarChar(64)
+  summary    String     @db.VarChar(200)
+  requestId  String     @db.VarChar(64)
+  createdAt  DateTime   @default(now())
+
+  @@index([occurredAt])
+  @@index([actorRole, action])
+  @@index([entityType, entityId])
+}
+
+enum MaterialAllocationStatus {
+  ACTIVE
+  CLOSED
+}
+
+model MaterialAllocation {
+  id           String                  @id @default(cuid())
+  workOrderId  String
+  materialLotId String
+  quantity     Int
+  status       MaterialAllocationStatus @default(ACTIVE)
+  closedAt     DateTime?
+  closedReason String?                 @db.VarChar(20)
+  createdAt    DateTime                @default(now())
+  updatedAt    DateTime                @updatedAt
+  workOrder    WorkOrder               @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  materialLot  MaterialLot             @relation(fields: [materialLotId], references: [id], onDelete: Restrict)
+
+  @@index([workOrderId, status])
+  @@index([materialLotId, status])
+}

@@ -11,6 +11,12 @@ coverage/
 playwright-report/
 test-results/
 
-.DS_Store
+apps/api/src/generated/prisma/
+
+.idea/
+.vscode/
+
 Thumbs.db
 *.log
+*.tsbuildinfo
+.DS_Store
