@@ -29,6 +29,9 @@ function WorkOrderCreateRoute() {
           replace: true,
         });
       }}
+      onCancel={() => {
+        void navigate({ to: "/work-orders", search: {} });
+      }}
     />
   );
 }

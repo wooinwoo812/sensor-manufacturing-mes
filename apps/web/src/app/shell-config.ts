@@ -107,6 +107,7 @@ const routeTitles: Record<string, { title: string }> = {
   "/materials/lots": { title: "자재 LOT" },
   "/materials/boms": { title: "BOM 기준정보" },
   "/execution/queue": { title: "공정 실행" },
+  "/execution/lots": { title: "공정 실행" },
   "/quality/inspections": { title: "품질검사" },
   "/quality/incidents": { title: "부적합·격리" },
   "/traceability": { title: "LOT 계보" },
@@ -140,10 +141,18 @@ export function resolveShellContext(
 }
 
 function resolvePageGroup(pathname: string): string | undefined {
-  return navigation.find((group) =>
+  const exact = navigation.find((group) =>
     group.items.some(
       (item) => pathname === item.to || pathname.startsWith(`${item.to}/`),
     ),
+  );
+  if (exact) {
+    return exact.label;
+  }
+  // /execution/lots/... 처럼 메뉴 경로의 하위가 아닌 상세는 첫 경로 조각(execution)으로 그룹을 찾는다.
+  const [, head] = pathname.split("/");
+  return navigation.find((group) =>
+    group.items.some((item) => item.to?.split("/")[1] === head),
   )?.label;
 }
 

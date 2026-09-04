@@ -34,6 +34,12 @@ function ExecutionQueueRoute() {
           replace: true,
         });
       }}
+      onOpenDetail={(row) => {
+        void navigate({
+          to: "/execution/lots/$productionLotId/steps/$processStepRevisionId",
+          params: { productionLotId: row.productionLotNumber, processStepRevisionId: row.id },
+        });
+      }}
     />
   );
 }

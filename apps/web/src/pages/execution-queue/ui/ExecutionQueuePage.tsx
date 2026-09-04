@@ -60,6 +60,8 @@ interface ExecutionQueuePageProps {
   onSearchChange: (next: ExecutionQueueSearch) => void;
   csrfToken: string;
   canExecute: boolean;
+  /** 행을 누르면 공정 실행 상세로 간다. 상세 라우트는 있었지만 어디에서도 연결되지 않았다. */
+  onOpenDetail?: ((row: ProcessExecutionListItem) => void) | undefined;
 }
 
 function blockedReasonLabel(code: string): string {
@@ -73,6 +75,7 @@ export function ExecutionQueuePage({
   onSearchChange,
   csrfToken,
   canExecute,
+  onOpenDetail,
 }: ExecutionQueuePageProps) {
   const searchKey = JSON.stringify(search);
   const [reloadCount, setReloadCount] = useState(0);
@@ -336,6 +339,7 @@ export function ExecutionQueuePage({
         <>
           <DataTable
             busy={isRefreshing}
+            onRowClick={onOpenDetail}
             caption="공정 실행 대기열"
             columns={columns}
             emptyMessage="조건에 맞는 공정이 없습니다."

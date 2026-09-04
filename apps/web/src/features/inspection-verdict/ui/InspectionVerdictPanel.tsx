@@ -1,7 +1,13 @@
 import { useState } from "react";
 import { verdictInspection } from "../api/inspection-verdict";
 import { ApiRequestError } from "@/shared/api";
-import { Badge, Button, Input, Select } from "@/shared/ui";
+import {
+  Badge,
+  Button,
+  Input,
+  Panel,
+  Select,
+} from "@/shared/ui";
 
 export interface InspectionVerdictTarget {
   inspectionId: string;
@@ -59,14 +65,13 @@ export function InspectionVerdictPanel({
   }
 
   return (
-    <div className="rounded-panel border border-border bg-surface p-4" aria-label="검사 판정 입력">
-      <p className="text-sm font-semibold">
-        {`${target.inspectionNumber} · ${target.specName} (${target.productionLotNumber})`}
-      </p>
-      <p className="mt-1 text-xs text-text-muted">
-        판정 확정 시 감사 이력에 기록되며 불합격·보류는 다음 공정 진행을 차단합니다.
-      </p>
-      <div className="mt-3 flex flex-wrap items-end gap-3">
+    <Panel
+      ariaLabel="검사 판정 입력"
+      description="판정 확정 시 감사 이력에 기록되며 불합격·보류는 다음 공정 진행을 차단합니다."
+      headingLevel="h2"
+      title={`판정 입력 · ${target.specName} (${target.productionLotNumber})`}
+    >
+      <div className="flex flex-wrap items-end gap-3">
         <div className="min-w-44">
           <Select
             label="판정"
@@ -106,6 +111,6 @@ export function InspectionVerdictPanel({
           {error}
         </p>
       ) : null}
-    </div>
+    </Panel>
   );
 }

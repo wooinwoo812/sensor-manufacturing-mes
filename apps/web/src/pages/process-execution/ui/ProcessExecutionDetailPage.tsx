@@ -1,5 +1,11 @@
+import {
+  INSPECTION_EXECUTION_STATUS_LABELS,
+  INSPECTION_GATE_LABELS,
+  INSPECTION_VERDICT_LABELS,
+} from "@/entities/inspection";
 import { useEffect, useState } from "react";
 import {
+  BLOCKED_REASON_LABELS,
   fetchProcessExecutionDetail,
   PROCESS_READINESS_LABELS,
   type ProcessExecutionDetail,
@@ -30,6 +36,12 @@ const INSPECTION_STATUS_TONES: Record<string, BadgeTone> = {
   IN_PROGRESS: "info",
   COMPLETED: "success",
 };
+
+
+/** 서버 enum 코드를 사람이 읽는 라벨로. 모르는 코드는 그대로 보여준다(빈칸보다 낫다). */
+function labelOf(labels: Record<string, string>, code: string): string {
+  return labels[code] ?? code;
+}
 
 function formatDateTime(isoDate: string | null): string {
   return isoDate === null
@@ -136,7 +148,7 @@ export function ProcessExecutionDetailPage({
                   </Badge>
                   {state.detail.blockedReasonCodes.map((code) => (
                     <Badge key={code} tone="warning">
-                      {code}
+                      {labelOf(BLOCKED_REASON_LABELS, code)}
                     </Badge>
                   ))}
                 </div>
@@ -168,15 +180,15 @@ export function ProcessExecutionDetailPage({
                           {inspection.inspectionNumber}
                         </span>
                         <span className="flex items-center gap-2">
-                          <Badge tone="neutral">{inspection.gate}</Badge>
+                          <Badge tone={inspection.gate === "LOT_COMPLETE" ? "info" : "neutral"}>{labelOf(INSPECTION_GATE_LABELS, inspection.gate)}</Badge>
                           <Badge
                             tone={INSPECTION_STATUS_TONES[inspection.executionStatus] ?? "neutral"}
                           >
-                            {inspection.executionStatus}
+                            {labelOf(INSPECTION_EXECUTION_STATUS_LABELS, inspection.executionStatus)}
                           </Badge>
                           {inspection.verdict !== null ? (
                             <Badge tone={inspection.verdict === "PASS" ? "success" : "danger"}>
-                              {inspection.verdict}
+                              {labelOf(INSPECTION_VERDICT_LABELS, inspection.verdict)}
                             </Badge>
                           ) : null}
                         </span>
@@ -185,7 +197,14 @@ export function ProcessExecutionDetailPage({
                   </ul>
                 )}
               </Panel>
-            {canExecute ? (
+            {/* 실적 입력은 진행 중인 공정에만 의미가 있다. 차단·대기·완료에서는 이유를 한 줄로 알려준다. */}
+            {canExecute && state.detail.readiness !== "IN_PROGRESS" ? (
+              <p className="text-sm text-text-muted">
+                {PROCESS_READINESS_LABELS[state.detail.readiness]} 상태에서는 완료 실적을 입력할 수
+                없습니다. 실행 가능 공정은 대기열에서 시작한 뒤 여기서 실적을 기록합니다.
+              </p>
+            ) : null}
+            {canExecute && state.detail.readiness === "IN_PROGRESS" ? (
               <ProcessExecutionPanel
                 csrfToken={csrfToken}
                 onDone={() => setReloadCount((count) => count + 1)}

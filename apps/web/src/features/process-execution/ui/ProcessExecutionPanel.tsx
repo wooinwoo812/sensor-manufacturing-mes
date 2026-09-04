@@ -4,7 +4,11 @@ import {
   startProcessStep,
 } from "../api/process-execution-commands";
 import { ApiRequestError } from "@/shared/api";
-import { Button, Input } from "@/shared/ui";
+import {
+  Button,
+  Input,
+  Panel,
+} from "@/shared/ui";
 
 export interface ExecutionTarget {
   stepId: string;
@@ -59,14 +63,13 @@ export function ProcessExecutionPanel({
   }
 
   return (
-    <div className="rounded-panel border border-border bg-surface p-4" aria-label="공정 완료 실적 입력">
-      <p className="text-sm font-semibold">
-        {`${target.workOrderNumber} · ${target.processStepName} (${target.productionLotNumber})`}
-      </p>
-      <p className="mt-1 text-xs text-text-muted">
-        양품과 불량 수량을 기록하면 실적으로 저장되고 다음 공정이 실행 가능해집니다.
-      </p>
-      <div className="mt-3 flex flex-wrap items-end gap-3">
+    <Panel
+      ariaLabel="공정 완료 실적 입력"
+      description="양품과 불량 수량을 기록하면 실적으로 저장되고 다음 공정이 실행 가능해집니다."
+      headingLevel="h2"
+      title={`완료 실적 입력 · ${target.workOrderNumber} ${target.processStepName} (${target.productionLotNumber})`}
+    >
+      <div className="flex flex-wrap items-end gap-3">
         <div className="w-28">
           <Input
             id="complete-good"
@@ -115,7 +118,7 @@ export function ProcessExecutionPanel({
           {error}
         </p>
       ) : null}
-    </div>
+    </Panel>
   );
 }
 

@@ -9,6 +9,7 @@ interface PanelProps {
   children: ReactNode;
   className?: string;
   bodyClassName?: string;
+  ariaLabel?: string;
 }
 
 /**
@@ -21,6 +22,7 @@ interface PanelProps {
  */
 export function Panel({
   actions,
+  ariaLabel,
   bodyClassName,
   children,
   className,
@@ -31,7 +33,7 @@ export function Panel({
   const Heading = headingLevel;
 
   return (
-    <section className={cn("rounded-panel border border-border bg-surface", className)}>
+    <section aria-label={ariaLabel} className={cn("rounded-panel border border-border bg-surface", className)}>
       <header className="flex items-start justify-between gap-3 border-b border-border px-5 py-3.5">
         <div className="min-w-0">
           <Heading className="text-[15px] font-semibold leading-6 text-text-strong">{title}</Heading>

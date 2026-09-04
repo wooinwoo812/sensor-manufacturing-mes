@@ -8,7 +8,7 @@ import {
   PageHeading,
   Skeleton,
 } from "@/shared/ui";
-import { Main } from "@/widgets/app-shell";
+import { Main, PageCrumb } from "@/widgets/app-shell";
 
 interface MaterialReservationsPageProps {
   workOrderId: string;
@@ -83,14 +83,12 @@ export function MaterialReservationsPage({
         />
       ) : (
         <>
+          <PageCrumb value={`${state.order.orderNumber} · 자재 예약`} />
           <PageHeading
+            back={{ label: `${state.order.orderNumber} 상세`, onClick: onBack }}
             description={`${state.order.orderNumber} ${state.order.productName}의 자재 예약과 해제를 관리합니다.`}
+            eyebrow="작업지시 자재 예약"
             title="자재 예약"
-            actions={
-              <Button variant="secondary" onClick={onBack}>
-                작업지시로
-              </Button>
-            }
           />
           <div className="mt-2">
             <MaterialReservationPanel

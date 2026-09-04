@@ -24,7 +24,7 @@ interface DataTableProps<Row> {
    * "무엇을 눌러야 하는지" 알 수 없었다. 행 hover 배경·오른쪽 chevron·cursor 로 갈 수 있음을 보인다.
    * 행 안의 버튼(판정, 완료 입력)은 자기 일을 하고 행 이동을 일으키지 않는다.
    */
-  onRowClick?: (row: Row) => void;
+  onRowClick?: ((row: Row) => void) | undefined;
   rowActionLabel?: string;
 }
 

@@ -20,6 +20,7 @@ import { Main } from "@/widgets/app-shell";
 interface WorkOrderCreatePageProps {
   csrfToken: string;
   onCreated: (workOrderId: string) => void;
+  onCancel: () => void;
 }
 
 function todayPlus(days: number): string {
@@ -35,6 +36,7 @@ function todayPlus(days: number): string {
 export function WorkOrderCreatePage({
   csrfToken,
   onCreated,
+  onCancel,
 }: WorkOrderCreatePageProps) {
   const [products, setProducts] = useState<WorkOrderProduct[] | null>(null);
   const [productCode, setProductCode] = useState<string>("");
@@ -71,7 +73,9 @@ export function WorkOrderCreatePage({
   return (
     <Main id="main-content" tabIndex={-1}>
       <PageHeading
+        back={{ label: "작업지시 목록", onClick: onCancel }}
         description="생산할 제품과 수량, 납기를 정해 초안 작업지시를 만듭니다."
+        eyebrow="새 작업지시"
         meta={<span>가상 데모 데이터</span>}
         title="작업지시 생성"
       />

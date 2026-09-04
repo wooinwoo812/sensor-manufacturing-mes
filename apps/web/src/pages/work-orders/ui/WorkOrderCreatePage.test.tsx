@@ -50,7 +50,7 @@ describe("WorkOrderCreatePage", () => {
         { code: "SEN-XR-1280", name: "X선 검출기 패널 1280px", unit: "EA" },
       ],
     });
-    render(<WorkOrderCreatePage csrfToken="csrf" onCreated={() => undefined} />);
+    render(<WorkOrderCreatePage csrfToken="csrf" onCreated={() => undefined} onCancel={() => undefined} />);
 
     expect(
       (await screen.findAllByText("적외선 센서 모듈 640px (SEN-IR-640)")).length,
@@ -64,7 +64,8 @@ describe("WorkOrderCreatePage", () => {
     });
     createMock.mockResolvedValue(createdDetail());
     const onCreated = vi.fn();
-    render(<WorkOrderCreatePage csrfToken="csrf" onCreated={onCreated} />);
+    render(<WorkOrderCreatePage csrfToken="csrf" onCreated={onCreated}
+      onCancel={() => {}} />);
 
     const quantity = await screen.findByRole("spinbutton");
     await userEvent.clear(quantity);
@@ -94,7 +95,7 @@ describe("WorkOrderCreatePage", () => {
         code: "INVALID_WORK_ORDER_INPUT",
       }),
     );
-    render(<WorkOrderCreatePage csrfToken="csrf" onCreated={() => undefined} />);
+    render(<WorkOrderCreatePage csrfToken="csrf" onCreated={() => undefined} onCancel={() => undefined} />);
 
     await screen.findByRole("spinbutton");
     await userEvent.click(screen.getByRole("button", { name: "초안 생성" }));
