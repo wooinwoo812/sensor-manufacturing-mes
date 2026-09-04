@@ -42,7 +42,7 @@ const navigation: { label: string; items: ConfiguredNavigationItem[] }[] = [
       {
         label: "BOM 기준정보",
         icon: "bom",
-        pending: true,
+        to: "/materials/boms",
         permission: "master-data:read",
       },
       {
@@ -65,7 +65,7 @@ const navigation: { label: string; items: ConfiguredNavigationItem[] }[] = [
       {
         label: "부적합·격리",
         icon: "incident",
-        pending: true,
+        to: "/quality/incidents",
         permission: "quality-incident:read",
       },
     ],
@@ -76,7 +76,7 @@ const navigation: { label: string; items: ConfiguredNavigationItem[] }[] = [
       {
         label: "LOT 계보",
         icon: "trace",
-        pending: true,
+        to: "/traceability",
         permission: "trace:read",
       },
     ],
@@ -93,7 +93,7 @@ const navigation: { label: string; items: ConfiguredNavigationItem[] }[] = [
       {
         label: "사용자",
         icon: "users",
-        pending: true,
+        to: "/admin/users",
         permission: "user:manage",
       },
     ],
@@ -104,9 +104,13 @@ const routeTitles: Record<string, { title: string }> = {
   "/dashboard": { title: "운영 대시보드" },
   "/work-orders": { title: "작업지시" },
   "/materials/lots": { title: "자재 LOT" },
+  "/materials/boms": { title: "BOM 기준정보" },
   "/execution/queue": { title: "공정 실행" },
   "/quality/inspections": { title: "품질검사" },
+  "/quality/incidents": { title: "부적합·격리" },
+  "/traceability": { title: "LOT 계보" },
   "/audit-events": { title: "감사이력" },
+  "/admin/users": { title: "사용자" },
   "/dev/ui-kit": { title: "UI 시스템 점검" },
   "/forbidden": { title: "접근 권한 없음" },
 };

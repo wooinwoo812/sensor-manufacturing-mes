@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import type { Prisma } from "../generated/prisma/client.js";
 import { PrismaService } from "../database/prisma.service.js";
 import type { ProcessReadiness } from "../generated/prisma/enums.js";
@@ -6,6 +6,7 @@ import {
   PROCESS_EXECUTION_SORT_FIELDS,
   PROCESS_READINESS_BY_FILTER,
   PROCESS_READINESS_FILTERS,
+  type ProcessExecutionDetail,
   type ProcessExecutionListResult,
   type ProcessExecutionSortField,
 } from "./process-executions.contract.js";
@@ -116,6 +117,54 @@ export class ProcessExecutionsService {
       page: query.page,
       pageSize: query.pageSize,
       total,
+    };
+  }
+
+  async detail(stepId: string): Promise<ProcessExecutionDetail> {
+    const step = await this.prisma.processStepExecution.findUnique({
+      where: { id: stepId },
+      include: { workOrder: true },
+    });
+    if (step === null) {
+      throw new NotFoundException({
+        code: "PROCESS_STEP_NOT_FOUND",
+        message: "공정을 찾을 수 없습니다.",
+      });
+    }
+    const inspections = await this.prisma.inspection.findMany({
+      where: {
+        workOrderId: step.workOrderId,
+        processStepName: step.processStepName,
+        executionStatus: { not: "CANCELLED" },
+      },
+      orderBy: { inspectionNumber: "asc" },
+    });
+
+    return {
+      id: step.id,
+      workOrderNumber: step.workOrder.orderNumber,
+      productCode: step.workOrder.productCode,
+      productName: step.workOrder.productName,
+      plannedQuantity: step.workOrder.plannedQuantity,
+      unit: step.workOrder.unit,
+      dueDate: step.workOrder.dueDate.toISOString(),
+      sequence: step.sequence,
+      processStepName: step.processStepName,
+      productionLotNumber: step.productionLotNumber,
+      readiness: step.readiness,
+      blockedReasonCodes: step.blockedReasonCodes,
+      startedAt: step.startedAt?.toISOString() ?? null,
+      completedAt: step.completedAt?.toISOString() ?? null,
+      goodQuantity: step.goodQuantity,
+      defectQuantity: step.defectQuantity,
+      executionMemo: step.executionMemo,
+      inspections: inspections.map((inspection) => ({
+        id: inspection.id,
+        inspectionNumber: inspection.inspectionNumber,
+        gate: inspection.gate,
+        executionStatus: inspection.executionStatus,
+        verdict: inspection.verdict,
+      })),
     };
   }
 

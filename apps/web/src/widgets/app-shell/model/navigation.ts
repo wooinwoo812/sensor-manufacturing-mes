@@ -17,9 +17,13 @@ export interface NavigationItem {
     | "/dashboard"
     | "/work-orders"
     | "/materials/lots"
+    | "/materials/boms"
     | "/execution/queue"
     | "/quality/inspections"
-    | "/audit-events";
+    | "/quality/incidents"
+    | "/traceability"
+    | "/audit-events"
+    | "/admin/users";
   pending?: boolean;
 }
 

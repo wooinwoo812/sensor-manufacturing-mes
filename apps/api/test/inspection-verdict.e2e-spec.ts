@@ -236,6 +236,22 @@ class FakePrismaService {
     },
   };
 
+  readonly traceNodes: {
+    id: string;
+    nodeType: string;
+    label: string;
+    materialLotId: string | null;
+    productionLotNumber: string | null;
+  }[] = [];
+  readonly lotRelations: {
+    id: string;
+    relationType: string;
+    quantity: number;
+    parentNodeId: string;
+    childNodeId: string;
+    processStepExecutionId: string;
+  }[] = [];
+
   readonly materialAllocation = {
     findMany: async () => [],
     findUnique: async () => null,
@@ -254,6 +270,71 @@ class FakePrismaService {
       throw new Error("이 테스트에서는 사용하지 않습니다.");
     },
     count: async () => 0,
+  };
+
+  readonly traceNode = {
+    upsert: async ({
+      where,
+      create,
+    }: {
+      where: { materialLotId?: string; productionLotNumber?: string };
+      create: {
+        nodeType: string;
+        label: string;
+        materialLotId?: string;
+        productionLotNumber?: string;
+      };
+      update: Record<string, unknown>;
+    }) => {
+      const key =
+        where.materialLotId !== undefined ? "materialLotId" : "productionLotNumber";
+      const existing = this.traceNodes.find((node) => node[key] === where[key]);
+      if (existing !== undefined) {
+        return existing;
+      }
+      const row = {
+        id: `trace-${this.traceNodes.length + 1}`,
+        nodeType: create.nodeType,
+        label: create.label,
+        materialLotId: create.materialLotId ?? null,
+        productionLotNumber: create.productionLotNumber ?? null,
+      };
+      this.traceNodes.push(row);
+      return row;
+    },
+  };
+
+  readonly lotRelation = {
+    upsert: async ({
+      create,
+    }: {
+      where: {
+        relationType_parentNodeId_childNodeId: {
+          relationType: string;
+          parentNodeId: string;
+          childNodeId: string;
+        };
+      };
+      create: {
+        relationType: string;
+        quantity: number;
+        parentNodeId: string;
+        childNodeId: string;
+        processStepExecutionId: string;
+      };
+      update: Record<string, unknown>;
+    }) => {
+      const row = {
+        id: `relation-${this.lotRelations.length + 1}`,
+        relationType: create.relationType,
+        quantity: create.quantity,
+        parentNodeId: create.parentNodeId,
+        childNodeId: create.childNodeId,
+        processStepExecutionId: create.processStepExecutionId,
+      };
+      this.lotRelations.push(row);
+      return row;
+    },
   };
 
   async $transaction<T>(callback: (transaction: this) => Promise<T>) {

@@ -16,7 +16,10 @@ import type { HttpRequest } from "../auth/auth.http.js";
 import type { CommandActor } from "../work-orders/work-orders.service.js";
 import { ProcessCommandsService } from "./process-commands.service.js";
 import { ProcessExecutionsService } from "./process-executions.service.js";
-import type { ProcessExecutionListResult } from "./process-executions.contract.js";
+import type {
+  ProcessExecutionDetail,
+  ProcessExecutionListResult,
+} from "./process-executions.contract.js";
 
 function toActor(request: HttpRequest): CommandActor {
   const auth = request.auth;
@@ -47,6 +50,13 @@ export class ProcessExecutionsController {
     return this.processExecutionsService.list(
       this.processExecutionsService.parseQuery(query),
     );
+  }
+
+  @Get("steps/:stepId")
+  @Header("Cache-Control", "no-store")
+  @RequirePermissions(Permission.PROCESS_EXECUTION_READ)
+  async detail(@Param("stepId") stepId: string): Promise<ProcessExecutionDetail> {
+    return this.processExecutionsService.detail(stepId);
   }
 
   @Post("steps/:stepId/start")

@@ -58,3 +58,32 @@ export interface ProcessExecutionListResult {
   pageSize: number;
   total: number;
 }
+
+export interface ProcessStepInspectionView {
+  id: string;
+  inspectionNumber: string;
+  gate: string;
+  executionStatus: string;
+  verdict: string | null;
+}
+
+export interface ProcessExecutionDetail {
+  id: string;
+  workOrderNumber: string;
+  productCode: string;
+  productName: string;
+  plannedQuantity: number;
+  unit: string;
+  dueDate: string;
+  sequence: number;
+  processStepName: string;
+  productionLotNumber: string;
+  readiness: ProcessReadiness;
+  blockedReasonCodes: readonly string[];
+  startedAt: string | null;
+  completedAt: string | null;
+  goodQuantity: number | null;
+  defectQuantity: number | null;
+  executionMemo: string | null;
+  inspections: ProcessStepInspectionView[];
+}

@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import type { Prisma } from "../generated/prisma/client.js";
 import { PrismaService } from "../database/prisma.service.js";
 import type { QualityDisposition } from "../generated/prisma/enums.js";
@@ -7,6 +11,7 @@ import {
   MATERIAL_LOT_DISPOSITIONS,
   MATERIAL_LOT_SORT_FIELDS,
   type MaterialLotAvailabilityFilter,
+  type MaterialLotDetail,
   type MaterialLotListItem,
   type MaterialLotListResult,
   type MaterialLotSortField,
@@ -167,6 +172,50 @@ export class MaterialLotsService {
       page: query.page,
       pageSize: query.pageSize,
       total,
+    };
+  }
+
+  async detail(id: string): Promise<MaterialLotDetail> {
+    const record = await this.prisma.materialLot.findUnique({
+      where: { id },
+      include: {
+        material: true,
+        allocations: {
+          orderBy: { createdAt: "desc" },
+          include: { workOrder: { select: { orderNumber: true } } },
+        },
+      },
+    });
+    if (record === null) {
+      throw new NotFoundException({
+        code: "MATERIAL_LOT_NOT_FOUND",
+        message: "자재 LOT을 찾을 수 없습니다.",
+      });
+    }
+    const recentAudits = await this.prisma.auditEvent.findMany({
+      where: { entityType: "MATERIAL_LOT", entityId: record.lotNumber },
+      orderBy: { occurredAt: "desc" },
+      take: 10,
+    });
+
+    return {
+      ...this.toListItem(record),
+      allocations: record.allocations.map((allocation) => ({
+        id: allocation.id,
+        workOrderNumber: allocation.workOrder.orderNumber,
+        quantity: allocation.quantity,
+        status: allocation.status,
+        closedReason: allocation.closedReason,
+        createdAt: allocation.createdAt.toISOString(),
+      })),
+      recentAudits: recentAudits.map((event) => ({
+        id: event.id,
+        occurredAt: event.occurredAt.toISOString(),
+        actorName: event.actorName,
+        actorRole: event.actorRole,
+        action: event.action,
+        summary: event.summary,
+      })),
     };
   }
 

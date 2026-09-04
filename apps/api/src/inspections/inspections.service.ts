@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import type { Prisma } from "../generated/prisma/client.js";
 import { PrismaService } from "../database/prisma.service.js";
 import type {
@@ -11,6 +15,7 @@ import {
   INSPECTION_GATES,
   INSPECTION_SORT_FIELDS,
   INSPECTION_VERDICTS,
+  type InspectionDetail,
   type InspectionListResult,
   type InspectionSortField,
 } from "./inspections.contract.js";
@@ -139,6 +144,49 @@ export class InspectionsService {
       page: query.page,
       pageSize: query.pageSize,
       total,
+    };
+  }
+
+  async detail(id: string): Promise<InspectionDetail> {
+    const record = await this.prisma.inspection.findUnique({
+      where: { id },
+      include: { workOrder: true },
+    });
+    if (record === null) {
+      throw new NotFoundException({
+        code: "INSPECTION_NOT_FOUND",
+        message: "검사를 찾을 수 없습니다.",
+      });
+    }
+    const recentAudits = await this.prisma.auditEvent.findMany({
+      where: { entityType: "INSPECTION", entityId: record.inspectionNumber },
+      orderBy: { occurredAt: "desc" },
+      take: 10,
+    });
+
+    return {
+      id: record.id,
+      inspectionNumber: record.inspectionNumber,
+      workOrderNumber: record.workOrder.orderNumber,
+      productCode: record.workOrder.productCode,
+      productName: record.workOrder.productName,
+      productionLotNumber: record.productionLotNumber,
+      processStepName: record.processStepName,
+      gate: record.gate,
+      specName: record.specName,
+      executionStatus: record.executionStatus,
+      verdict: record.verdict,
+      verdictMemo: record.verdictMemo,
+      completedAt: record.completedAt === null ? null : record.completedAt.toISOString(),
+      createdAt: record.createdAt.toISOString(),
+      recentAudits: recentAudits.map((event) => ({
+        id: event.id,
+        occurredAt: event.occurredAt.toISOString(),
+        actorName: event.actorName,
+        actorRole: event.actorRole,
+        action: event.action,
+        summary: event.summary,
+      })),
     };
   }
 

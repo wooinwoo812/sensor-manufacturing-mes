@@ -75,6 +75,14 @@ export interface WorkOrderInspectionView {
   verdict: "PASS" | "FAIL" | "HOLD" | null;
 }
 
+export interface WorkOrderInspectionRequirementView {
+  id: string;
+  inspectionSpecRevisionId: string;
+  specName: string;
+  gate: "ROUTE_ADVANCE" | "LOT_COMPLETE";
+  processStepName: string | null;
+}
+
 export interface WorkOrderAuditView {
   id: string;
   occurredAt: string;
@@ -88,6 +96,7 @@ export interface WorkOrderDetail extends WorkOrderListItem {
   createdAt: string;
   steps: WorkOrderStepView[];
   inspections: WorkOrderInspectionView[];
+  inspectionRequirements: WorkOrderInspectionRequirementView[];
   recentAudits: WorkOrderAuditView[];
 }
 

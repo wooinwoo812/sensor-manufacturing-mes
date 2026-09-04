@@ -41,8 +41,17 @@ export class ProcessCommandsService {
       const activeAllocations = await transaction.materialAllocation.findMany({
         where: { workOrderId: step.workOrderId, status: "ACTIVE" },
       });
+      const productionNode = await transaction.traceNode.upsert({
+        where: { productionLotNumber: step.productionLotNumber },
+        create: {
+          nodeType: "PRODUCTION_LOT",
+          label: step.productionLotNumber,
+          productionLotNumber: step.productionLotNumber,
+        },
+        update: {},
+      });
       for (const allocation of activeAllocations) {
-        await transaction.materialLot.update({
+        const lot = await transaction.materialLot.update({
           where: { id: allocation.materialLotId },
           data: {
             reservedQuantity: { decrement: allocation.quantity },
@@ -56,6 +65,35 @@ export class ProcessCommandsService {
             status: "CLOSED",
             closedAt: new Date(),
             closedReason: "FULFILLED",
+          },
+        });
+        const materialNode = await transaction.traceNode.upsert({
+          where: { materialLotId: lot.id },
+          create: {
+            nodeType: "MATERIAL_LOT",
+            label: lot.lotNumber,
+            materialLotId: lot.id,
+          },
+          update: { label: lot.lotNumber },
+        });
+        await transaction.lotRelation.upsert({
+          where: {
+            relationType_parentNodeId_childNodeId: {
+              relationType: "CONSUME",
+              parentNodeId: materialNode.id,
+              childNodeId: productionNode.id,
+            },
+          },
+          create: {
+            relationType: "CONSUME",
+            quantity: allocation.quantity,
+            parentNodeId: materialNode.id,
+            childNodeId: productionNode.id,
+            processStepExecutionId: stepId,
+          },
+          update: {
+            quantity: { increment: allocation.quantity },
+            processStepExecutionId: stepId,
           },
         });
       }

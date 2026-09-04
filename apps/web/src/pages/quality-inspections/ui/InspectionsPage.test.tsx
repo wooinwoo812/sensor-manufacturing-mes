@@ -60,15 +60,17 @@ function sampleResult(overrides: Partial<InspectionListResult> = {}): Inspection
 
 function renderPage() {
   const onSearchChange = vi.fn();
+  const onOpenDetail = vi.fn();
   render(
     <InspectionsPage
       search={{}}
       onSearchChange={onSearchChange}
+      onOpenDetail={onOpenDetail}
       csrfToken={"csrf"}
       canVerdict
     />,
   );
-  return { onSearchChange };
+  return { onSearchChange, onOpenDetail };
 }
 
 describe("InspectionsPage", () => {

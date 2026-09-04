@@ -9,6 +9,7 @@ export const AUDIT_ACTIONS = [
   "MATERIAL_RESERVED",
   "MATERIAL_LOT_DISPOSITION_DECIDED",
   "INSPECTION_VERDICTED",
+  "QUALITY_INCIDENT_REGISTERED",
 ] as const satisfies readonly AuditAction[];
 
 export const AUDIT_ACTOR_ROLES = [

@@ -27,6 +27,12 @@ function InspectionsRoute() {
       search={search}
       csrfToken={session.csrfToken}
       canVerdict={session.permissions.includes("inspection:execute")}
+      onOpenDetail={(inspectionId) => {
+        void navigate({
+          to: "/quality/inspections/$inspectionId",
+          params: { inspectionId },
+        });
+      }}
       onSearchChange={(next) => {
         void navigate({
           to: "/quality/inspections",

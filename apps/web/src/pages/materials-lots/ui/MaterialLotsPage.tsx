@@ -8,6 +8,10 @@ import {
   MATERIAL_LOT_DISPOSITION_LABELS,
   type MaterialLotListItem,
 } from "@/entities/material-lot";
+import {
+  MaterialLotDispositionPanel,
+  type MaterialLotDispositionTarget,
+} from "@/features/material-lot-disposition";
 import { ApiRequestError } from "@/shared/api";
 import {
   Badge,
@@ -53,6 +57,9 @@ type LoadState =
 interface MaterialLotsPageProps {
   search: MaterialLotsListSearch;
   onSearchChange: (next: MaterialLotsListSearch) => void;
+  onOpenDetail: (materialLotId: string) => void;
+  csrfToken: string;
+  canDecideQuality: boolean;
 }
 
 function ExpiryCell({ expiresAt }: { expiresAt: string | null }) {
@@ -80,9 +87,14 @@ function ExpiryCell({ expiresAt }: { expiresAt: string | null }) {
 export function MaterialLotsPage({
   search,
   onSearchChange,
+  onOpenDetail,
+  csrfToken,
+  canDecideQuality,
 }: MaterialLotsPageProps) {
   const searchKey = JSON.stringify(search);
   const [reloadCount, setReloadCount] = useState(0);
+  const [dispositionTarget, setDispositionTarget] =
+    useState<MaterialLotDispositionTarget | null>(null);
   const [result, setResult] = useState<{
     key: string;
     reload: number;
@@ -142,9 +154,13 @@ export function MaterialLotsPage({
         key: "lotNumber",
         header: "자재 LOT",
         cell: (row) => (
-          <span className="font-mono text-xs font-bold text-text-strong">
+          <button
+            className="font-mono text-xs font-bold text-accent-strong underline-offset-4 hover:underline"
+            onClick={() => onOpenDetail(row.id)}
+            type="button"
+          >
             {row.lotNumber}
-          </span>
+          </button>
         ),
       },
       {
@@ -214,8 +230,38 @@ export function MaterialLotsPage({
         header: "유효기간",
         cell: (row) => <ExpiryCell expiresAt={row.expiresAt} />,
       },
+      ...(canDecideQuality
+        ? [
+            {
+              key: "actions",
+              header: "행동",
+              cell: (row: MaterialLotListItem) =>
+                row.qualityDisposition === "PENDING" ||
+                row.qualityDisposition === "HOLD" ||
+                row.qualityDisposition === "QUARANTINED" ? (
+                  <Button
+                    variant="secondary"
+                    onClick={() =>
+                      setDispositionTarget({
+                        lotId: row.id,
+                        lotNumber: row.lotNumber,
+                        materialName: row.materialName,
+                        currentDisposition: row.qualityDisposition,
+                        onHand: row.onHand,
+                        unit: row.unit,
+                      })
+                    }
+                  >
+                    품질 처분
+                  </Button>
+                ) : (
+                  <span className="text-text-subtle">—</span>
+                ),
+            } satisfies DataTableColumn<MaterialLotListItem>,
+          ]
+        : []),
     ],
-    [],
+    [canDecideQuality, onOpenDetail],
   );
 
   const hasActiveFilter =
@@ -333,6 +379,16 @@ export function MaterialLotsPage({
         />
       ) : (
         <>
+          {dispositionTarget !== null ? (
+            <MaterialLotDispositionPanel
+              csrfToken={csrfToken}
+              onDone={() => {
+                setDispositionTarget(null);
+                setReloadCount((count) => count + 1);
+              }}
+              target={dispositionTarget}
+            />
+          ) : null}
           <DataTable
             caption="자재 LOT 목록"
             columns={columns}
