@@ -31,6 +31,8 @@ function formatDateTime(isoDate: string): string {
 interface TraceNodeDetailPageProps {
   traceNodeId: string;
   onBack: () => void;
+  /** 목록 항목의 노드를 눌러 그 노드의 계보로 이동한다. 계보는 노드에서 노드로 따라가는 화면이다. */
+  onOpenNode?: ((traceNodeId: string) => void) | undefined;
 }
 
 function EdgeList({
@@ -38,47 +40,60 @@ function EdgeList({
   description,
   edges,
   emptyText,
+  onOpenNode,
 }: {
   title: string;
   description: string;
   edges: TraceEdgeView[];
   emptyText: string;
+  onOpenNode?: ((traceNodeId: string) => void) | undefined;
 }) {
   return (
     <Panel description={description} headingLevel="h2" title={title}>
-        {edges.length === 0 ? (
-          <p className="text-sm text-text-muted">{emptyText}</p>
-        ) : (
-          <ul className="divide-y divide-border">
-            {edges.map((edge) => (
-              <li
-                key={edge.id}
-                className="flex flex-wrap items-center justify-between gap-2 py-3 first:pt-0 last:pb-0"
-              >
-                <div>
-                  <p className="text-sm tabular-nums">{edge.node.label}</p>
-                  <p className="text-xs text-text-muted">
-                    {TRACE_NODE_TYPE_LABELS[edge.node.nodeType]} · 기록{" "}
-                    {formatDateTime(edge.createdAt)}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge tone="info">{LOT_RELATION_TYPE_LABELS[edge.relationType]}</Badge>
-                  <span className="tabular-nums text-sm font-medium">
-                    {edge.quantity.toLocaleString("ko-KR")}
-                  </span>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Panel>
+      {edges.length === 0 ? (
+        <p className="py-1 text-sm text-text-muted">{emptyText}</p>
+      ) : (
+        <ul className="divide-y divide-border">
+          {edges.map((edge) => (
+            <li
+              className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"
+              key={edge.id}
+            >
+              <div className="min-w-0">
+                {onOpenNode ? (
+                  <button
+                    className="text-sm font-semibold tabular-nums text-accent-strong underline-offset-4 hover:underline"
+                    onClick={() => onOpenNode(edge.node.id)}
+                    type="button"
+                  >
+                    {edge.node.label}
+                  </button>
+                ) : (
+                  <span className="text-sm font-semibold tabular-nums">{edge.node.label}</span>
+                )}
+                <p className="mt-0.5 text-xs text-text-muted">
+                  {TRACE_NODE_TYPE_LABELS[edge.node.nodeType]} · {formatDateTime(edge.createdAt)}
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-3">
+                <Badge tone="info">{LOT_RELATION_TYPE_LABELS[edge.relationType]}</Badge>
+                <span className="text-sm tabular-nums">
+                  <span className="text-text-muted">수량 </span>
+                  <strong className="font-semibold">{edge.quantity.toLocaleString("ko-KR")}</strong>
+                </span>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Panel>
   );
 }
 
 export function TraceNodeDetailPage({
   traceNodeId,
   onBack,
+  onOpenNode,
 }: TraceNodeDetailPageProps) {
   const [result, setResult] = useState<{
     key: string;
@@ -138,27 +153,33 @@ export function TraceNodeDetailPage({
           <PageCrumb value={state.detail.label} />
           <PageHeading
             back={{ label: "LOT 계보 목록", onClick: onBack }}
-            description="이 노드로 투입된 원천과 이 노드가 투입된 산출을 확인합니다."
-            eyebrow={`${TRACE_NODE_TYPE_LABELS[state.detail.nodeType]} 계보 상세`}
-            meta={<span>가상 데모 데이터</span>}
+            description="이 노드로 투입된 원천과 이 노드가 투입된 산출을 양방향으로 확인합니다."
+            eyebrow="LOT 계보 상세"
+            meta={<span>생성 {formatDateTime(state.detail.createdAt)}</span>}
             title={state.detail.label}
           />
-          <p className="text-xs text-text-muted">
-            생성 {formatDateTime(state.detail.createdAt)} · CONSUME 관계는 공정 시작
-            시점에 자동으로 기록됩니다.
-          </p>
-          <div className="grid gap-4">
+          {/* 다른 상세와 같은 자리: 제목 아래 배지 행. 노드 종류는 eyebrow 문장이 아니라 배지로 보여준다. */}
+          <div className="flex flex-wrap items-center gap-3">
+            <Badge tone="info">{TRACE_NODE_TYPE_LABELS[state.detail.nodeType]}</Badge>
+            <span className="text-xs text-text-muted">
+              CONSUME 관계는 공정 시작 시점에 자동으로 기록됩니다.
+            </span>
+          </div>
+          {/* 원천 → 이 노드 → 영향. 흐름의 양쪽이므로 나란히 둔다. */}
+          <div className="grid gap-4 xl:grid-cols-2">
             <EdgeList
-              title="원천 (upstream)"
-              description="이 LOT를 만들기 위해 투입된 자재"
+              description="이 노드를 만들기 위해 투입된 자재·LOT"
               edges={state.detail.upstream}
               emptyText="투입 기록이 없습니다."
+              onOpenNode={onOpenNode}
+              title="원천 (upstream)"
             />
             <EdgeList
-              title="영향 (downstream)"
-              description="이 LOT가 투입된 생산 LOT"
+              description="이 노드가 투입된 생산 LOT·완제품"
               edges={state.detail.downstream}
               emptyText="투입된 산출 기록이 없습니다."
+              onOpenNode={onOpenNode}
+              title="영향 (downstream)"
             />
           </div>
         </>

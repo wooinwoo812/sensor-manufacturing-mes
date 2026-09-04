@@ -39,7 +39,7 @@ export function PageHeading({
       <div className="min-w-0">
         {back ? (
           <button
-            className="mb-2 inline-flex items-center gap-1 text-xs font-medium text-text-muted transition-colors hover:text-text-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/40 motion-reduce:transition-none"
+            className="mb-2 inline-flex items-center gap-1 text-[13px] font-medium text-text-muted transition-colors hover:text-text-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/40 motion-reduce:transition-none"
             onClick={back.onClick}
             type="button"
           >
@@ -48,7 +48,7 @@ export function PageHeading({
           </button>
         ) : null}
         {eyebrow ? (
-          <p className="text-[11px] font-semibold tracking-wide text-accent-strong">{eyebrow}</p>
+          <p className="text-xs font-semibold tracking-wide text-accent-strong">{eyebrow}</p>
         ) : null}
         <h1 className="text-2xl font-semibold leading-8 tracking-tight text-text-strong">
           {title}

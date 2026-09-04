@@ -27,6 +27,12 @@ function TraceNodeDetailRoute() {
       onBack={() => {
         void navigate({ to: "/traceability", search: {}, replace: true });
       }}
+      onOpenNode={(nextNodeId) => {
+        void navigate({
+          to: "/traceability/$traceNodeId",
+          params: { traceNodeId: nextNodeId },
+        });
+      }}
     />
   );
 }

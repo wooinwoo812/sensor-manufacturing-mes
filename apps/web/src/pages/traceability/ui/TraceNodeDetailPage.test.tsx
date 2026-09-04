@@ -51,7 +51,7 @@ describe("TraceNodeDetailPage", () => {
     expect(
       await screen.findByRole("heading", { level: 1, name: "PL-2026-091A" }),
     ).toBeInTheDocument();
-    expect(screen.getByText("생산 LOT 계보 상세")).toBeInTheDocument();
+    expect(screen.getByText("LOT 계보 상세")).toBeInTheDocument();
     expect(screen.getByText("원천 (upstream)")).toBeInTheDocument();
     expect(screen.getByText("ML-2026-0301")).toBeInTheDocument();
     expect(screen.getByText("40")).toBeInTheDocument();
