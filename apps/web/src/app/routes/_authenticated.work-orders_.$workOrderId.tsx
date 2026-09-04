@@ -17,7 +17,7 @@ export const Route = createFileRoute(
   component: WorkOrderDetailRoute,
 });
 
-function WorkOrderDetailRoute() {
+export function WorkOrderDetailRoute() {
   const { workOrderId } = Route.useParams();
   const { session } = Route.useRouteContext();
   const navigate = useNavigate({ from: Route.fullPath });

@@ -18,7 +18,7 @@ export const Route = createFileRoute("/login")({
   component: LoginRoute,
 });
 
-function LoginRoute() {
+export function LoginRoute() {
   const search = Route.useSearch();
 
   function handleAuthenticated(session: Session) {

@@ -17,7 +17,7 @@ export const Route = createFileRoute(
   component: QualityIncidentDetailRoute,
 });
 
-function QualityIncidentDetailRoute() {
+export function QualityIncidentDetailRoute() {
   const { qualityIncidentId } = Route.useParams();
   const navigate = useNavigate({ from: Route.fullPath });
 

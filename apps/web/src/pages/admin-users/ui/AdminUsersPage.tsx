@@ -1,9 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
   fetchAdminUsers,
   type AdminUserListItem,
 } from "@/entities/admin-user";
-import { ApiRequestError } from "@/shared/api";
 import {
   Badge,
   Button,
@@ -14,12 +13,9 @@ import {
   PageHeading,
   Skeleton,
 } from "@/shared/ui";
+import { useLoadState } from "@/shared/lib";
 import { Main } from "@/widgets/app-shell";
 
-type LoadState =
-  | { phase: "loading" }
-  | { phase: "error"; message: string }
-  | { phase: "success"; items: AdminUserListItem[] };
 
 interface AdminUsersPageProps {
   csrfToken: string;
@@ -27,42 +23,11 @@ interface AdminUsersPageProps {
 
 export function AdminUsersPage({ csrfToken }: AdminUsersPageProps) {
   void csrfToken;
-  const [reloadCount, setReloadCount] = useState(0);
-  const [result, setResult] = useState<{
-    reload: number;
-    state: { phase: "error"; message: string } | { phase: "success"; items: AdminUserListItem[] };
-  } | null>(null);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    fetchAdminUsers(controller.signal)
-      .then((items) => {
-        setResult({ reload: reloadCount, state: { phase: "success", items } });
-      })
-      .catch((error: unknown) => {
-        if (controller.signal.aborted) {
-          return;
-        }
-        setResult({
-          reload: reloadCount,
-          state: {
-            phase: "error",
-            message:
-              error instanceof ApiRequestError
-                ? error.message
-                : "사용자 목록을 불러오지 못했습니다.",
-          },
-        });
-      });
-    return () => {
-      controller.abort();
-    };
-  }, [reloadCount]);
-
-  const state: LoadState =
-    result !== null && result.reload === reloadCount
-      ? result.state
-      : { phase: "loading" };
+  const { state, reload } = useLoadState<{ items: AdminUserListItem[] }>(
+    "admin-users",
+    (signal) => fetchAdminUsers(signal).then((items) => ({ items })),
+    "사용자 목록을 불러오지 못했습니다.",
+  );
 
   const columns = useMemo<DataTableColumn<AdminUserListItem>[]>(
     () => [
@@ -136,7 +101,7 @@ export function AdminUsersPage({ csrfToken }: AdminUsersPageProps) {
           action={
             <Button
               variant="secondary"
-              onClick={() => setReloadCount((count) => count + 1)}
+              onClick={() => reload()}
             >
               다시 시도
             </Button>

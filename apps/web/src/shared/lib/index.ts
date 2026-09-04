@@ -6,3 +6,4 @@ export {
   useTheme,
   type Theme,
 } from "./shadcn/theme-provider";
+export { useLoadState, type LoadState } from "./use-load-state";

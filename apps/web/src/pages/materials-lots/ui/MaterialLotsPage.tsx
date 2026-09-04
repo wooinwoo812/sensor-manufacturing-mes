@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   daysUntil,
   fetchMaterialLots,
@@ -12,7 +12,6 @@ import {
   MaterialLotDispositionPanel,
   type MaterialLotDispositionTarget,
 } from "@/features/material-lot-disposition";
-import { ApiRequestError } from "@/shared/api";
 import {
   Badge,
   Button,
@@ -28,6 +27,7 @@ import {
   type BadgeTone,
   type DataTableColumn,
 } from "@/shared/ui";
+import { useLoadState } from "@/shared/lib";
 import { Main } from "@/widgets/app-shell";
 import {
   mergeMaterialLotsSearch,
@@ -45,15 +45,6 @@ const DISPOSITION_TONES: Record<string, BadgeTone> = {
 
 const PAGE_SIZE = 20;
 
-type LoadState =
-  | { phase: "loading" }
-  | { phase: "error"; message: string }
-  | {
-      phase: "success";
-      items: MaterialLotListItem[];
-      total: number;
-      page: number;
-    };
 
 interface MaterialLotsPageProps {
   search: MaterialLotsListSearch;
@@ -93,64 +84,24 @@ export function MaterialLotsPage({
   canDecideQuality,
 }: MaterialLotsPageProps) {
   const searchKey = JSON.stringify(search);
-  const [reloadCount, setReloadCount] = useState(0);
   const [dispositionTarget, setDispositionTarget] =
     useState<MaterialLotDispositionTarget | null>(null);
-  const [result, setResult] = useState<{
-    key: string;
-    reload: number;
-    state: Exclude<LoadState, { phase: "loading" }>;
-  } | null>(null);
-
-  useEffect(() => {
-    const searchValue = JSON.parse(searchKey) as MaterialLotsListSearch;
-    const controller = new AbortController();
-    let active = true;
-    fetchMaterialLots(toMaterialLotsSearchParams(searchValue), controller.signal)
-      .then((response) => {
-        if (!active) {
-          return;
-        }
-        setResult({
-          key: searchKey,
-          reload: reloadCount,
-          state: {
-            phase: "success",
-            items: response.items,
-            total: response.total,
-            page: response.page,
-          },
-        });
-      })
-      .catch((error: unknown) => {
-        if (!active) {
-          return;
-        }
-        setResult({
-          key: searchKey,
-          reload: reloadCount,
-          state: {
-            phase: "error",
-            message:
-              error instanceof ApiRequestError
-                ? error.message
-                : "자재 LOT 목록을 불러오지 못했습니다.",
-          },
-        });
-      });
-    return () => {
-      active = false;
-      controller.abort();
-    };
-  }, [searchKey, reloadCount]);
-
-  const isCurrent =
-    result !== null && result.key === searchKey && result.reload === reloadCount;
-  // 조건이 바뀌어도 이전 결과가 있으면 그대로 두고 흐리게만 표시한다.
-  // 매번 스켈레톤으로 갈아끼우면 표가 사라졌다 나타나 화면이 흔들린다.
-  const isRefreshing = result !== null && result.state.phase === "success" && !isCurrent;
-  const state: LoadState =
-    isCurrent || isRefreshing ? result!.state : { phase: "loading" };
+  const { state, isRefreshing, reload } = useLoadState<{
+    items: MaterialLotListItem[];
+    total: number;
+    page: number;
+  }>(
+    searchKey,
+    (signal) => {
+      const searchValue = JSON.parse(searchKey) as MaterialLotsListSearch;
+      return fetchMaterialLots(toMaterialLotsSearchParams(searchValue), signal).then((response) => ({
+        items: response.items,
+        total: response.total,
+        page: response.page,
+      }));
+    },
+    "자재 LOT 목록을 불러오지 못했습니다.",
+  );
 
   const columns = useMemo<DataTableColumn<MaterialLotListItem>[]>(
     () => [
@@ -361,7 +312,7 @@ export function MaterialLotsPage({
         <ErrorState
           description={state.message}
           action={
-            <Button onClick={() => setReloadCount((count) => count + 1)}>
+            <Button onClick={() => reload()}>
               다시 시도
             </Button>
           }
@@ -385,7 +336,7 @@ export function MaterialLotsPage({
               csrfToken={csrfToken}
               onDone={() => {
                 setDispositionTarget(null);
-                setReloadCount((count) => count + 1);
+                reload();
               }}
               target={dispositionTarget}
             />

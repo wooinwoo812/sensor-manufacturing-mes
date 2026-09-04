@@ -15,7 +15,7 @@ export const Route = createFileRoute("/_authenticated/work-orders_/new")({
   component: WorkOrderCreateRoute,
 });
 
-function WorkOrderCreateRoute() {
+export function WorkOrderCreateRoute() {
   const navigate = useNavigate();
   const { session } = Route.useRouteContext();
 

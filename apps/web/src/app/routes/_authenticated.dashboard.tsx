@@ -15,7 +15,7 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
   component: DashboardRoute,
 });
 
-function DashboardRoute() {
+export function DashboardRoute() {
   const navigate = useNavigate({ from: Route.fullPath });
 
   return (

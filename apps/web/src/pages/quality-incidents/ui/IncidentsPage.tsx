@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   fetchQualityIncidents,
   QUALITY_INCIDENT_SOURCE_TYPE_LABELS,
@@ -6,7 +6,6 @@ import {
   type QualityIncidentListItem,
 } from "@/entities/quality-incident";
 import { QualityIncidentRegisterPanel } from "@/features/quality-incident-register";
-import { ApiRequestError } from "@/shared/api";
 import {
   Badge,
   Button,
@@ -22,6 +21,7 @@ import {
   type BadgeTone,
   type DataTableColumn,
 } from "@/shared/ui";
+import { useLoadState } from "@/shared/lib";
 import { Main } from "@/widgets/app-shell";
 import {
   mergeIncidentsSearch,
@@ -49,15 +49,6 @@ function formatIncidentDateTime(isoDate: string): string {
   }).format(new Date(isoDate));
 }
 
-type LoadState =
-  | { phase: "loading" }
-  | { phase: "error"; message: string }
-  | {
-      phase: "success";
-      items: QualityIncidentListItem[];
-      total: number;
-      page: number;
-    };
 
 interface IncidentsPageProps {
   search: IncidentsSearch;
@@ -75,63 +66,23 @@ export function IncidentsPage({
   onOpenDetail,
 }: IncidentsPageProps) {
   const searchKey = JSON.stringify(search);
-  const [reloadCount, setReloadCount] = useState(0);
   const [registerOpen, setRegisterOpen] = useState(false);
-  const [result, setResult] = useState<{
-    key: string;
-    reload: number;
-    state: Exclude<LoadState, { phase: "loading" }>;
-  } | null>(null);
-
-  useEffect(() => {
-    const searchValue = JSON.parse(searchKey) as IncidentsSearch;
-    const controller = new AbortController();
-    let active = true;
-    fetchQualityIncidents(toIncidentsParams(searchValue), controller.signal)
-      .then((response) => {
-        if (!active) {
-          return;
-        }
-        setResult({
-          key: searchKey,
-          reload: reloadCount,
-          state: {
-            phase: "success",
-            items: response.items,
-            total: response.total,
-            page: response.page,
-          },
-        });
-      })
-      .catch((error: unknown) => {
-        if (!active) {
-          return;
-        }
-        setResult({
-          key: searchKey,
-          reload: reloadCount,
-          state: {
-            phase: "error",
-            message:
-              error instanceof ApiRequestError
-                ? error.message
-                : "부적합 사건 목록을 불러오지 못했습니다.",
-          },
-        });
-      });
-    return () => {
-      active = false;
-      controller.abort();
-    };
-  }, [searchKey, reloadCount]);
-
-  const isCurrent =
-    result !== null && result.key === searchKey && result.reload === reloadCount;
-  // 조건이 바뀌어도 이전 결과가 있으면 그대로 두고 흐리게만 표시한다.
-  // 매번 스켈레톤으로 갈아끼우면 표가 사라졌다 나타나 화면이 흔들린다.
-  const isRefreshing = result !== null && result.state.phase === "success" && !isCurrent;
-  const state: LoadState =
-    isCurrent || isRefreshing ? result!.state : { phase: "loading" };
+  const { state, isRefreshing, reload } = useLoadState<{
+    items: QualityIncidentListItem[];
+    total: number;
+    page: number;
+  }>(
+    searchKey,
+    (signal) => {
+      const searchValue = JSON.parse(searchKey) as IncidentsSearch;
+      return fetchQualityIncidents(toIncidentsParams(searchValue), signal).then((response) => ({
+        items: response.items,
+        total: response.total,
+        page: response.page,
+      }));
+    },
+    "부적합 사건 목록을 불러오지 못했습니다.",
+  );
 
   const columns = useMemo<DataTableColumn<QualityIncidentListItem>[]>(
     () => [
@@ -310,7 +261,7 @@ export function IncidentsPage({
         <ErrorState
           description={state.message}
           action={
-            <Button onClick={() => setReloadCount((count) => count + 1)}>
+            <Button onClick={() => reload()}>
               다시 시도
             </Button>
           }
@@ -358,7 +309,7 @@ export function IncidentsPage({
             csrfToken={csrfToken}
             onDone={() => {
               setRegisterOpen(false);
-              setReloadCount((count) => count + 1);
+              reload();
             }}
           />
         ) : null

@@ -17,7 +17,7 @@ export const Route = createFileRoute("/_authenticated/quality/incidents")({
   component: IncidentsRoute,
 });
 
-function IncidentsRoute() {
+export function IncidentsRoute() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const { session } = Route.useRouteContext();

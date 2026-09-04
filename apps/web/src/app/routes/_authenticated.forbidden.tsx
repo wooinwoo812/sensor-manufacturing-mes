@@ -7,7 +7,7 @@ export const Route = createFileRoute("/_authenticated/forbidden")({
   component: ForbiddenRoute,
 });
 
-function ForbiddenRoute() {
+export function ForbiddenRoute() {
   const { session } = Route.useRouteContext();
   const search = Route.useSearch();
   return (

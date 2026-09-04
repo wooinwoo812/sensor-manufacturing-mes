@@ -17,7 +17,7 @@ export const Route = createFileRoute("/_authenticated/materials/lots")({
   component: MaterialLotsRoute,
 });
 
-function MaterialLotsRoute() {
+export function MaterialLotsRoute() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const { session } = Route.useRouteContext();

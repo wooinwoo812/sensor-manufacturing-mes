@@ -24,7 +24,7 @@ export const Route = createFileRoute(
   component: MaterialReservationsRoute,
 });
 
-function MaterialReservationsRoute() {
+export function MaterialReservationsRoute() {
   const { workOrderId } = Route.useParams();
   const { session } = Route.useRouteContext();
   const navigate = useNavigate({ from: Route.fullPath });

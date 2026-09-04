@@ -253,6 +253,21 @@ function RouteComponent() {
 
 server response가 domain truth다. optimistic update는 되돌리기 쉽고 충돌 의미가 명확한 행동에서만 사용하며 생산·재고·품질 확정 command는 기본적으로 server confirmation 뒤 갱신한다.
 
+#### 8.2.1 목록·상세 조회는 `shared/lib/useLoadState` 하나로 (2026-09-05)
+
+목록 화면 9개가 같은 60줄(useState·useEffect·AbortController·stale 검사)을 복사하고
+있었고 그중 3개는 stale 검사가 미묘하게 달랐다. 조회 상태는 `useLoadState(key, load,
+fallbackMessage)` 로 통일한다.
+
+- `state` 는 `loading | error | success & Success` 세 가지뿐이다. 화면은 이 세 분기만 그린다.
+- key 가 바뀌어도 이전 성공 결과를 유지하고 `isRefreshing` 만 켠다. 스켈레톤 교체는 첫
+  조회에만 쓴다(표 깜빡임 방지, 디자인 시스템 2.7 절).
+- 늦게 도착한 이전 요청은 key·reload 일치 검사로 버린다. 화면을 떠나면 요청을 중단한다.
+- `reload` 는 참조가 고정된다(`useCallback`). 열 정의 `useMemo` 의 의존성으로 들어가기 때문이다.
+- 오류 문구는 서버 메시지(`ApiRequestError`)를 우선하고, 없으면 화면이 준 문구를 쓴다.
+
+새 목록·상세 화면은 이 훅을 쓰고 자체 useEffect 조회를 두지 않는다.
+
 ### 8.3 Form state
 
 - 복합 form과 validation은 행동을 소유한 feature의 React Hook Form + schema에 두고, 단일 제어값은 local state를 허용한다.

@@ -17,7 +17,7 @@ export const Route = createFileRoute(
   component: ProcessExecutionDetailRoute,
 });
 
-function ProcessExecutionDetailRoute() {
+export function ProcessExecutionDetailRoute() {
   const { processStepRevisionId } = Route.useParams();
   const { session } = Route.useRouteContext();
   const navigate = useNavigate({ from: Route.fullPath });

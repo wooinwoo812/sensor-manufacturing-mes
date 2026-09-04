@@ -17,7 +17,7 @@ export const Route = createFileRoute("/_authenticated/execution/queue")({
   component: ExecutionQueueRoute,
 });
 
-function ExecutionQueueRoute() {
+export function ExecutionQueueRoute() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const { session } = Route.useRouteContext();

@@ -1,11 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
   fetchTraceNodes,
   TRACE_NODE_TYPE_LABELS,
   type TraceNodeListItem,
   type TraceNodeType,
 } from "@/entities/trace-node";
-import { ApiRequestError } from "@/shared/api";
 import {
   Badge,
   Button,
@@ -21,6 +20,7 @@ import {
   type BadgeTone,
   type DataTableColumn,
 } from "@/shared/ui";
+import { useLoadState } from "@/shared/lib";
 import { Main } from "@/widgets/app-shell";
 import {
   mergeTraceabilitySearch,
@@ -36,15 +36,6 @@ const NODE_TYPE_TONES: Record<TraceNodeType, BadgeTone> = {
 
 const PAGE_SIZE = 20;
 
-type LoadState =
-  | { phase: "loading" }
-  | { phase: "error"; message: string }
-  | {
-      phase: "success";
-      items: TraceNodeListItem[];
-      total: number;
-      page: number;
-    };
 
 interface TraceabilityPageProps {
   search: TraceabilitySearch;
@@ -57,67 +48,26 @@ export function TraceabilityPage({
   onSearchChange,
   onOpenDetail,
 }: TraceabilityPageProps) {
-  const [reloadCount, setReloadCount] = useState(0);
-  const [result, setResult] = useState<{
-    key: string;
-    reload: number;
-    state:
-      | { phase: "error"; message: string }
-      | {
-          phase: "success";
-          items: TraceNodeListItem[];
-          total: number;
-          page: number;
-        };
-  } | null>(null);
-
   const params = useMemo(
     () => toTraceabilityParams(search).toString(),
     [search],
   );
 
-  useEffect(() => {
-    const controller = new AbortController();
-    fetchTraceNodes(new URLSearchParams(params), controller.signal)
-      .then((response) => {
-        setResult({
-          key: params,
-          reload: reloadCount,
-          state: {
-            phase: "success",
-            items: response.items,
-            total: response.total,
-            page: response.page,
-          },
-        });
-      })
-      .catch((error: unknown) => {
-        if (controller.signal.aborted) {
-          return;
-        }
-        setResult({
-          key: params,
-          reload: reloadCount,
-          state: {
-            phase: "error",
-            message:
-              error instanceof ApiRequestError
-                ? error.message
-                : "추적 노드를 불러오지 못했습니다.",
-          },
-        });
-      });
-    return () => {
-      controller.abort();
-    };
-  }, [params, reloadCount]);
-
-  const isCurrent =
-    result !== null && result.key === params && result.reload === reloadCount;
-  // 조건이 바뀌어도 이전 결과가 있으면 그대로 두고 흐리게만 표시한다(스켈레톤 교체 깜빡임 방지).
-  const isRefreshing = result !== null && result.state.phase === "success" && !isCurrent;
-  const state: LoadState =
-    isCurrent || isRefreshing ? result!.state : { phase: "loading" };
+  const { state, isRefreshing, reload } = useLoadState<{
+    items: TraceNodeListItem[];
+    total: number;
+    page: number;
+  }>(
+    params,
+    (signal) => {
+      return fetchTraceNodes(new URLSearchParams(params), signal).then((response) => ({
+        items: response.items,
+        total: response.total,
+        page: response.page,
+      }));
+    },
+    "추적 노드를 불러오지 못했습니다.",
+  );
 
   const columns = useMemo<DataTableColumn<TraceNodeListItem>[]>(
     () => [
@@ -239,7 +189,7 @@ export function TraceabilityPage({
           action={
             <Button
               variant="secondary"
-              onClick={() => setReloadCount((count) => count + 1)}
+              onClick={() => reload()}
             >
               다시 시도
             </Button>

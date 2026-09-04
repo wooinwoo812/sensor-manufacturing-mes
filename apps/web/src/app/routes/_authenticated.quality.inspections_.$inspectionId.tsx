@@ -17,7 +17,7 @@ export const Route = createFileRoute(
   component: InspectionDetailRoute,
 });
 
-function InspectionDetailRoute() {
+export function InspectionDetailRoute() {
   const { inspectionId } = Route.useParams();
   const navigate = useNavigate({ from: Route.fullPath });
   const { session } = Route.useRouteContext();

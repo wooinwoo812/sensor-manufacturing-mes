@@ -17,7 +17,7 @@ export const Route = createFileRoute("/_authenticated/traceability")({
   component: TraceabilityRoute,
 });
 
-function TraceabilityRoute() {
+export function TraceabilityRoute() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
 

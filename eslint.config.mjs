@@ -42,7 +42,8 @@ export default tseslint.config(
       ...reactHooks.configs.recommended.rules,
       "react-refresh/only-export-components": [
         "warn",
-        { "allowConstantExport": true }
+        // TanStack Router 파일은 Route 상수와 화면 컴포넌트를 한 파일에 둔다(프레임워크 규약).
+        { "allowConstantExport": true, "allowExportNames": ["Route"] }
       ]
     },
   },

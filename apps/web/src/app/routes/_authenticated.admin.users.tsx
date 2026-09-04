@@ -15,7 +15,7 @@ export const Route = createFileRoute("/_authenticated/admin/users")({
   component: AdminUsersRoute,
 });
 
-function AdminUsersRoute() {
+export function AdminUsersRoute() {
   const { session } = Route.useRouteContext();
 
   return <AdminUsersPage csrfToken={session.csrfToken} />;
