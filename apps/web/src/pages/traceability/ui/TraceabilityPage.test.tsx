@@ -87,12 +87,13 @@ describe("TraceabilityPage", () => {
     );
   });
 
-  it("계보 열기 버튼이 상세 화면을 요청한다", async () => {
+  it("행을 누르면 상세 화면을 요청한다", async () => {
     fetchMock.mockResolvedValue(sampleResult());
     const { onOpenDetail } = renderPage();
 
-    const button = await screen.findAllByRole("button", { name: "계보 열기" });
-    await userEvent.click(button[0]!);
+    // 행 전체가 상세 입구다(별도의 "계보 열기" 버튼은 없앴다).
+    const rows = await screen.findAllByRole("row");
+    await userEvent.click(rows[1]!);
 
     expect(onOpenDetail).toHaveBeenCalledWith("trace-m-3");
   });

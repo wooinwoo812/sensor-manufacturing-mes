@@ -157,21 +157,8 @@ export function TraceabilityPage({
           <span className="tabular-nums">{row.downstreamCount}</span>
         ),
       },
-      {
-        key: "open",
-        header: "상세",
-        cell: (row) => (
-          <Button
-            variant="ghost"
-            size="compact"
-            onClick={() => onOpenDetail(row.id)}
-          >
-            계보 열기
-          </Button>
-        ),
-      },
     ],
-    [onOpenDetail],
+    [],
   );
 
   const hasActiveFilter =

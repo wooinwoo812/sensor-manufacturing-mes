@@ -7,6 +7,10 @@ export const AUDIT_ACTION_LABELS = {
   MATERIAL_RESERVED: "자재 예약",
   MATERIAL_LOT_DISPOSITION_DECIDED: "자재 품질 처분",
   INSPECTION_VERDICTED: "검사 판정",
+  MATERIAL_RESERVATION_RELEASED: "자재 예약 해제",
+  PROCESS_STARTED: "공정 시작",
+  PROCESS_COMPLETED: "공정 완료",
+  QUALITY_INCIDENT_REGISTERED: "부적합 사건 등록",
 } as const;
 
 export type AuditAction = keyof typeof AUDIT_ACTION_LABELS;
@@ -15,6 +19,7 @@ export const AUDIT_ENTITY_TYPE_LABELS = {
   WORK_ORDER: "작업지시",
   MATERIAL_LOT: "자재 LOT",
   INSPECTION: "검사",
+  QUALITY_INCIDENT: "부적합 사건",
   SESSION: "세션",
 } as const;
 

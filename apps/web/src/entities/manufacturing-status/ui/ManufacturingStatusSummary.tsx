@@ -30,11 +30,11 @@ const inspectionConfig: Record<InspectionDecision, { label: string; tone: BadgeT
 };
 
 const dispositionConfig: Record<QualityDisposition, { label: string; tone: BadgeTone }> = {
-  PENDING: { label: "PENDING", tone: "neutral" },
-  ACCEPTED: { label: "ACCEPTED", tone: "success" },
-  HOLD: { label: "HOLD", tone: "warning" },
-  QUARANTINED: { label: "QUARANTINED", tone: "danger" },
-  REJECTED: { label: "REJECTED", tone: "danger" },
+  PENDING: { label: "검사 대기", tone: "neutral" },
+  ACCEPTED: { label: "허입", tone: "success" },
+  HOLD: { label: "보류", tone: "warning" },
+  QUARANTINED: { label: "격리", tone: "danger" },
+  REJECTED: { label: "거부", tone: "danger" },
 };
 
 export function ManufacturingStatusSummary({

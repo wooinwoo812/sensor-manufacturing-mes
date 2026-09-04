@@ -63,7 +63,7 @@ export function DataTable<Row>({
                   className={cn(
                     "whitespace-nowrap border-b border-border-strong px-3 py-2 font-medium first:pl-4 last:pr-4",
                     // 첫 열(식별자)은 가로 스크롤 중에도 보인다. 1024px 에서 표가 옆으로 밀려도 어느 행인지 잃지 않는다.
-                    "first:sticky first:left-0 first:z-[1] first:bg-surface first:shadow-[inset_-1px_0_0_var(--color-border)]",
+                    "first:sticky first:left-0 first:z-[1] first:bg-surface",
                   )}
                   key={column.key}
                   scope="col"
@@ -114,7 +114,7 @@ export function DataTable<Row>({
                   <td
                     className={cn(
                       "px-3 py-2.5 text-text tabular-nums first:pl-4 last:pr-4",
-                      "first:sticky first:left-0 first:z-[1] first:bg-inherit first:shadow-[inset_-1px_0_0_var(--color-border)]",
+                      "first:sticky first:left-0 first:z-[1] first:bg-inherit",
                       column.wrap ? "min-w-40 whitespace-normal" : "whitespace-nowrap",
                     )}
                     key={column.key}

@@ -193,17 +193,8 @@ export function IncidentsPage({
           </time>
         ),
       },
-      {
-        key: "open",
-        header: "상세",
-        cell: (row) => (
-          <Button variant="ghost" size="compact" onClick={() => onOpenDetail(row.id)}>
-            상세 열기
-          </Button>
-        ),
-      },
     ],
-    [onOpenDetail],
+    [],
   );
 
   const hasActiveFilter =
