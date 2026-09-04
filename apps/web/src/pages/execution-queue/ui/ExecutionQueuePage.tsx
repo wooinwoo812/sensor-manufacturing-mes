@@ -10,17 +10,18 @@ import { ProcessExecutionPanel, StartProcessAction } from "@/features/process-ex
 import { ApiRequestError } from "@/shared/api";
 import {
   Badge,
-  type BadgeTone,
   Button,
   DataTable,
-  type DataTableColumn,
   EmptyState,
   ErrorState,
   FilterBar,
   Input,
   PageHeading,
+  Pagination,
   Select,
   Skeleton,
+  type BadgeTone,
+  type DataTableColumn,
 } from "@/shared/ui";
 import { Main } from "@/widgets/app-shell";
 import {
@@ -350,28 +351,12 @@ export function ExecutionQueuePage({
             getRowKey={(row) => row.id}
             rows={state.items}
           />
-          <nav
-            aria-label="공정 대기열 페이지 탐색"
-            className="flex items-center justify-end gap-2"
-          >
-            <Button
-              disabled={currentPage <= 1}
-              variant="secondary"
-              onClick={() => onSearchChange(mergeExecutionQueueSearch(search, {page: currentPage - 1 }))}
-            >
-              이전
-            </Button>
-            <span className="text-xs tabular-nums text-text-muted">
-              {currentPage} / {totalPages} 페이지
-            </span>
-            <Button
-              disabled={currentPage >= totalPages}
-              variant="secondary"
-              onClick={() => onSearchChange(mergeExecutionQueueSearch(search, {page: currentPage + 1 }))}
-            >
-              다음
-            </Button>
-          </nav>
+          <Pagination
+            currentPage={currentPage}
+            label="공정 대기열 페이지 탐색"
+            onPageChange={(page) => onSearchChange(mergeExecutionQueueSearch(search, { page }))}
+            totalPages={totalPages}
+          />
         </>
       )}
     </Main>

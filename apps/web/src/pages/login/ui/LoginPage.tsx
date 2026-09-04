@@ -45,7 +45,7 @@ export function LoginPage({ onAuthenticated, reason }: LoginPageProps) {
         id="main-content"
         tabIndex={-1}
       >
-        <section className="flex flex-col justify-between border-b border-border px-5 py-10 sm:px-8 sm:py-14 lg:border-b-0 lg:border-e lg:py-20">
+        <section className="flex flex-col justify-center border-b border-border px-5 py-10 sm:px-8 sm:py-14 lg:border-b-0 lg:border-e lg:py-16">
           <div>
             <h1 className="max-w-xl text-balance text-3xl font-bold tracking-[-0.025em] text-text-strong sm:text-4xl">
               역할을 선택해 데모를 시작하세요
@@ -74,7 +74,7 @@ export function LoginPage({ onAuthenticated, reason }: LoginPageProps) {
             </div>
           </div>
 
-          <div className="mt-9 flex items-start gap-3 text-xs leading-5 text-text-muted lg:mt-16">
+          <div className="mt-9 flex items-start gap-3 text-xs leading-5 text-text-muted">
             <ShieldCheck
               className="mt-0.5 size-4 shrink-0 text-success-strong"
               aria-hidden="true"

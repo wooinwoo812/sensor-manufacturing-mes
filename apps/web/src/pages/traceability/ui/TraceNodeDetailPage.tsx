@@ -15,7 +15,6 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  EmptyState,
   ErrorState,
   PageHeading,
   Skeleton,
@@ -156,12 +155,10 @@ export function TraceNodeDetailPage({
               </Button>
             }
           />
-          <div className="mt-2">
-            <EmptyState
-              title={`생성 ${formatDateTime(state.detail.createdAt)}`}
-              description="CONSUME 관계는 공정 시작 시점에 자동으로 기록됩니다."
-            />
-          </div>
+          <p className="mt-2 text-xs text-text-muted">
+            생성 {formatDateTime(state.detail.createdAt)} · CONSUME 관계는 공정 시작
+            시점에 자동으로 기록됩니다.
+          </p>
           <div className="mt-4 grid gap-4">
             <EdgeList
               title="원천 (upstream)"

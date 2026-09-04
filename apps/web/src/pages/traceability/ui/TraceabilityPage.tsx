@@ -8,17 +8,18 @@ import {
 import { ApiRequestError } from "@/shared/api";
 import {
   Badge,
-  type BadgeTone,
   Button,
   DataTable,
-  type DataTableColumn,
   EmptyState,
   ErrorState,
   FilterBar,
   Input,
   PageHeading,
+  Pagination,
   Select,
   Skeleton,
+  type BadgeTone,
+  type DataTableColumn,
 } from "@/shared/ui";
 import { Main } from "@/widgets/app-shell";
 import {
@@ -277,36 +278,13 @@ export function TraceabilityPage({
         />
       )}
 
-      {state.phase === "success" && totalPages > 1 ? (
-        <div className="flex items-center justify-end gap-2">
-          <Button
-            variant="secondary"
-            size="compact"
-            disabled={currentPage <= 1}
-            onClick={() =>
-              onSearchChange(
-                mergeTraceabilitySearch(search, { page: currentPage - 1 }),
-              )
-            }
-          >
-            이전
-          </Button>
-          <span className="text-sm text-text-muted">
-            {currentPage} / {totalPages} 페이지
-          </span>
-          <Button
-            variant="secondary"
-            size="compact"
-            disabled={currentPage >= totalPages}
-            onClick={() =>
-              onSearchChange(
-                mergeTraceabilitySearch(search, { page: currentPage + 1 }),
-              )
-            }
-          >
-            다음
-          </Button>
-        </div>
+      {state.phase === "success" ? (
+        <Pagination
+          currentPage={currentPage}
+          label="추적 노드 페이지 탐색"
+          onPageChange={(page) => onSearchChange(mergeTraceabilitySearch(search, { page }))}
+          totalPages={totalPages}
+        />
       ) : null}
     </Main>
   );

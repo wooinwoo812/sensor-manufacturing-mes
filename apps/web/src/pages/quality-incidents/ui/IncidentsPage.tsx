@@ -9,17 +9,18 @@ import { QualityIncidentRegisterPanel } from "@/features/quality-incident-regist
 import { ApiRequestError } from "@/shared/api";
 import {
   Badge,
-  type BadgeTone,
   Button,
   DataTable,
-  type DataTableColumn,
   EmptyState,
   ErrorState,
   FilterBar,
   Input,
   PageHeading,
+  Pagination,
   Select,
   Skeleton,
+  type BadgeTone,
+  type DataTableColumn,
 } from "@/shared/ui";
 import { Main } from "@/widgets/app-shell";
 import {
@@ -214,6 +215,11 @@ export function IncidentsPage({
   return (
     <Main id="main-content" tabIndex={-1}>
       <PageHeading
+        actions={
+          canRegister && !registerOpen ? (
+            <Button onClick={() => setRegisterOpen(true)}>사건 등록</Button>
+          ) : undefined
+        }
         description="사후 발견 품질 문제의 사건·격리·처분 이력을 확인합니다."
         meta={<span>가상 데모 데이터</span>}
         title="부적합·격리"
@@ -343,36 +349,12 @@ export function IncidentsPage({
             getRowKey={(row) => row.id}
             rows={state.items}
           />
-          <nav
-            aria-label="부적합 사건 페이지 탐색"
-            className="flex items-center justify-end gap-2"
-          >
-            <Button
-              disabled={currentPage <= 1}
-              variant="secondary"
-              onClick={() =>
-                onSearchChange(
-                  mergeIncidentsSearch(search, { page: currentPage - 1 }),
-                )
-              }
-            >
-              이전
-            </Button>
-            <span className="text-xs tabular-nums text-text-muted">
-              {currentPage} / {totalPages} 페이지
-            </span>
-            <Button
-              disabled={currentPage >= totalPages}
-              variant="secondary"
-              onClick={() =>
-                onSearchChange(
-                  mergeIncidentsSearch(search, { page: currentPage + 1 }),
-                )
-              }
-            >
-              다음
-            </Button>
-          </nav>
+          <Pagination
+            currentPage={currentPage}
+            label="부적합 사건 페이지 탐색"
+            onPageChange={(page) => onSearchChange(mergeIncidentsSearch(search, { page }))}
+            totalPages={totalPages}
+          />
         </>
       )}
 
@@ -385,11 +367,7 @@ export function IncidentsPage({
               setReloadCount((count) => count + 1);
             }}
           />
-        ) : (
-          <div className="flex justify-end">
-            <Button onClick={() => setRegisterOpen(true)}>사건 등록</Button>
-          </div>
-        )
+        ) : null
       ) : null}
     </Main>
   );
