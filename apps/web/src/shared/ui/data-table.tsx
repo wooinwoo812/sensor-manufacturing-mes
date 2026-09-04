@@ -61,7 +61,7 @@ export function DataTable<Row>({
               {columns.map((column) => (
                 <th
                   className={cn(
-                    "whitespace-nowrap border-b border-border-strong px-3 py-2 font-medium first:pl-4 last:pr-4",
+                    "whitespace-nowrap border-b border-border-strong px-2.5 py-2 font-medium first:pl-4 last:pr-4",
                     // 첫 열(식별자)은 가로 스크롤 중에도 보인다. 1024px 에서 표가 옆으로 밀려도 어느 행인지 잃지 않는다.
                     "first:sticky first:left-0 first:z-[1] first:bg-surface",
                   )}
@@ -113,9 +113,9 @@ export function DataTable<Row>({
                 {columns.map((column) => (
                   <td
                     className={cn(
-                      "px-3 py-2.5 text-text tabular-nums first:pl-4 last:pr-4",
+                      "px-2.5 py-2.5 text-text tabular-nums first:pl-4 last:pr-4",
                       "first:sticky first:left-0 first:z-[1] first:bg-inherit",
-                      column.wrap ? "min-w-40 whitespace-normal" : "whitespace-nowrap",
+                      column.wrap ? "min-w-44 whitespace-normal" : "whitespace-nowrap",
                     )}
                     key={column.key}
                     style={{ textAlign: column.align ?? "left" }}

@@ -188,7 +188,7 @@ export function WorkOrdersPage({
           <span className="flex items-center gap-2">
             <span
               aria-hidden="true"
-              className="h-1.5 w-16 overflow-hidden rounded-full bg-surface-subtle"
+              className="h-1.5 w-12 overflow-hidden rounded-full bg-surface-subtle"
             >
               <span
                 className="block h-full rounded-full bg-primary"

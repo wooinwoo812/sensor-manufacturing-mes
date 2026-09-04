@@ -230,6 +230,40 @@ export function WorkOrderDetailPage({
           등록 {formatDateTime(detail.createdAt)}
         </span>
       </div>
+      {/* 취소 사유 패널은 버튼 바로 아래(제목 근처)에 펼친다. 화면 맨 아래에 열리면 눌렀는데 아무 일도 없는 것처럼 보인다. */}
+      {canCancelNow && cancelOpen ? (
+        <div className="rounded-panel border border-danger-border bg-danger-soft/30 p-4">
+        <p className="text-sm font-semibold">작업지시 취소</p>
+        <p className="mt-1 text-xs text-text-muted">
+          취소 사유를 남기면 감사 이력에 기록됩니다. 실적이 있는 지시는 취소할 수
+          없습니다.
+        </p>
+        <div className="mt-3 flex flex-wrap items-end gap-3">
+          <div className="min-w-64 flex-1">
+            <Input
+              id="cancel-reason"
+              label="취소 사유"
+              name="cancelReason"
+              onChange={(event) => setCancelReason(event.target.value)}
+              placeholder="예: 계획 변경으로 생산 제외"
+              value={cancelReason}
+            />
+          </div>
+          <Button
+            variant="danger"
+            disabled={cancelReason.trim().length < 2 || commandPending !== null}
+            loading={commandPending === "cancel"}
+            onClick={() =>
+              runCommand("cancel", () =>
+                cancelWorkOrder(workOrderId, cancelReason.trim(), csrfToken),
+              )
+            }
+          >
+            취소 확정
+          </Button>
+        </div>
+        </div>
+      ) : null}
 
       <Panel description="계획 수량과 납기, 진행 상태를 확인합니다." headingLevel="h2" title="요약">
           <KeyValueGrid columns={4}>
@@ -367,39 +401,6 @@ export function WorkOrderDetailPage({
 
       <section aria-label="작업지시 행동" className="space-y-3">
         <h2 className="sr-only">작업지시 행동</h2>
-        {canCancelNow && cancelOpen ? (
-          <div className="rounded-panel border border-danger-border bg-danger-soft/30 p-4">
-            <p className="text-sm font-semibold">작업지시 취소</p>
-            <p className="mt-1 text-xs text-text-muted">
-              취소 사유를 남기면 감사 이력에 기록됩니다. 실적이 있는 지시는 취소할 수
-              없습니다.
-            </p>
-            <div className="mt-3 flex flex-wrap items-end gap-3">
-              <div className="min-w-64 flex-1">
-                <Input
-                  id="cancel-reason"
-                  label="취소 사유"
-                  name="cancelReason"
-                  onChange={(event) => setCancelReason(event.target.value)}
-                  placeholder="예: 계획 변경으로 생산 제외"
-                  value={cancelReason}
-                />
-              </div>
-              <Button
-                variant="danger"
-                disabled={cancelReason.trim().length < 2 || commandPending !== null}
-                loading={commandPending === "cancel"}
-                onClick={() =>
-                  runCommand("cancel", () =>
-                    cancelWorkOrder(workOrderId, cancelReason.trim(), csrfToken),
-                  )
-                }
-              >
-                취소 확정
-              </Button>
-            </div>
-          </div>
-        ) : null}
         {!canRelease && detail.status === "DRAFT" ? (
           <p className="text-xs text-text-muted">
             발행은 생산계획 담당자 권한(work-order:release)이 필요합니다. 현재 역할로는
