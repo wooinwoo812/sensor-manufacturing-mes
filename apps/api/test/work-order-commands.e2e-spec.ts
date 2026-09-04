@@ -18,9 +18,19 @@ import { PrismaService } from "../src/database/prisma.service.js";
 import { DEMO_WORK_ORDERS } from "../prisma/demo-work-orders.js";
 import { DEMO_PROCESS_STEPS } from "../prisma/demo-process-steps.js";
 import { DEMO_INSPECTIONS } from "../prisma/demo-inspections.js";
+import { DEMO_INSPECTION_SPEC_REVISIONS } from "../prisma/demo-inspection-specs.js";
 
 const allowedOrigin = "http://localhost:5173";
 let passwordHash: string;
+
+interface FakeInspectionRequirementRow {
+  id: string;
+  workOrderId: string;
+  inspectionSpecRevisionId: string;
+  specName: string;
+  gate: string;
+  processStepName: string | null;
+}
 
 interface FakeWorkOrderRow {
   id: string;
@@ -36,8 +46,10 @@ interface FakeWorkOrderRow {
   currentStepName: string | null;
   blockedReason: string | null;
   memo: string | null;
+  bomRevisionId: string | null;
   createdAt: Date;
   processSteps: { readiness: string }[];
+  inspectionRequirements: FakeInspectionRequirementRow[];
   inspections: {
     inspectionNumber: string;
     processStepName: string;
@@ -84,10 +96,12 @@ class FakePrismaService {
     priority: order.priority,
     id: `work-order-${index + 1}`,
     memo: null,
+    bomRevisionId: null,
     createdAt: new Date(Date.now() - (index + 1) * 3_600_000),
     processSteps: DEMO_PROCESS_STEPS.filter(
       (step) => step.workOrderNumber === order.orderNumber,
     ).map((step) => ({ readiness: step.readiness })),
+    inspectionRequirements: [],
     inspections: DEMO_INSPECTIONS.filter(
       (inspection) => inspection.workOrderNumber === order.orderNumber,
     ).map((inspection) => ({
@@ -99,6 +113,20 @@ class FakePrismaService {
       verdict: inspection.verdict,
     })),
   }));
+
+  readonly inspectionSpecRevisions = DEMO_INSPECTION_SPEC_REVISIONS.map(
+    (spec, index) => ({
+      id: `inspection-spec-${index + 1}`,
+      revisionNumber: spec.revisionNumber,
+      productCode: spec.productCode,
+      specName: spec.specName,
+      gate: spec.gate,
+      processStepName: spec.processStepName ?? null,
+      description: spec.description ?? null,
+      lifecycle: spec.lifecycle,
+      createdAt: new Date(Date.now() - (index + 1) * 3_600_000),
+    }),
+  );
 
   constructor() {
     this.users = DEMO_ACCOUNTS.map((account) => ({
@@ -175,8 +203,10 @@ class FakePrismaService {
         currentStepName: null,
         blockedReason: null,
         memo: (data.memo as string | undefined) ?? null,
+        bomRevisionId: null,
         createdAt: new Date(),
         processSteps: [],
+        inspectionRequirements: [],
         inspections: [],
       };
       this.workOrders.push(row);
@@ -191,6 +221,47 @@ class FakePrismaService {
       return row;
     },
     count: async () => this.workOrders.length,
+  };
+
+  readonly inspectionSpecRevision = {
+    findMany: async ({
+      where,
+    }: {
+      where: { productCode: string; lifecycle: string };
+    }) =>
+      this.inspectionSpecRevisions.filter(
+        (spec) =>
+          spec.productCode === where.productCode && spec.lifecycle === where.lifecycle,
+      ),
+  };
+
+  readonly inspectionRequirement = {
+    upsert: async ({
+      where,
+      create,
+    }: {
+      where: { workOrderId_inspectionSpecRevisionId: { workOrderId: string; inspectionSpecRevisionId: string } };
+      create: Omit<FakeInspectionRequirementRow, "id">;
+    }) => {
+      const order = this.workOrders.find((row) => row.id === where.workOrderId_inspectionSpecRevisionId.workOrderId);
+      if (order === undefined) {
+        throw new Error("대상 작업지시가 없습니다.");
+      }
+      const existing = order.inspectionRequirements.find(
+        (requirement) =>
+          requirement.inspectionSpecRevisionId ===
+          where.workOrderId_inspectionSpecRevisionId.inspectionSpecRevisionId,
+      );
+      if (existing !== undefined) {
+        return existing;
+      }
+      const row: FakeInspectionRequirementRow = {
+        id: `inspection-requirement-${++this.sequence}`,
+        ...create,
+      };
+      order.inspectionRequirements.push(row);
+      return row;
+    },
   };
 
   async $transaction<T>(callback: (transaction: this) => Promise<T>) {
@@ -405,6 +476,63 @@ describe("work order commands", () => {
       .expect(({ body }) => expect(body.code).toBe("WORK_ORDER_NOT_DRAFT"));
   });
 
+  it("릴리스는 발행된 검사규격을 게이트 스냅샷으로 확정한다", async () => {
+    const { agent, csrfToken } = await loginAs("PRODUCTION_PLANNER");
+    const created = await agent
+      .post("/api/work-orders")
+      .set("Origin", allowedOrigin)
+      .set("x-csrf-token", csrfToken)
+      .send({
+        productCode: "SEN-IR-640",
+        plannedQuantity: 30,
+        dueDate: futureDate(5),
+        priority: "NORMAL",
+      })
+      .expect(201);
+
+    const released = await agent
+      .post(`/api/work-orders/${created.body.id}/release`)
+      .set("Origin", allowedOrigin)
+      .set("x-csrf-token", csrfToken)
+      .expect(200);
+
+    const requirements = released.body.inspectionRequirements as {
+      specName: string;
+      gate: string;
+      processStepName: string | null;
+    }[];
+    expect(requirements).toHaveLength(2);
+    expect(requirements).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          specName: "조립 정밀도 검사 규격 v2",
+          gate: "ROUTE_ADVANCE",
+          processStepName: "조립 2공정",
+        }),
+        expect.objectContaining({
+          specName: "적외선 모듈 최종검사 규격 v3",
+          gate: "LOT_COMPLETE",
+          processStepName: null,
+        }),
+      ]),
+    );
+    expect(
+      requirements.some((requirement) => requirement.specName.includes("방수")),
+    ).toBe(false);
+
+    const releaseAudit = (
+      released.body.recentAudits as { action: string; summary: string }[]
+    ).find((event) => event.action === "WORK_ORDER_RELEASED");
+    expect(releaseAudit?.summary).toContain("검사규격 스냅샷 2항목");
+
+    await agent
+      .post(`/api/work-orders/${created.body.id}/release`)
+      .set("Origin", allowedOrigin)
+      .set("x-csrf-token", csrfToken)
+      .expect(409)
+      .expect(({ body }) => expect(body.code).toBe("WORK_ORDER_NOT_DRAFT"));
+  });
+
   it("취소는 사유를 요구하고 실행 실적이 있으면 거부한다", async () => {
     const { agent, csrfToken } = await loginAs("PRODUCTION_PLANNER");
 
@@ -441,8 +569,10 @@ describe("work order commands", () => {
       currentStepName: null,
       blockedReason: null,
       memo: null,
+      bomRevisionId: null,
       createdAt: new Date(),
       processSteps: [{ readiness: "IN_PROGRESS" }],
+      inspectionRequirements: [],
       inspections: [],
     });
     await agent

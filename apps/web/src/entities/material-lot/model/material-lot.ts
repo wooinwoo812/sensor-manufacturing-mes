@@ -45,6 +45,29 @@ export interface MaterialLotListResult {
   total: number;
 }
 
+export interface MaterialLotAllocationView {
+  id: string;
+  workOrderNumber: string;
+  quantity: number;
+  status: "ACTIVE" | "CLOSED";
+  closedReason: string | null;
+  createdAt: string;
+}
+
+export interface MaterialLotAuditView {
+  id: string;
+  occurredAt: string;
+  actorName: string;
+  actorRole: string;
+  action: string;
+  summary: string;
+}
+
+export interface MaterialLotDetail extends MaterialLotListItem {
+  allocations: MaterialLotAllocationView[];
+  recentAudits: MaterialLotAuditView[];
+}
+
 export function formatMaterialLotDate(isoDate: string): string {
   return new Intl.DateTimeFormat("ko-KR", {
     timeZone: "Asia/Seoul",

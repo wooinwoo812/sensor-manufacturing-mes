@@ -44,3 +44,17 @@ export interface InspectionListResult {
   pageSize: number;
   total: number;
 }
+
+export interface InspectionAuditView {
+  id: string;
+  occurredAt: string;
+  actorName: string;
+  actorRole: string;
+  action: string;
+  summary: string;
+}
+
+export interface InspectionDetail extends InspectionListItem {
+  verdictMemo: string | null;
+  recentAudits: InspectionAuditView[];
+}

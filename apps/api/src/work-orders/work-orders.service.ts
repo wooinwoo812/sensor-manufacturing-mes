@@ -156,7 +156,7 @@ export class WorkOrdersService {
   async detail(id: string) {
     const record = await this.prisma.workOrder.findUnique({
       where: { id },
-      include: { inspections: true, processSteps: true },
+      include: { inspections: true, processSteps: true, inspectionRequirements: true },
     });
     if (record === null) {
       throw new NotFoundException({
@@ -193,6 +193,15 @@ export class WorkOrdersService {
           specName: inspection.specName,
           executionStatus: inspection.executionStatus,
           verdict: inspection.verdict,
+        })),
+      inspectionRequirements: record.inspectionRequirements
+        .sort((left, right) => left.specName.localeCompare(right.specName))
+        .map((requirement) => ({
+          id: requirement.id,
+          inspectionSpecRevisionId: requirement.inspectionSpecRevisionId,
+          specName: requirement.specName,
+          gate: requirement.gate,
+          processStepName: requirement.processStepName,
         })),
       recentAudits: recentAudits.map((event) => ({
         id: event.id,
@@ -321,12 +330,95 @@ export class WorkOrdersService {
       });
     }
 
-    await this.prisma.workOrder.update({
-      where: { id },
-      data: { status: "RELEASED" },
+    let requirementCount = 0;
+    let inspectionSnapshotCount = 0;
+    await this.prisma.$transaction(async (transaction) => {
+      await transaction.workOrder.update({
+        where: { id },
+        data: { status: "RELEASED" },
+      });
+
+      const publishedSpecs = await transaction.inspectionSpecRevision.findMany({
+        where: { productCode: record.productCode, lifecycle: "PUBLISHED" },
+        orderBy: { revisionNumber: "asc" },
+      });
+      for (const spec of publishedSpecs) {
+        if (spec.gate === "ROUTE_ADVANCE" && spec.processStepName === null) {
+          throw new ConflictException({
+            code: "WORK_ORDER_INSPECTION_SPEC_INVALID",
+            message: "공정 통과 검사 규격은 대상 공정을 지정해야 합니다.",
+            revisionNumber: spec.revisionNumber,
+          });
+        }
+        await transaction.inspectionRequirement.upsert({
+          where: {
+            workOrderId_inspectionSpecRevisionId: {
+              workOrderId: id,
+              inspectionSpecRevisionId: spec.id,
+            },
+          },
+          create: {
+            workOrderId: id,
+            inspectionSpecRevisionId: spec.id,
+            specName: spec.specName,
+            gate: spec.gate,
+            processStepName: spec.processStepName,
+          },
+          update: {},
+        });
+        inspectionSnapshotCount += 1;
+      }
+
+      if (record.bomRevisionId !== null) {
+        const revision = await transaction.bomRevision.findUnique({
+          where: { id: record.bomRevisionId },
+          include: { items: { include: { material: true } } },
+        });
+        if (revision === null) {
+          throw new ConflictException({
+            code: "WORK_ORDER_BOM_REVISION_NOT_FOUND",
+            message: "작업지시에 지정된 BOM revision을 찾을 수 없습니다.",
+          });
+        }
+        if (revision.lifecycle !== "PUBLISHED") {
+          throw new ConflictException({
+            code: "WORK_ORDER_BOM_REVISION_NOT_PUBLISHED",
+            message: "발행 상태의 BOM revision만 스냅샷할 수 있습니다.",
+            lifecycle: revision.lifecycle,
+          });
+        }
+        const formatScaled = (value: bigint): string => {
+          const digits = value.toString().padStart(7, "0");
+          return `${digits.slice(0, -6)}.${digits.slice(-6)}`;
+        };
+        for (const item of revision.items) {
+          const perProduct = BigInt(
+            item.quantityPerProductBaseUom.toFixed(6).replace(".", ""),
+          );
+          const requiredScaled = BigInt(record.plannedQuantity) * perProduct;
+          await transaction.workOrderMaterialRequirement.upsert({
+            where: {
+              workOrderId_materialId: {
+                workOrderId: id,
+                materialId: item.materialId,
+              },
+            },
+            create: {
+              workOrderId: id,
+              bomRevisionId: revision.id,
+              materialId: item.materialId,
+              quantityPerProductBaseUom: item.quantityPerProductBaseUom,
+              requiredQuantity: formatScaled(requiredScaled),
+              unit: item.material.unit,
+            },
+            update: {},
+          });
+          requirementCount += 1;
+        }
+      }
     });
     await this.recordAudit(record.orderNumber, "WORK_ORDER_RELEASED", actor, {
-      summary: `${record.productName} ${record.plannedQuantity}${record.unit} 작업지시 발행`,
+      summary: `${record.productName} ${record.plannedQuantity}${record.unit} 작업지시 발행${requirementCount > 0 ? ` (BOM 스냅샷 ${requirementCount}항목)` : ""}${inspectionSnapshotCount > 0 ? ` (검사규격 스냅샷 ${inspectionSnapshotCount}항목)` : ""}`,
     });
 
     return this.detail(id);

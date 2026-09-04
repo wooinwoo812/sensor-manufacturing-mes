@@ -251,6 +251,112 @@ class FakePrismaService {
     },
   };
 
+  readonly traceNodes: {
+    id: string;
+    nodeType: string;
+    label: string;
+    materialLotId: string | null;
+    productionLotNumber: string | null;
+  }[] = [];
+  readonly lotRelations: {
+    id: string;
+    relationType: string;
+    quantity: number;
+    parentNodeId: string;
+    childNodeId: string;
+    processStepExecutionId: string | null;
+  }[] = [];
+  private traceSequence = 0;
+
+  readonly traceNode = {
+    upsert: async ({
+      where,
+      create,
+    }: {
+      where: { materialLotId?: string; productionLotNumber?: string };
+      create: {
+        nodeType: string;
+        label: string;
+        materialLotId?: string;
+        productionLotNumber?: string;
+      };
+      update: Record<string, unknown>;
+    }) => {
+      const key =
+        where.materialLotId !== undefined ? "materialLotId" : "productionLotNumber";
+      const value = where[key];
+      const existing = this.traceNodes.find(
+        (node) => node[key] === value,
+      );
+      if (existing !== undefined) {
+        return existing;
+      }
+      const row = {
+        id: `trace-${++this.traceSequence}`,
+        nodeType: create.nodeType,
+        label: create.label,
+        materialLotId: create.materialLotId ?? null,
+        productionLotNumber: create.productionLotNumber ?? null,
+      };
+      this.traceNodes.push(row);
+      return row;
+    },
+  };
+
+  readonly lotRelation = {
+    upsert: async ({
+      where,
+      create,
+      update,
+    }: {
+      where: {
+        relationType_parentNodeId_childNodeId: {
+          relationType: string;
+          parentNodeId: string;
+          childNodeId: string;
+        };
+      };
+      create: {
+        relationType: string;
+        quantity: number;
+        parentNodeId: string;
+        childNodeId: string;
+        processStepExecutionId: string;
+      };
+      update: {
+        quantity?: { increment: number };
+        processStepExecutionId?: string;
+      };
+    }) => {
+      const compound = where.relationType_parentNodeId_childNodeId;
+      const existing = this.lotRelations.find(
+        (relation) =>
+          relation.relationType === compound.relationType &&
+          relation.parentNodeId === compound.parentNodeId &&
+          relation.childNodeId === compound.childNodeId,
+      );
+      if (existing !== undefined) {
+        if (update.quantity !== undefined) {
+          existing.quantity += update.quantity.increment;
+        }
+        if (update.processStepExecutionId !== undefined) {
+          existing.processStepExecutionId = update.processStepExecutionId;
+        }
+        return existing;
+      }
+      const row = {
+        id: `relation-${++this.traceSequence}`,
+        relationType: create.relationType,
+        quantity: create.quantity,
+        parentNodeId: create.parentNodeId,
+        childNodeId: create.childNodeId,
+        processStepExecutionId: create.processStepExecutionId,
+      };
+      this.lotRelations.push(row);
+      return row;
+    },
+  };
+
   readonly materialAllocation = {
     findMany: async ({
       where,
@@ -457,6 +563,22 @@ describe("process execution commands", () => {
     expect(prisma.materialAllocations[0]).toMatchObject({
       status: "CLOSED",
       closedReason: "FULFILLED",
+    });
+    const materialNode = prisma.traceNodes.find(
+      (node) => node.materialLotId === lotBefore.id,
+    );
+    const productionNode = prisma.traceNodes.find(
+      (node) => node.productionLotNumber === "PL-2026-097A",
+    );
+    expect(materialNode).toMatchObject({ nodeType: "MATERIAL_LOT" });
+    expect(productionNode).toMatchObject({ nodeType: "PRODUCTION_LOT" });
+    expect(prisma.lotRelations).toHaveLength(1);
+    expect(prisma.lotRelations[0]).toMatchObject({
+      relationType: "CONSUME",
+      quantity: 40,
+      parentNodeId: materialNode?.id,
+      childNodeId: productionNode?.id,
+      processStepExecutionId: stepId,
     });
   });
 

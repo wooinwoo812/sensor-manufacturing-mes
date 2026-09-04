@@ -16,7 +16,10 @@ import type { HttpRequest } from "../auth/auth.http.js";
 import type { CommandActor } from "../work-orders/work-orders.service.js";
 import { InspectionVerdictService } from "./inspection-verdict.service.js";
 import { InspectionsService } from "./inspections.service.js";
-import type { InspectionListResult } from "./inspections.contract.js";
+import type {
+  InspectionDetail,
+  InspectionListResult,
+} from "./inspections.contract.js";
 
 function toActor(request: HttpRequest): CommandActor {
   const auth = request.auth;
@@ -45,6 +48,13 @@ export class InspectionsController {
     @Query() query: Record<string, string | string[] | undefined>,
   ): Promise<InspectionListResult> {
     return this.inspectionsService.list(this.inspectionsService.parseQuery(query));
+  }
+
+  @Get(":id")
+  @Header("Cache-Control", "no-store")
+  @RequirePermissions(Permission.INSPECTION_READ)
+  async detail(@Param("id") id: string): Promise<InspectionDetail> {
+    return this.inspectionsService.detail(id);
   }
 
   @Post(":id/verdict")

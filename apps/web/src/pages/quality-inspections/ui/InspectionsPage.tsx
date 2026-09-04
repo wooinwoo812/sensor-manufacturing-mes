@@ -57,6 +57,7 @@ type LoadState =
 interface InspectionsPageProps {
   search: InspectionsSearch;
   onSearchChange: (next: InspectionsSearch) => void;
+  onOpenDetail: (inspectionId: string) => void;
   csrfToken: string;
   canVerdict: boolean;
 }
@@ -64,6 +65,7 @@ interface InspectionsPageProps {
 export function InspectionsPage({
   search,
   onSearchChange,
+  onOpenDetail,
   csrfToken,
   canVerdict,
 }: InspectionsPageProps) {
@@ -129,9 +131,13 @@ export function InspectionsPage({
         key: "inspectionNumber",
         header: "검사",
         cell: (row) => (
-          <span className="font-mono text-xs font-bold text-text-strong">
+          <button
+            className="font-mono text-xs font-bold text-accent-strong underline-offset-4 hover:underline"
+            onClick={() => onOpenDetail(row.id)}
+            type="button"
+          >
             {row.inspectionNumber}
-          </span>
+          </button>
         ),
       },
       {
@@ -214,7 +220,7 @@ export function InspectionsPage({
           ]
         : []),
     ],
-    [canVerdict],
+    [canVerdict, onOpenDetail],
   );
 
   const hasActiveFilter =
