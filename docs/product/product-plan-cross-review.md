@@ -8,7 +8,7 @@
 | 기준일 | 2026-08-31 |
 | 관련 Issue | [#8 사용자 흐름·정보구조](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/8), [#2 제조 용어·불변조건](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/2) |
 | 재검토 판정 | **승인** · 제품 방향과 데이터·상태 계약 확정 |
-| 다음 단계 | 제조 도메인 계약 확정 → 실행 가능한 TypeScript workspace 구축 |
+| 다음 단계 | FSD·전체 route 계약 확정 → #9 AppShell 수직 구현 |
 | 공개 원칙 | 회사·제품·사용자·LOT·공정·측정값은 모두 가상이며 특정 기업의 시스템을 복제하지 않음 |
 
 ## 1. 이 문서를 검토하는 방법
@@ -174,8 +174,10 @@ MVP는 제조 핵심 흐름을 깊게 구현한다. 범용 ERP, 설비 제어, �
 ### 6.2 공통 셸 — 제안
 
 - 좌측 탐색: 1차 업무영역과 현재 위치를 항상 표시한다.
-- 상단 문맥: 화면 제목, 사업일, 마지막 갱신 시각, 사용자 역할을 표시한다.
-- 전역 검색: 작업지시 번호, 생산 LOT, 자재 LOT를 한 검색창에서 찾는다.
+- 상단 문맥: 화면 제목과 사용자 역할을 표시한다. 사업일·마지막 갱신 시각은 실제
+  data source가 제공하는 화면에만 표시한다.
+- 전역 검색: 작업지시 번호, 생산 LOT, 자재 LOT 검색 API가 연결된 뒤 한 검색창에서
+  찾는다.
 - 본문 헤더: 필터·조회 조건과 대표 행동 하나를 우선 배치한다.
 - 상세 문맥: breadcrumb보다 실제 업무 대상의 식별자와 상태를 더 강하게 표시한다.
 - 알림: 저장 성공보다 차단·충돌·품질 보류처럼 후속 행동이 필요한 사건을 우선한다.
@@ -528,7 +530,7 @@ GET  /traceability/nodes/{traceNodeId}
 | `startProcessExecution` | #13 | 공정 시작과 `consumeMaterialReservation`을 한 transaction boundary에서 orchestration |
 | `correctInspection` | #14 | 원 검사 보존, 전체 정정 snapshot·유효 판정과 후속 의존 사건 gate를 원자적으로 처리 |
 
-#13의 production service가 재고 테이블을 직접 수정하지 않고 inventory module의 `consumeMaterialReservation`을 호출한다. Allocation의 요구사항, ProductionLot과 ProcessExecution이 같은 WorkOrder에 속하고 자재가 요구사항과 일치해야 한다. 실제 투입이 실패하면 공정 시작, 재고 출고, 소비·계보·감사 기록이 모두 rollback된다.
+Issue #13의 production service가 재고 테이블을 직접 수정하지 않고 inventory module의 `consumeMaterialReservation`을 호출한다. Allocation의 요구사항, ProductionLot과 ProcessExecution이 같은 WorkOrder에 속하고 자재가 요구사항과 일치해야 한다. 실제 투입이 실패하면 공정 시작, 재고 출고, 소비·계보·감사 기록이 모두 rollback된다.
 
 ## 12. 디자인 산출물 계약
 
@@ -540,7 +542,8 @@ Issue #8의 디자인 산출물은 저장소에서 직접 version 관리하고 P
 4. **Screen Wireframes**: [UI 레이아웃·상태 계약](ui-layout-contracts.md)의 핵심 화면 저해상도 wireframe
 5. **State Matrix**: 생산 진행·검사 판정·품질 disposition과 공통 실패 상태
 6. **Responsive Contract**: 1440·1280·현장 1024px의 정보·행동 우선순위
-7. **Implementation Handoff**: 화면 ID, 구현 Issue와 PR screenshot·test 근거 연결
+7. **Route Contract**: [MES Web Route 계약](route-contract.md)의 URL·parameter·permission·실패 복구
+8. **Implementation Handoff**: 화면 ID, 구현 Issue와 PR screenshot·test 근거 연결
 
 실제 색·간격·component는 #9에서 code token과 내부 showcase route로 구현한다. 각 Feature PR은 자신의 정상·로딩·빈 값·오류·권한 없음·충돌 상태를 실제 React 화면과 viewport screenshot으로 검증한다.
 
@@ -576,18 +579,19 @@ Issue #8의 디자인 산출물은 저장소에서 직접 version 관리하고 P
 | 1 | [#8](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/8) | 사용자 흐름, IA, wireframe | 구현 전에 정보구조와 상태 계약 확정 |
 | 2 | [#2](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/2) | 상태축, 수량식, 계보·규격 용어와 불변조건 | UI·API가 같은 업무 언어 사용 |
 | 3 | [#1](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/1) | 실행 가능한 workspace와 코드·문서 CI | 이후 PR의 자동 검증 기반 |
-| 4 | [#9](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/9) | token, app shell, 공통 상태 | 화면 간 일관성 확보 |
-| 5 | [#10](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/10) | 데모 인증·RBAC | 이후 모든 명령의 권한 경계 |
-| 6 | [#11](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/11) | 작업지시 수직 흐름, 감사기록 기반 | 첫 상태변경부터 append-only 감사 보장 |
-| 7 | [#22](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/22) | 기준 revision·자재·검사 요구사항·초기 LOT와 작업지시 릴리스 | 예약·공정·검사보다 먼저 불변 snapshot 확정 |
-| 8 | [#12](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/12) | 자재 LOT·부분 예약과 수량 원장 | 릴리스된 요구사항 안에서 가용량·예약 경계 확정 |
-| 9 | [#13](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/13) | 공정 시작의 실제 출고·투입·정정과 공정 실적 | 예약을 실제 소비·계보로 전환하고 공정 간 수량 보존 |
-| 10 | [#14](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/14) | 검사 실행·판정 snapshot·완료 차단 | 재현 가능한 품질 게이트 완성 |
-| 11 | [#15](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/15) | 분할·합류·일련번호 양방향 추적 | 실제 투입 관계의 사용자 가치 증명 |
-| 12 | [#16](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/16) | 원자재 부적합 사건·영향 node 격리 | 추적 결과를 통제 행동으로 연결 |
-| 13 | [#17](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/17) | 감사이력 검색·redaction·누락 검증 | 누적된 감사 이벤트의 설명 가능성 완성 |
-| 14 | [#18](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/18) | 운영 대시보드 | 축적된 실제 데이터로 예외 요약 |
-| 15 | [#19](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/19) | 배포, README, 5분 데모 | 재현 가능한 공개 설명·검증 근거 완성 |
+| 4 | [#28](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/28) | FSD, UI 이식 경계와 전체 route 계약 | 화면 구현 전에 source·URL·state 소유권 고정 |
+| 5 | [#9](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/9) | token, app shell, 공통 상태 | 화면 간 일관성 확보 |
+| 6 | [#10](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/10) | 데모 인증·RBAC | 이후 모든 명령의 권한 경계 |
+| 7 | [#11](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/11) | 작업지시 수직 흐름, 감사기록 기반 | 첫 상태변경부터 append-only 감사 보장 |
+| 8 | [#22](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/22) | 기준 revision·자재·검사 요구사항·초기 LOT와 작업지시 릴리스 | 예약·공정·검사보다 먼저 불변 snapshot 확정 |
+| 9 | [#12](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/12) | 자재 LOT·부분 예약과 수량 원장 | 릴리스된 요구사항 안에서 가용량·예약 경계 확정 |
+| 10 | [#13](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/13) | 공정 시작의 실제 출고·투입·정정과 공정 실적 | 예약을 실제 소비·계보로 전환하고 공정 간 수량 보존 |
+| 11 | [#14](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/14) | 검사 실행·판정 snapshot·완료 차단 | 재현 가능한 품질 게이트 완성 |
+| 12 | [#15](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/15) | 분할·합류·일련번호 양방향 추적 | 실제 투입 관계의 사용자 가치 증명 |
+| 13 | [#16](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/16) | 원자재 부적합 사건·영향 node 격리 | 추적 결과를 통제 행동으로 연결 |
+| 14 | [#17](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/17) | 감사이력 검색·redaction·누락 검증 | 누적된 감사 이벤트의 설명 가능성 완성 |
+| 15 | [#18](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/18) | 운영 대시보드 | 축적된 실제 데이터로 예외 요약 |
+| 16 | [#19](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/19) | 배포, README, 5분 데모 | 재현 가능한 공개 설명·검증 근거 완성 |
 
 대시보드를 뒤에 구현하는 이유는 가짜 지표를 먼저 만드는 대신 작업지시·자재·공정·품질의 실제 데이터와 상태를 요약하기 위해서다.
 

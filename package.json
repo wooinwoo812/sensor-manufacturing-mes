@@ -1,0 +1,39 @@
+{
+  "name": "sensor-manufacturing-mes",
+  "version": "0.1.0",
+  "private": true,
+  "description": "센서 제조의 생산·자재·품질·LOT 계보를 연결하는 MES",
+  "packageManager": "pnpm@11.25.0",
+  "engines": {
+    "node": ">=24.15.0 <25",
+    "pnpm": "11.25.0"
+  },
+  "scripts": {
+    "dev": "corepack pnpm --parallel --stream --filter @sensor-mes/web --filter @sensor-mes/api dev",
+    "db:up": "docker compose up -d --wait postgres",
+    "db:down": "docker compose down",
+    "db:check": "corepack pnpm --filter @sensor-mes/api db:check",
+    "db:migrate": "corepack pnpm --filter @sensor-mes/api db:migrate",
+    "db:migrate:deploy": "corepack pnpm --filter @sensor-mes/api db:migrate:deploy",
+    "db:seed": "corepack pnpm --filter @sensor-mes/api prisma:generate && corepack pnpm --filter @sensor-mes/api db:seed",
+    "db:verify-auth": "corepack pnpm --filter @sensor-mes/api db:verify-auth",
+    "db:validate": "corepack pnpm --filter @sensor-mes/api prisma:validate",
+    "lint": "eslint .",
+    "typecheck": "corepack pnpm --filter @sensor-mes/web typecheck && corepack pnpm --filter @sensor-mes/api typecheck",
+    "test": "node --test scripts/*.test.mjs && corepack pnpm --filter @sensor-mes/web test && corepack pnpm --filter @sensor-mes/api test",
+    "build": "corepack pnpm --filter @sensor-mes/web build && corepack pnpm --filter @sensor-mes/api build",
+    "docs:check": "markdownlint-cli2 \"README.md\" \"CONTRIBUTING.md\" \".github/**/*.md\" \"docs/**/*.md\" && node scripts/check-internal-links.mjs",
+    "check": "corepack pnpm lint && corepack pnpm typecheck && corepack pnpm test && corepack pnpm build && corepack pnpm docs:check"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/node": "24.13.3",
+    "eslint": "10.9.1",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "eslint-plugin-react-refresh": "0.5.5",
+    "globals": "17.12.0",
+    "markdownlint-cli2": "0.23.2",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.69.0"
+  }
+}
