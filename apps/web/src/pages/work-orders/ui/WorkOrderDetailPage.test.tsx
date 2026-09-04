@@ -80,6 +80,7 @@ function renderPage(
       canCancel={overrides.canCancel ?? true}
       canReserve={overrides.canReserve ?? false}
       canReleaseAllocation={overrides.canReleaseAllocation ?? false}
+      onBack={() => {}}
     />,
   );
 }

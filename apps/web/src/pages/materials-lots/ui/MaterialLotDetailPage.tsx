@@ -19,7 +19,7 @@ import {
   type BadgeTone,
 } from "@/shared/ui";
 import { AUDIT_ACTOR_ROLE_OPTIONS } from "@/entities/audit-event";
-import { Main } from "@/widgets/app-shell";
+import { Main, PageCrumb } from "@/widgets/app-shell";
 
 const DISPOSITION_TONES: Record<string, BadgeTone> = {
   PENDING: "neutral",
@@ -133,8 +133,11 @@ export function MaterialLotDetailPage({
 
   return (
     <Main id="main-content" tabIndex={-1}>
+      <PageCrumb value={detail.lotNumber} />
       <PageHeading
+        back={{ label: "자재 LOT 목록", onClick: onBack }}
         description={`${detail.materialName} (${detail.materialCode})`}
+        eyebrow="자재 LOT 상세"
         meta={<span>가상 데모 데이터</span>}
         title={detail.lotNumber}
         actions={

@@ -24,8 +24,9 @@ export interface DemoAuditEvent {
     | "MATERIAL_RESERVED"
     | "MATERIAL_LOT_DISPOSITION_DECIDED"
     | "PROCESS_COMPLETED"
-    | "INSPECTION_VERDICTED";
-  entityType: "WORK_ORDER" | "MATERIAL_LOT" | "INSPECTION" | "SESSION";
+    | "INSPECTION_VERDICTED"
+    | "QUALITY_INCIDENT_REGISTERED";
+  entityType: "WORK_ORDER" | "MATERIAL_LOT" | "INSPECTION" | "QUALITY_INCIDENT" | "SESSION";
   entityId: string;
   summary: string;
   requestId: string;

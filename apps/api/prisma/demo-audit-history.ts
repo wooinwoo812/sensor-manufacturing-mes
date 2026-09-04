@@ -3,6 +3,7 @@ import { DEMO_MATERIAL_ALLOCATIONS } from "./demo-material-allocations.js";
 import { DEMO_MATERIAL_LOTS } from "./demo-material-lots.js";
 import { DEMO_WORK_ORDERS } from "./demo-work-orders.js";
 import { DEMO_INSPECTIONS } from "./demo-inspections.js";
+import { DEMO_QUALITY_INCIDENTS } from "./demo-quality-incidents.js";
 import type { DemoAuditEvent } from "./demo-audit-events.js";
 
 /**
@@ -114,8 +115,21 @@ function inspectionHistory(): DemoAuditEvent[] {
   }));
 }
 
+function incidentHistory(): DemoAuditEvent[] {
+  return DEMO_QUALITY_INCIDENTS.map((incident, index) => ({
+    occurredAt: incident.detectedAt,
+    ...actorByRole("QUALITY_ENGINEER"),
+    action: "QUALITY_INCIDENT_REGISTERED",
+    entityType: "QUALITY_INCIDENT",
+    entityId: incident.incidentNumber,
+    summary: `${incident.title} 사건 등록 (${incident.sourceLotNumber})`,
+    requestId: requestId("qi", index),
+  }));
+}
+
 export const DEMO_AUDIT_HISTORY: DemoAuditEvent[] = [
   ...workOrderHistory(),
   ...materialLotHistory(),
   ...inspectionHistory(),
+  ...incidentHistory(),
 ];

@@ -8,18 +8,14 @@ import {
 import { ApiRequestError } from "@/shared/api";
 import {
   Badge,
-  type BadgeTone,
   Button,
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
   ErrorState,
   PageHeading,
+  Panel,
   Skeleton,
+  type BadgeTone,
 } from "@/shared/ui";
-import { Main } from "@/widgets/app-shell";
+import { Main, PageCrumb } from "@/widgets/app-shell";
 
 const STATUS_TONES: Record<string, BadgeTone> = {
   OPEN: "danger",
@@ -105,7 +101,10 @@ export function QualityIncidentDetailPage({
         />
       ) : (
         <>
+          <PageCrumb value={state.detail.incidentNumber} />
           <PageHeading
+            back={{ label: "부적합·격리 목록", onClick: onBack }}
+            eyebrow="부적합 사건 상세"
             description={`${QUALITY_INCIDENT_SOURCE_TYPE_LABELS[state.detail.sourceType]} ${state.detail.sourceLotNumber}에서 발견된 부적합 사건입니다.`}
             meta={
               <span>
@@ -116,19 +115,9 @@ export function QualityIncidentDetailPage({
               </span>
             }
             title={`${state.detail.incidentNumber} ${state.detail.title}`}
-            actions={
-              <Button variant="secondary" onClick={onBack}>
-                목록으로
-              </Button>
-            }
           />
-          <div className="mt-2 grid gap-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>사건 상태</CardTitle>
-                <CardDescription>조사·봉쇄·종결 진행 상황</CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-wrap items-center gap-3">
+          <div className="grid gap-4">
+            <Panel description="조사·봉쇄·종결 진행 상황" headingLevel="h2" bodyClassName="flex flex-wrap items-center gap-3" title="사건 상태">
                 <Badge tone={STATUS_TONES[state.detail.status] ?? "neutral"}>
                   {QUALITY_INCIDENT_STATUS_LABELS[state.detail.status]}
                 </Badge>
@@ -136,14 +125,8 @@ export function QualityIncidentDetailPage({
                   {state.detail.description ??
                     "등록된 설명이 없습니다."}
                 </span>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>감사 이력</CardTitle>
-                <CardDescription>이 사건에 기록된 최근 감사</CardDescription>
-              </CardHeader>
-              <CardContent>
+              </Panel>
+            <Panel description="이 사건에 기록된 최근 감사" headingLevel="h2" title="감사 이력">
                 {state.detail.audits.length === 0 ? (
                   <p className="text-sm text-text-muted">
                     기록된 감사가 없습니다.
@@ -160,8 +143,7 @@ export function QualityIncidentDetailPage({
                     ))}
                   </ul>
                 )}
-              </CardContent>
-            </Card>
+              </Panel>
           </div>
         </>
       )}

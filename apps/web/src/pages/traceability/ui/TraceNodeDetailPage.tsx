@@ -10,16 +10,12 @@ import { ApiRequestError } from "@/shared/api";
 import {
   Badge,
   Button,
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
   ErrorState,
   PageHeading,
+  Panel,
   Skeleton,
 } from "@/shared/ui";
-import { Main } from "@/widgets/app-shell";
+import { Main, PageCrumb } from "@/widgets/app-shell";
 
 function formatDateTime(isoDate: string): string {
   return new Intl.DateTimeFormat("ko-KR", {
@@ -49,12 +45,7 @@ function EdgeList({
   emptyText: string;
 }) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent>
+    <Panel description={description} headingLevel="h2" title={title}>
         {edges.length === 0 ? (
           <p className="text-sm text-text-muted">{emptyText}</p>
         ) : (
@@ -81,8 +72,7 @@ function EdgeList({
             ))}
           </ul>
         )}
-      </CardContent>
-    </Card>
+      </Panel>
   );
 }
 
@@ -145,21 +135,19 @@ export function TraceNodeDetailPage({
         />
       ) : (
         <>
+          <PageCrumb value={state.detail.label} />
           <PageHeading
+            back={{ label: "LOT 계보 목록", onClick: onBack }}
             description="이 노드로 투입된 원천과 이 노드가 투입된 산출을 확인합니다."
+            eyebrow={`${TRACE_NODE_TYPE_LABELS[state.detail.nodeType]} 계보 상세`}
             meta={<span>가상 데모 데이터</span>}
-            title={`${TRACE_NODE_TYPE_LABELS[state.detail.nodeType]} ${state.detail.label}`}
-            actions={
-              <Button variant="secondary" onClick={onBack}>
-                목록으로
-              </Button>
-            }
+            title={state.detail.label}
           />
-          <p className="mt-2 text-xs text-text-muted">
+          <p className="text-xs text-text-muted">
             생성 {formatDateTime(state.detail.createdAt)} · CONSUME 관계는 공정 시작
             시점에 자동으로 기록됩니다.
           </p>
-          <div className="mt-4 grid gap-4">
+          <div className="grid gap-4">
             <EdgeList
               title="원천 (upstream)"
               description="이 LOT를 만들기 위해 투입된 자재"

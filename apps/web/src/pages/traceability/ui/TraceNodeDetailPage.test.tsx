@@ -48,7 +48,10 @@ describe("TraceNodeDetailPage", () => {
     fetchMock.mockResolvedValue(sampleDetail());
     render(<TraceNodeDetailPage traceNodeId="trace-p-1" onBack={vi.fn()} />);
 
-    expect(await screen.findByText("생산 LOT PL-2026-091A")).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "PL-2026-091A" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("생산 LOT 계보 상세")).toBeInTheDocument();
     expect(screen.getByText("원천 (upstream)")).toBeInTheDocument();
     expect(screen.getByText("ML-2026-0301")).toBeInTheDocument();
     expect(screen.getByText("40")).toBeInTheDocument();
@@ -62,7 +65,7 @@ describe("TraceNodeDetailPage", () => {
       <TraceNodeDetailPage traceNodeId="trace-p-1" onBack={onBack} />,
     );
 
-    await userEvent.click(await screen.findByRole("button", { name: "목록으로" }));
+    await userEvent.click(await screen.findByRole("button", { name: "LOT 계보 목록" }));
     expect(onBack).toHaveBeenCalled();
   });
 });

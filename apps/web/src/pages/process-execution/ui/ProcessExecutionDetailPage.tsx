@@ -8,18 +8,14 @@ import { ProcessExecutionPanel } from "@/features/process-execution";
 import { ApiRequestError } from "@/shared/api";
 import {
   Badge,
-  type BadgeTone,
   Button,
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
   ErrorState,
   PageHeading,
+  Panel,
   Skeleton,
+  type BadgeTone,
 } from "@/shared/ui";
-import { Main } from "@/widgets/app-shell";
+import { Main, PageCrumb } from "@/widgets/app-shell";
 
 const READINESS_TONES: Record<string, BadgeTone> = {
   READY: "success",
@@ -119,7 +115,10 @@ export function ProcessExecutionDetailPage({
         />
       ) : (
         <>
+          <PageCrumb value={`${state.detail.workOrderNumber} · ${state.detail.processStepName}`} />
           <PageHeading
+            back={{ label: "공정 실행 대기열", onClick: onBack }}
+            eyebrow="공정 실행 상세"
             description={`${state.detail.workOrderNumber} ${state.detail.productName} · 계획 ${state.detail.plannedQuantity.toLocaleString("ko-KR")}${state.detail.unit}`}
             meta={
               <span>
@@ -127,22 +126,10 @@ export function ProcessExecutionDetailPage({
               </span>
             }
             title={state.detail.processStepName}
-            actions={
-              <Button variant="secondary" onClick={onBack}>
-                대기열로
-              </Button>
-            }
           />
-          <div className="mt-2 grid gap-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>실행 상태</CardTitle>
-                <CardDescription>
-                  시작 {formatDateTime(state.detail.startedAt)} · 완료{" "}
-                  {formatDateTime(state.detail.completedAt)}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-2">
+          <div className="grid gap-4">
+            <Panel description={<>시작 {formatDateTime(state.detail.startedAt)} · 완료{" "}
+                  {formatDateTime(state.detail.completedAt)}</>} headingLevel="h2" bodyClassName="flex flex-col gap-2" title="실행 상태">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge tone={READINESS_TONES[state.detail.readiness] ?? "neutral"}>
                     {PROCESS_READINESS_LABELS[state.detail.readiness]}
@@ -164,14 +151,8 @@ export function ProcessExecutionDetailPage({
                       : ""}
                   </p>
                 ) : null}
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>공정 검사</CardTitle>
-                <CardDescription>이 공정에 적용된 검사와 판정</CardDescription>
-              </CardHeader>
-              <CardContent>
+              </Panel>
+            <Panel description="이 공정에 적용된 검사와 판정" headingLevel="h2" title="공정 검사">
                 {state.detail.inspections.length === 0 ? (
                   <p className="text-sm text-text-muted">
                     적용된 검사가 없습니다.
@@ -203,8 +184,7 @@ export function ProcessExecutionDetailPage({
                     ))}
                   </ul>
                 )}
-              </CardContent>
-            </Card>
+              </Panel>
             {canExecute ? (
               <ProcessExecutionPanel
                 csrfToken={csrfToken}

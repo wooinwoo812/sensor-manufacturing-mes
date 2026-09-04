@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   requireRoutePermission,
   RoutePermission,
@@ -20,6 +20,7 @@ export const Route = createFileRoute(
 function WorkOrderDetailRoute() {
   const { workOrderId } = Route.useParams();
   const { session } = Route.useRouteContext();
+  const navigate = useNavigate({ from: Route.fullPath });
 
   return (
     <WorkOrderDetailPage
@@ -29,6 +30,9 @@ function WorkOrderDetailRoute() {
       canCancel={session.permissions.includes("work-order:cancel")}
       canReserve={session.permissions.includes("material-allocation:create")}
       canReleaseAllocation={session.permissions.includes("material-allocation:release")}
+      onBack={() => {
+        void navigate({ to: "/work-orders", search: {}, replace: true });
+      }}
     />
   );
 }

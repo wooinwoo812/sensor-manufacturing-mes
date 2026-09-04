@@ -6,6 +6,7 @@ import {
   SidebarProvider,
 } from "@/shared/ui";
 import type { NavigationGroup } from "../model/navigation";
+import { usePageCrumbValue } from "../model/page-crumb-context";
 import { AppSidebar } from "./AppSidebar";
 import { Header } from "./Header";
 import { SkipToMain } from "./SkipToMain";
@@ -38,6 +39,7 @@ export function AppShell({
   pathname,
 }: AppShellProps) {
   const defaultOpen = getCookie("sidebar_state") !== "false";
+  const crumb = usePageCrumbValue();
 
   return (
     <SidebarProvider defaultOpen={defaultOpen}>
@@ -69,7 +71,17 @@ export function AppShell({
                 </span>
               </>
             ) : null}
-            <span className="truncate font-semibold">{pageTitle}</span>
+            {crumb ? (
+              <>
+                <span className="shrink-0 text-text-muted">{pageTitle}</span>
+                <span aria-hidden="true" className="shrink-0 text-text-subtle">
+                  /
+                </span>
+                <span className="truncate font-semibold">{crumb}</span>
+              </>
+            ) : (
+              <span className="truncate font-semibold">{pageTitle}</span>
+            )}
           </nav>
           <div className="hidden h-9 items-center gap-2 rounded-md border bg-card px-3 lg:flex peer-data-[state=expanded]:hidden">
             <ShieldCheck className="size-4 text-muted-foreground" aria-hidden="true" />

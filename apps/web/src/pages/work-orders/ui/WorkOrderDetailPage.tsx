@@ -30,7 +30,7 @@ import {
   type BadgeTone,
 } from "@/shared/ui";
 import { AUDIT_ACTOR_ROLE_OPTIONS } from "@/entities/audit-event";
-import { Main } from "@/widgets/app-shell";
+import { Main, PageCrumb } from "@/widgets/app-shell";
 
 const STATUS_TONES: Record<string, BadgeTone> = {
   DRAFT: "neutral",
@@ -61,6 +61,7 @@ interface WorkOrderDetailPageProps {
   canCancel: boolean;
   canReserve: boolean;
   canReleaseAllocation: boolean;
+  onBack: () => void;
 }
 
 
@@ -87,6 +88,7 @@ export function WorkOrderDetailPage({
   canCancel,
   canReserve,
   canReleaseAllocation,
+  onBack,
 }: WorkOrderDetailPageProps) {
   const [reloadCount, setReloadCount] = useState(0);
   const [result, setResult] = useState<{
@@ -180,8 +182,11 @@ export function WorkOrderDetailPage({
 
   return (
     <Main id="main-content" tabIndex={-1}>
+      <PageCrumb value={detail.orderNumber} />
       <PageHeading
+        back={{ label: "작업지시 목록", onClick: onBack }}
         description={`${detail.productName} (${detail.productCode})`}
+        eyebrow="작업지시 상세"
         meta={<span>가상 데모 데이터</span>}
         title={detail.orderNumber}
       />
