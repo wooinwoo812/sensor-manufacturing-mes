@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import {
   daysUntil,
   fetchMaterialLot,
@@ -6,7 +5,6 @@ import {
   MATERIAL_LOT_DISPOSITION_LABELS,
   type MaterialLotDetail,
 } from "@/entities/material-lot";
-import { ApiRequestError } from "@/shared/api";
 import {
   Badge,
   Button,
@@ -18,6 +16,7 @@ import {
   Skeleton,
   type BadgeTone,
 } from "@/shared/ui";
+import { useLoadState } from "@/shared/lib";
 import { AUDIT_ACTOR_ROLE_OPTIONS } from "@/entities/audit-event";
 import { Main, PageCrumb } from "@/widgets/app-shell";
 
@@ -62,41 +61,13 @@ export function MaterialLotDetailPage({
   onBack,
   onOpenTrace,
 }: MaterialLotDetailPageProps) {
-  const [reloadCount, setReloadCount] = useState(0);
-  const [result, setResult] = useState<{
-    key: string;
-    detail: MaterialLotDetail | null;
-    error: string | null;
-  } | null>(null);
+  const { state, reload } = useLoadState<{ detail: MaterialLotDetail }>(
+    materialLotId,
+    (signal) => fetchMaterialLot(materialLotId, signal).then((detail) => ({ detail })),
+    "자재 LOT을 불러오지 못했습니다.",
+  );
 
-  useEffect(() => {
-    const controller = new AbortController();
-    let active = true;
-    fetchMaterialLot(materialLotId, controller.signal)
-      .then((detail) => {
-        if (active) {
-          setResult({ key: materialLotId, detail, error: null });
-        }
-      })
-      .catch((error: unknown) => {
-        if (active) {
-          setResult({
-            key: materialLotId,
-            detail: null,
-            error:
-              error instanceof ApiRequestError
-                ? error.message
-                : "자재 LOT을 불러오지 못했습니다.",
-          });
-        }
-      });
-    return () => {
-      active = false;
-      controller.abort();
-    };
-  }, [materialLotId, reloadCount]);
-
-  if (result === null || result.key !== materialLotId) {
+  if (state.phase === "loading") {
     return (
       <Main id="main-content" tabIndex={-1}>
         <div className="space-y-4" aria-label="자재 LOT 조회 중" role="status">
@@ -107,14 +78,14 @@ export function MaterialLotDetailPage({
     );
   }
 
-  if (result.detail === null) {
+  if (state.phase === "error") {
     return (
       <Main id="main-content" tabIndex={-1}>
         <ErrorState
-          description={result.error ?? "자재 LOT을 불러오지 못했습니다."}
+          description={state.message}
           action={
             <>
-              <Button onClick={() => setReloadCount((count) => count + 1)}>
+              <Button onClick={() => reload()}>
                 다시 시도
               </Button>
               <Button variant="secondary" onClick={onBack}>
@@ -127,7 +98,7 @@ export function MaterialLotDetailPage({
     );
   }
 
-  const detail = result.detail;
+  const detail = state.detail;
   const expiryWarning =
     detail.expiresAt !== null && daysUntil(detail.expiresAt) <= 7;
 
@@ -173,9 +144,15 @@ export function MaterialLotDetailPage({
 
       <Panel description="입고부터 소비·폐기까지의 수량과 현재 가용량입니다." headingLevel="h2" title="수량 요약">
           <KeyValueGrid columns={5}>
-            <KeyValue label="입고" size="lg">{detail.receivedQuantity.toLocaleString("ko-KR")} {detail.unit}</KeyValue>
-            <KeyValue label="재고" size="lg">{detail.onHand.toLocaleString("ko-KR")} {detail.unit}</KeyValue>
-            <KeyValue label="예약" size="lg">{detail.reservedQuantity.toLocaleString("ko-KR")} {detail.unit}</KeyValue>
+            <KeyValue label="입고" size="lg">
+              {detail.receivedQuantity.toLocaleString("ko-KR")} {detail.unit}
+            </KeyValue>
+            <KeyValue label="재고" size="lg">
+              {detail.onHand.toLocaleString("ko-KR")} {detail.unit}
+            </KeyValue>
+            <KeyValue label="예약" size="lg">
+              {detail.reservedQuantity.toLocaleString("ko-KR")} {detail.unit}
+            </KeyValue>
             <KeyValue label="가용">{detail.availableQuantity === 0 ? (
                   <Badge tone="danger">{`0 ${detail.unit}`}</Badge>
                 ) : (

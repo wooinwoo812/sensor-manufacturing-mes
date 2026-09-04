@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import {
   fetchTraceNodeDetail,
   LOT_RELATION_TYPE_LABELS,
@@ -6,7 +5,6 @@ import {
   type TraceEdgeView,
   type TraceNodeDetail,
 } from "@/entities/trace-node";
-import { ApiRequestError } from "@/shared/api";
 import {
   Badge,
   Button,
@@ -15,6 +13,7 @@ import {
   Panel,
   Skeleton,
 } from "@/shared/ui";
+import { useLoadState } from "@/shared/lib";
 import { Main, PageCrumb } from "@/widgets/app-shell";
 
 function formatDateTime(isoDate: string): string {
@@ -95,44 +94,11 @@ export function TraceNodeDetailPage({
   onBack,
   onOpenNode,
 }: TraceNodeDetailPageProps) {
-  const [result, setResult] = useState<{
-    key: string;
-    state: { phase: "error"; message: string } | { phase: "success"; detail: TraceNodeDetail };
-  } | null>(null);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    fetchTraceNodeDetail(traceNodeId, controller.signal)
-      .then((detail) => {
-        setResult({ key: traceNodeId, state: { phase: "success", detail } });
-      })
-      .catch((error: unknown) => {
-        if (controller.signal.aborted) {
-          return;
-        }
-        setResult({
-          key: traceNodeId,
-          state: {
-            phase: "error",
-            message:
-              error instanceof ApiRequestError
-                ? error.message
-                : "추적 노드를 불러오지 못했습니다.",
-          },
-        });
-      });
-    return () => {
-      controller.abort();
-    };
-  }, [traceNodeId]);
-
-  const state:
-    | { phase: "loading" }
-    | { phase: "error"; message: string }
-    | { phase: "success"; detail: TraceNodeDetail } =
-    result !== null && result.key === traceNodeId
-      ? result.state
-      : { phase: "loading" };
+  const { state } = useLoadState<{ detail: TraceNodeDetail }>(
+    traceNodeId,
+    (signal) => fetchTraceNodeDetail(traceNodeId, signal).then((detail) => ({ detail })),
+    "추적 노드를 불러오지 못했습니다.",
+  );
 
   return (
     <Main id="main-content" tabIndex={-1}>

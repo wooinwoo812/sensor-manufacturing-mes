@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   cancelWorkOrder,
   fetchWorkOrderDetail,
@@ -29,6 +29,7 @@ import {
   Skeleton,
   type BadgeTone,
 } from "@/shared/ui";
+import { useLoadState } from "@/shared/lib";
 import { AUDIT_ACTOR_ROLE_OPTIONS } from "@/entities/audit-event";
 import { Main, PageCrumb } from "@/widgets/app-shell";
 
@@ -90,47 +91,19 @@ export function WorkOrderDetailPage({
   canReleaseAllocation,
   onBack,
 }: WorkOrderDetailPageProps) {
-  const [reloadCount, setReloadCount] = useState(0);
-  const [result, setResult] = useState<{
-    key: string;
-    detail: WorkOrderDetail | null;
-    error: string | null;
-  } | null>(null);
   const [commandError, setCommandError] = useState<string | null>(null);
   const [commandPending, setCommandPending] = useState<"release" | "cancel" | null>(
     null,
   );
   const [cancelReason, setCancelReason] = useState("");
   const [cancelOpen, setCancelOpen] = useState(false);
+  const { state, reload, replace } = useLoadState<{ detail: WorkOrderDetail }>(
+    workOrderId,
+    (signal) => fetchWorkOrderDetail(workOrderId, signal).then((detail) => ({ detail })),
+    "작업지시를 불러오지 못했습니다.",
+  );
 
-  useEffect(() => {
-    const controller = new AbortController();
-    let active = true;
-    fetchWorkOrderDetail(workOrderId, controller.signal)
-      .then((detail) => {
-        if (active) {
-          setResult({ key: workOrderId, detail, error: null });
-        }
-      })
-      .catch((error: unknown) => {
-        if (active) {
-          setResult({
-            key: workOrderId,
-            detail: null,
-            error:
-              error instanceof ApiRequestError
-                ? error.message
-                : "작업지시를 불러오지 못했습니다.",
-          });
-        }
-      });
-    return () => {
-      active = false;
-      controller.abort();
-    };
-  }, [workOrderId, reloadCount]);
-
-  if (result === null || result.key !== workOrderId) {
+  if (state.phase === "loading") {
     return (
       <Main id="main-content" tabIndex={-1}>
         <div className="space-y-4" aria-label="작업지시 조회 중" role="status">
@@ -141,13 +114,13 @@ export function WorkOrderDetailPage({
     );
   }
 
-  if (result.detail === null) {
+  if (state.phase === "error") {
     return (
       <Main id="main-content" tabIndex={-1}>
         <ErrorState
-          description={result.error ?? "작업지시를 불러오지 못했습니다."}
+          description={state.message}
           action={
-            <Button onClick={() => setReloadCount((count) => count + 1)}>
+            <Button onClick={() => reload()}>
               다시 시도
             </Button>
           }
@@ -156,7 +129,7 @@ export function WorkOrderDetailPage({
     );
   }
 
-  const detail = result.detail;
+  const detail = state.detail;
   const canReleaseNow = canRelease && detail.status === "DRAFT";
   const canCancelNow =
     canCancel && (detail.status === "DRAFT" || detail.status === "RELEASED");
@@ -169,7 +142,7 @@ export function WorkOrderDetailPage({
     setCommandError(null);
     try {
       const next = await run();
-      setResult({ key: workOrderId, detail: next, error: null });
+      replace({ detail: next });
     } catch (error: unknown) {
       setCommandError(
         error instanceof ApiRequestError
@@ -267,7 +240,9 @@ export function WorkOrderDetailPage({
 
       <Panel description="계획 수량과 납기, 진행 상태를 확인합니다." headingLevel="h2" title="요약">
           <KeyValueGrid columns={4}>
-            <KeyValue label="계획수량" size="lg">{detail.plannedQuantity.toLocaleString("ko-KR")} {detail.unit}</KeyValue>
+            <KeyValue label="계획수량" size="lg">
+              {detail.plannedQuantity.toLocaleString("ko-KR")} {detail.unit}
+            </KeyValue>
             <KeyValue label="납기">{isDueOverdue(detail.dueDate) && detail.status !== "COMPLETED" ? (
                   <Badge tone="danger">{`${formatWorkOrderDueDate(detail.dueDate)} 지연`}</Badge>
                 ) : (

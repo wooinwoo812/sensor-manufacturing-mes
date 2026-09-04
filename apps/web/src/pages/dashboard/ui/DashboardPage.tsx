@@ -1,10 +1,8 @@
-import { useEffect, useState } from "react";
 import {
   fetchDashboardSummary,
   type DashboardSummary,
   type DashboardAttentionItem,
 } from "@/entities/dashboard";
-import { ApiRequestError } from "@/shared/api";
 import {
   Badge,
   Button,
@@ -17,6 +15,7 @@ import {
   PageHeading,
   Skeleton,
 } from "@/shared/ui";
+import { useLoadState } from "@/shared/lib";
 import { Main } from "@/widgets/app-shell";
 import { AttentionQueue } from "./AttentionQueue";
 import { OperationsSummary } from "./OperationsSummary";
@@ -33,50 +32,21 @@ function formatRefreshedAt(isoDate: string): string {
   }).format(new Date(isoDate));
 }
 
-type LoadState =
-  | { phase: "loading" }
-  | { phase: "error"; message: string }
-  | { phase: "success"; summary: DashboardSummary; refreshedAt: string };
 
 interface DashboardPageProps {
   onOpenAttention?: (item: DashboardAttentionItem) => void;
 }
 
 export function DashboardPage({ onOpenAttention }: DashboardPageProps = {}) {
-  const [state, setState] = useState<LoadState>({ phase: "loading" });
-  const [reloadCount, setReloadCount] = useState(0);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    let active = true;
-    fetchDashboardSummary(controller.signal)
-      .then((summary) => {
-        if (!active) {
-          return;
-        }
-        setState({
-          phase: "success",
-          summary,
-          refreshedAt: new Date().toISOString(),
-        });
-      })
-      .catch((error: unknown) => {
-        if (!active) {
-          return;
-        }
-        setState({
-          phase: "error",
-          message:
-            error instanceof ApiRequestError
-              ? error.message
-              : "운영 현황을 불러오지 못했습니다.",
-        });
-      });
-    return () => {
-      active = false;
-      controller.abort();
-    };
-  }, [reloadCount]);
+  const { state, reload } = useLoadState<{ summary: DashboardSummary; refreshedAt: string }>(
+    "dashboard",
+    (signal) =>
+      fetchDashboardSummary(signal).then((summary) => ({
+        summary,
+        refreshedAt: new Date().toISOString(),
+      })),
+    "운영 현황을 불러오지 못했습니다.",
+  );
 
   return (
     <Main id="main-content" tabIndex={-1}>
@@ -110,7 +80,7 @@ export function DashboardPage({ onOpenAttention }: DashboardPageProps = {}) {
         <ErrorState
           description={state.message}
           action={
-            <Button onClick={() => setReloadCount((count) => count + 1)}>
+            <Button onClick={() => reload()}>
               다시 시도
             </Button>
           }

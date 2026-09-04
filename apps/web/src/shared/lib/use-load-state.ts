@@ -76,5 +76,16 @@ export function useLoadState<Success extends object>(
   // reload 는 참조가 고정돼야 한다. 열 정의 useMemo 의 의존성으로 들어가므로 매 렌더 새 함수면 메모가 무의미해진다.
   const reload = useCallback(() => setReloadCount((count) => count + 1), []);
 
-  return { state, isRefreshing, reload };
+  // 명령(발행·취소·판정)이 최신 상세를 돌려주면 다시 조회하지 않고 그 값으로 바꿔 끼운다.
+  // 왕복 한 번을 아끼고, 응답과 화면이 어긋나는 순간을 없앤다.
+  const currentRef = useRef({ key, reloadCount });
+  useEffect(() => {
+    currentRef.current = { key, reloadCount };
+  });
+  const replace = useCallback((data: Success) => {
+    const { key: currentKey, reloadCount: currentReload } = currentRef.current;
+    setResult({ key: currentKey, reload: currentReload, state: { phase: "success", ...data } });
+  }, []);
+
+  return { state, isRefreshing, reload, replace };
 }

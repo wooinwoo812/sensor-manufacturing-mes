@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import {
   fetchInspection,
   INSPECTION_EXECUTION_STATUS_LABELS,
@@ -7,7 +6,6 @@ import {
   type InspectionDetail,
 } from "@/entities/inspection";
 import { InspectionVerdictPanel } from "@/features/inspection-verdict";
-import { ApiRequestError } from "@/shared/api";
 import {
   Badge,
   Button,
@@ -19,6 +17,7 @@ import {
   Skeleton,
   type BadgeTone,
 } from "@/shared/ui";
+import { useLoadState } from "@/shared/lib";
 import { AUDIT_ACTOR_ROLE_OPTIONS } from "@/entities/audit-event";
 import { Main, PageCrumb } from "@/widgets/app-shell";
 
@@ -65,41 +64,13 @@ export function InspectionDetailPage({
   canVerdict,
   onBack,
 }: InspectionDetailPageProps) {
-  const [reloadCount, setReloadCount] = useState(0);
-  const [result, setResult] = useState<{
-    key: string;
-    detail: InspectionDetail | null;
-    error: string | null;
-  } | null>(null);
+  const { state, reload } = useLoadState<{ detail: InspectionDetail }>(
+    inspectionId,
+    (signal) => fetchInspection(inspectionId, signal).then((detail) => ({ detail })),
+    "검사를 불러오지 못했습니다.",
+  );
 
-  useEffect(() => {
-    const controller = new AbortController();
-    let active = true;
-    fetchInspection(inspectionId, controller.signal)
-      .then((detail) => {
-        if (active) {
-          setResult({ key: inspectionId, detail, error: null });
-        }
-      })
-      .catch((error: unknown) => {
-        if (active) {
-          setResult({
-            key: inspectionId,
-            detail: null,
-            error:
-              error instanceof ApiRequestError
-                ? error.message
-                : "검사를 불러오지 못했습니다.",
-          });
-        }
-      });
-    return () => {
-      active = false;
-      controller.abort();
-    };
-  }, [inspectionId, reloadCount]);
-
-  if (result === null || result.key !== inspectionId) {
+  if (state.phase === "loading") {
     return (
       <Main id="main-content" tabIndex={-1}>
         <div className="space-y-4" aria-label="검사 조회 중" role="status">
@@ -110,14 +81,14 @@ export function InspectionDetailPage({
     );
   }
 
-  if (result.detail === null) {
+  if (state.phase === "error") {
     return (
       <Main id="main-content" tabIndex={-1}>
         <ErrorState
-          description={result.error ?? "검사를 불러오지 못했습니다."}
+          description={state.message}
           action={
             <>
-              <Button onClick={() => setReloadCount((count) => count + 1)}>
+              <Button onClick={() => reload()}>
                 다시 시도
               </Button>
               <Button variant="secondary" onClick={onBack}>
@@ -130,7 +101,7 @@ export function InspectionDetailPage({
     );
   }
 
-  const detail = result.detail;
+  const detail = state.detail;
   const canVerdictNow =
     canVerdict &&
     (detail.executionStatus === "PENDING" || detail.executionStatus === "IN_PROGRESS");
@@ -198,7 +169,7 @@ export function InspectionDetailPage({
       {canVerdictNow ? (
         <InspectionVerdictPanel
           csrfToken={csrfToken}
-          onDone={() => setReloadCount((count) => count + 1)}
+          onDone={() => reload()}
           target={{
             inspectionId: detail.id,
             inspectionNumber: detail.inspectionNumber,

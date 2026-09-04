@@ -3,7 +3,6 @@ import {
   INSPECTION_GATE_LABELS,
   INSPECTION_VERDICT_LABELS,
 } from "@/entities/inspection";
-import { useEffect, useState } from "react";
 import {
   BLOCKED_REASON_LABELS,
   fetchProcessExecutionDetail,
@@ -11,7 +10,6 @@ import {
   type ProcessExecutionDetail,
 } from "@/entities/process-execution";
 import { ProcessExecutionPanel } from "@/features/process-execution";
-import { ApiRequestError } from "@/shared/api";
 import {
   Badge,
   Button,
@@ -21,6 +19,7 @@ import {
   Skeleton,
   type BadgeTone,
 } from "@/shared/ui";
+import { useLoadState } from "@/shared/lib";
 import { Main, PageCrumb } from "@/widgets/app-shell";
 
 const READINESS_TONES: Record<string, BadgeTone> = {
@@ -69,47 +68,11 @@ export function ProcessExecutionDetailPage({
   canExecute,
   onBack,
 }: ProcessExecutionDetailPageProps) {
-  const [reloadCount, setReloadCount] = useState(0);
-  const [result, setResult] = useState<{
-    key: string;
-    state:
-      | { phase: "error"; message: string }
-      | { phase: "success"; detail: ProcessExecutionDetail };
-  } | null>(null);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    fetchProcessExecutionDetail(stepId, controller.signal)
-      .then((detail) => {
-        setResult({ key: stepId, state: { phase: "success", detail } });
-      })
-      .catch((error: unknown) => {
-        if (controller.signal.aborted) {
-          return;
-        }
-        setResult({
-          key: stepId,
-          state: {
-            phase: "error",
-            message:
-              error instanceof ApiRequestError
-                ? error.message
-                : "공정 실행 정보를 불러오지 못했습니다.",
-          },
-        });
-      });
-    return () => {
-      controller.abort();
-    };
-  }, [stepId, reloadCount]);
-
-  const state:
-    | { phase: "loading" }
-    | { phase: "error"; message: string }
-    | { phase: "success"; detail: ProcessExecutionDetail } =
-    result !== null && result.key === stepId
-      ? result.state
-      : { phase: "loading" };
+  const { state, reload } = useLoadState<{ detail: ProcessExecutionDetail }>(
+    stepId,
+    (signal) => fetchProcessExecutionDetail(stepId, signal).then((detail) => ({ detail })),
+    "공정 실행 정보를 불러오지 못했습니다.",
+  );
 
   return (
     <Main id="main-content" tabIndex={-1}>
@@ -207,7 +170,7 @@ export function ProcessExecutionDetailPage({
             {canExecute && state.detail.readiness === "IN_PROGRESS" ? (
               <ProcessExecutionPanel
                 csrfToken={csrfToken}
-                onDone={() => setReloadCount((count) => count + 1)}
+                onDone={() => reload()}
                 target={{
                   stepId: state.detail.id,
                   workOrderNumber: state.detail.workOrderNumber,

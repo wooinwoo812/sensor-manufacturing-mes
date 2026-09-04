@@ -1,11 +1,9 @@
-import { useEffect, useState } from "react";
 import {
   fetchQualityIncidentDetail,
   QUALITY_INCIDENT_SOURCE_TYPE_LABELS,
   QUALITY_INCIDENT_STATUS_LABELS,
   type QualityIncidentDetail,
 } from "@/entities/quality-incident";
-import { ApiRequestError } from "@/shared/api";
 import {
   Badge,
   Button,
@@ -15,6 +13,7 @@ import {
   Skeleton,
   type BadgeTone,
 } from "@/shared/ui";
+import { useLoadState } from "@/shared/lib";
 import { Main, PageCrumb } from "@/widgets/app-shell";
 
 const STATUS_TONES: Record<string, BadgeTone> = {
@@ -44,46 +43,11 @@ export function QualityIncidentDetailPage({
   qualityIncidentId,
   onBack,
 }: QualityIncidentDetailPageProps) {
-  const [result, setResult] = useState<{
-    key: string;
-    state:
-      | { phase: "error"; message: string }
-      | { phase: "success"; detail: QualityIncidentDetail };
-  } | null>(null);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    fetchQualityIncidentDetail(qualityIncidentId, controller.signal)
-      .then((detail) => {
-        setResult({ key: qualityIncidentId, state: { phase: "success", detail } });
-      })
-      .catch((error: unknown) => {
-        if (controller.signal.aborted) {
-          return;
-        }
-        setResult({
-          key: qualityIncidentId,
-          state: {
-            phase: "error",
-            message:
-              error instanceof ApiRequestError
-                ? error.message
-                : "부적합 사건을 불러오지 못했습니다.",
-          },
-        });
-      });
-    return () => {
-      controller.abort();
-    };
-  }, [qualityIncidentId]);
-
-  const state:
-    | { phase: "loading" }
-    | { phase: "error"; message: string }
-    | { phase: "success"; detail: QualityIncidentDetail } =
-    result !== null && result.key === qualityIncidentId
-      ? result.state
-      : { phase: "loading" };
+  const { state } = useLoadState<{ detail: QualityIncidentDetail }>(
+    qualityIncidentId,
+    (signal) => fetchQualityIncidentDetail(qualityIncidentId, signal).then((detail) => ({ detail })),
+    "부적합 사건을 불러오지 못했습니다.",
+  );
 
   return (
     <Main id="main-content" tabIndex={-1}>
