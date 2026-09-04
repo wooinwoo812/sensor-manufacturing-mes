@@ -60,7 +60,11 @@ export function DataTable<Row>({
             <tr>
               {columns.map((column) => (
                 <th
-                  className="whitespace-nowrap border-b border-border-strong px-3 py-2 font-medium first:pl-4 last:pr-4"
+                  className={cn(
+                    "whitespace-nowrap border-b border-border-strong px-3 py-2 font-medium first:pl-4 last:pr-4",
+                    // 첫 열(식별자)은 가로 스크롤 중에도 보인다. 1024px 에서 표가 옆으로 밀려도 어느 행인지 잃지 않는다.
+                    "first:sticky first:left-0 first:z-[1] first:bg-surface first:shadow-[inset_-1px_0_0_var(--color-border)]",
+                  )}
                   key={column.key}
                   scope="col"
                   style={{ textAlign: column.align ?? "left" }}
@@ -79,9 +83,10 @@ export function DataTable<Row>({
             {rows.map((row) => (
               <tr
                 className={cn(
-                  "group transition-colors hover:bg-surface-subtle focus-within:bg-accent-soft/40 motion-reduce:transition-none",
+                  // 행 배경은 불투명해야 sticky 첫 열이 bg-inherit 로 같은 색을 받는다.
+                  "group bg-surface transition-colors hover:bg-[color-mix(in_oklch,var(--color-surface-subtle)_100%,transparent)] focus-within:bg-[color-mix(in_oklch,var(--color-accent-soft)_40%,var(--color-surface))] motion-reduce:transition-none",
                   clickable &&
-                    "cursor-pointer hover:bg-accent-soft/50 focus-visible:outline-none focus-visible:bg-accent-soft/60",
+                    "cursor-pointer hover:bg-[color-mix(in_oklch,var(--color-accent-soft)_50%,var(--color-surface))] focus-visible:outline-none focus-visible:bg-[color-mix(in_oklch,var(--color-accent-soft)_60%,var(--color-surface))]",
                 )}
                 key={getRowKey(row)}
                 onClick={
@@ -109,6 +114,7 @@ export function DataTable<Row>({
                   <td
                     className={cn(
                       "px-3 py-2.5 text-text tabular-nums first:pl-4 last:pr-4",
+                      "first:sticky first:left-0 first:z-[1] first:bg-inherit first:shadow-[inset_-1px_0_0_var(--color-border)]",
                       column.wrap ? "min-w-40 whitespace-normal" : "whitespace-nowrap",
                     )}
                     key={column.key}

@@ -28,7 +28,8 @@ export function OperationsSummary({ metrics }: OperationsSummaryProps) {
       label: "진행 중 작업지시",
       unit: "건",
       value: metrics.workOrders.inProgress.toLocaleString("ko-KR"),
-      valueClassName: "text-accent-strong",
+      valueClassName: "text-text-strong",
+      detailClassName: metrics.workOrders.blocked > 0 ? "text-danger-strong" : "text-text-muted",
     },
     {
       detail: `공정 진행 ${metrics.productionLots.inProgress} LOT`,
@@ -39,6 +40,7 @@ export function OperationsSummary({ metrics }: OperationsSummaryProps) {
       unit: "LOT",
       value: metrics.productionLots.distinct.toLocaleString("ko-KR"),
       valueClassName: "text-text-strong",
+      detailClassName: "text-text-muted",
     },
     {
       detail: `판정 보류 ${metrics.inspections.hold}건 포함`,
@@ -48,7 +50,8 @@ export function OperationsSummary({ metrics }: OperationsSummaryProps) {
       label: "검사 대기",
       unit: "건",
       value: metrics.inspections.pending.toLocaleString("ko-KR"),
-      valueClassName: "text-warning-strong",
+      valueClassName: "text-text-strong",
+      detailClassName: metrics.inspections.hold > 0 ? "text-warning-strong" : "text-text-muted",
     },
     {
       detail: `가용 부족 ${metrics.materialLots.shortage}건 포함`,
@@ -60,7 +63,8 @@ export function OperationsSummary({ metrics }: OperationsSummaryProps) {
       value: (metrics.materialLots.quarantined + metrics.materialLots.shortage).toLocaleString(
         "ko-KR",
       ),
-      valueClassName: "text-danger-strong",
+      valueClassName: "text-text-strong",
+      detailClassName: metrics.materialLots.shortage > 0 ? "text-danger-strong" : "text-text-muted",
     },
   ] satisfies ReadonlyArray<{
     detail: string;
@@ -71,6 +75,7 @@ export function OperationsSummary({ metrics }: OperationsSummaryProps) {
     unit: string;
     value: string;
     valueClassName: string;
+    detailClassName: string;
   }>;
 
   return (
@@ -88,6 +93,7 @@ export function OperationsSummary({ metrics }: OperationsSummaryProps) {
           {items.map(
             ({
               detail,
+              detailClassName,
               icon: Icon,
               iconClassName,
               itemClassName,
@@ -113,7 +119,7 @@ export function OperationsSummary({ metrics }: OperationsSummaryProps) {
                   </strong>
                   <span className="text-xs text-text-muted">{unit}</span>
                 </dd>
-                <p className="mt-1 text-xs text-text-muted">{detail}</p>
+                <p className={`mt-1 text-xs ${detailClassName}`}>{detail}</p>
               </div>
             ),
           )}
