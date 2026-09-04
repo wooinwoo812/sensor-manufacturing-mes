@@ -9,17 +9,16 @@ import {
 import { ApiRequestError } from "@/shared/api";
 import {
   Badge,
-  type BadgeTone,
   Button,
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
   ErrorState,
+  KeyValue,
+  KeyValueGrid,
   PageHeading,
+  Panel,
   Skeleton,
+  type BadgeTone,
 } from "@/shared/ui";
+import { AUDIT_ACTOR_ROLE_OPTIONS } from "@/entities/audit-event";
 import { Main } from "@/widgets/app-shell";
 
 const DISPOSITION_TONES: Record<string, BadgeTone> = {
@@ -34,6 +33,12 @@ const ALLOCATION_STATUS_LABELS = {
   ACTIVE: "예약 중",
   CLOSED: "종료",
 } as const;
+
+
+/** 감사 이력의 역할 코드는 사람이 읽는 라벨로 보여준다. 모르는 코드는 그대로 둔다. */
+function actorRoleLabel(role: string): string {
+  return (AUDIT_ACTOR_ROLE_OPTIONS as Record<string, string>)[role] ?? role;
+}
 
 function formatDateTime(isoDate: string): string {
   return new Intl.DateTimeFormat("ko-KR", {
@@ -163,72 +168,30 @@ export function MaterialLotDetailPage({
         )}
       </div>
 
-      <Card className="gap-0 py-0">
-        <CardHeader className="border-b px-5 py-4">
-          <CardTitle>
-            <h2>수량 요약</h2>
-          </CardTitle>
-          <CardDescription>
-            입고부터 소비·폐기까지의 수량과 현재 가용량입니다.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="px-5 py-4">
-          <dl className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-            <div>
-              <dt className="text-xs font-semibold text-text-muted">입고</dt>
-              <dd className="mt-1 text-lg font-semibold tabular-nums">
-                {detail.receivedQuantity.toLocaleString("ko-KR")} {detail.unit}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs font-semibold text-text-muted">재고</dt>
-              <dd className="mt-1 text-lg font-semibold tabular-nums">
-                {detail.onHand.toLocaleString("ko-KR")} {detail.unit}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs font-semibold text-text-muted">예약</dt>
-              <dd className="mt-1 text-lg font-semibold tabular-nums">
-                {detail.reservedQuantity.toLocaleString("ko-KR")} {detail.unit}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs font-semibold text-text-muted">가용</dt>
-              <dd className="mt-1">
-                {detail.availableQuantity === 0 ? (
+      <Panel description="입고부터 소비·폐기까지의 수량과 현재 가용량입니다." headingLevel="h2" title="수량 요약">
+          <KeyValueGrid columns={5}>
+            <KeyValue label="입고" size="lg">{detail.receivedQuantity.toLocaleString("ko-KR")} {detail.unit}</KeyValue>
+            <KeyValue label="재고" size="lg">{detail.onHand.toLocaleString("ko-KR")} {detail.unit}</KeyValue>
+            <KeyValue label="예약" size="lg">{detail.reservedQuantity.toLocaleString("ko-KR")} {detail.unit}</KeyValue>
+            <KeyValue label="가용">{detail.availableQuantity === 0 ? (
                   <Badge tone="danger">{`0 ${detail.unit}`}</Badge>
                 ) : (
                   <span className="text-lg font-semibold tabular-nums">
                     {detail.availableQuantity.toLocaleString("ko-KR")} {detail.unit}
                   </span>
-                )}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs font-semibold text-text-muted">소비 / 폐기</dt>
-              <dd className="mt-1 text-lg font-semibold tabular-nums">
-                {detail.consumedQuantity.toLocaleString("ko-KR")} /{" "}
-                {detail.scrappedQuantity.toLocaleString("ko-KR")} {detail.unit}
-              </dd>
-            </div>
-          </dl>
+                )}</KeyValue>
+            <KeyValue label="소비 / 폐기" size="lg">{detail.consumedQuantity.toLocaleString("ko-KR")} /{" "}
+                {detail.scrappedQuantity.toLocaleString("ko-KR")} {detail.unit}</KeyValue>
+          </KeyValueGrid>
           {detail.qualityDisposition !== "ACCEPTED" ? (
             <p className="mt-4 text-sm text-text-muted">
               현재 품질 상태에서는 신규 예약과 실제 투입이 차단됩니다. 기존 예약은
               유지되며 투입 시점에 다시 검증합니다.
             </p>
           ) : null}
-        </CardContent>
-      </Card>
+        </Panel>
 
-      <Card className="gap-0 py-0">
-        <CardHeader className="border-b px-5 py-4">
-          <CardTitle>
-            <h3>예약 내역</h3>
-          </CardTitle>
-          <CardDescription>이 LOT으로 작업지시에 보류한 예약입니다.</CardDescription>
-        </CardHeader>
-        <CardContent className="px-5 py-4">
+      <Panel description="이 LOT으로 작업지시에 보류한 예약입니다." headingLevel="h3" title="예약 내역">
           {detail.allocations.length === 0 ? (
             <p className="py-4 text-sm text-text-muted" role="status">
               이 LOT에 대한 예약이 없습니다.
@@ -260,17 +223,9 @@ export function MaterialLotDetailPage({
               ))}
             </ul>
           )}
-        </CardContent>
-      </Card>
+        </Panel>
 
-      <Card className="gap-0 py-0">
-        <CardHeader className="border-b px-5 py-4">
-          <CardTitle>
-            <h3>품질·변경 이력</h3>
-          </CardTitle>
-          <CardDescription>이 LOT의 품질 처분과 감사 기록입니다.</CardDescription>
-        </CardHeader>
-        <CardContent className="px-5 py-4">
+      <Panel description="이 LOT의 품질 처분과 감사 기록입니다." headingLevel="h3" title="품질·변경 이력">
           {detail.recentAudits.length === 0 ? (
             <p className="py-4 text-sm text-text-muted" role="status">
               아직 기록된 변경이 없습니다.
@@ -283,14 +238,13 @@ export function MaterialLotDetailPage({
                     {formatDateTime(event.occurredAt)}
                   </time>
                   <span className="text-sm font-semibold">{event.actorName}</span>
-                  <span className="text-xs text-text-muted">{event.actorRole}</span>
+                  <span className="text-xs text-text-muted">{actorRoleLabel(event.actorRole)}</span>
                   <span className="text-sm text-text">{event.summary}</span>
                 </li>
               ))}
             </ol>
           )}
-        </CardContent>
-      </Card>
+        </Panel>
     </Main>
   );
 }

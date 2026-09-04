@@ -134,8 +134,17 @@ export function resolveShellContext(
     navigation: allowedNavigation,
     pathname,
     pageTitle: current.title,
+    pageGroup: resolvePageGroup(pathname),
     currentRole: session.activeRole.label,
   };
+}
+
+function resolvePageGroup(pathname: string): string | undefined {
+  return navigation.find((group) =>
+    group.items.some(
+      (item) => pathname === item.to || pathname.startsWith(`${item.to}/`),
+    ),
+  )?.label;
 }
 
 function resolveRouteTitle(pathname: string): { title: string } {

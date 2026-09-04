@@ -18,6 +18,7 @@ export interface AppShellProps {
   onSignedOut: () => void;
   pathname: string;
   pageTitle: string;
+  pageGroup?: string | undefined;
   currentRole: string;
 }
 
@@ -32,6 +33,7 @@ export function AppShell({
   currentRole,
   navigation,
   onSignedOut,
+  pageGroup,
   pageTitle,
   pathname,
 }: AppShellProps) {
@@ -58,9 +60,17 @@ export function AppShell({
           className="border-b border-border bg-background lg:rounded-t-lg"
           fixed
         >
-          <div className="me-auto min-w-0">
-            <span className="block truncate text-sm font-semibold">{pageTitle}</span>
-          </div>
+          <nav aria-label="현재 위치" className="me-auto flex min-w-0 items-center gap-1.5 text-sm">
+            {pageGroup ? (
+              <>
+                <span className="shrink-0 text-text-muted">{pageGroup}</span>
+                <span aria-hidden="true" className="shrink-0 text-text-subtle">
+                  /
+                </span>
+              </>
+            ) : null}
+            <span className="truncate font-semibold">{pageTitle}</span>
+          </nav>
           <div className="hidden h-9 items-center gap-2 rounded-md border bg-card px-3 lg:flex peer-data-[state=expanded]:hidden">
             <ShieldCheck className="size-4 text-muted-foreground" aria-hidden="true" />
             <span className="text-xs font-medium">{currentRole}</span>

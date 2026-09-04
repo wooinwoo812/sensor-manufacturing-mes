@@ -23,6 +23,7 @@ export interface DemoAuditEvent {
     | "WORK_ORDER_CANCELLED"
     | "MATERIAL_RESERVED"
     | "MATERIAL_LOT_DISPOSITION_DECIDED"
+    | "PROCESS_COMPLETED"
     | "INSPECTION_VERDICTED";
   entityType: "WORK_ORDER" | "MATERIAL_LOT" | "INSPECTION" | "SESSION";
   entityId: string;

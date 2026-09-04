@@ -1,4 +1,12 @@
 :root {
+  /*
+   * 2026-09-04 색상 결정 근거 (docs/engineering/frontend-design-system.md 2.7 참조)
+   * - 텍스트·테두리는 chroma 0.02 이하의 중립 회색: 파란 기운이 전면에 깔리면
+   *   링크·버튼·활성 메뉴의 파란색이 구분되지 않는다.
+   * - 사이드바(0.945) < 콘텐츠(0.975) < 카드(흰색) 세 평면의 명도 차이로 구획을 나눈다.
+   *   그림자를 쓰지 않으므로 명도 단계가 유일한 구분 수단이다.
+   * - primary 는 채도 0.17 의 코발트 하나만 쓴다. 버튼·링크·활성 상태 전용.
+   */
   --radius: 0.625rem;
   --background: oklch(0.975 0.004 250);
   --foreground: oklch(0.19 0.016 262);
@@ -55,6 +63,8 @@
   --mes-color-accent-bright: var(--primary);
   --mes-color-accent-soft: oklch(0.945 0.02 258);
   --mes-color-focus: var(--ring);
+  /* 상태색: soft 배경 + strong 글자 조합만 쓰고 테두리는 채도를 낮춘다(스티커 느낌 방지).
+     warning 은 노랑(hue 98)이 아니라 앰버(hue 65~80): 흰 배경에서 노랑 테두리는 대비가 무너진다. */
   --mes-color-success: oklch(0.527 0.154 150.069);
   --mes-color-success-strong: oklch(0.448 0.119 151.328);
   --mes-color-success-soft: oklch(0.955 0.035 155);
@@ -76,6 +86,7 @@
   --mes-radius-panel: var(--radius);
   --mes-radius-brand: var(--radius);
   --mes-shadow-control: 0 1px 2px rgb(0 0 0 / 0.05);
+  /* panel 은 그림자 없이 border + 명도차로만 구분한다. overlay(Dialog/Sheet)만 그림자를 쓴다. */
   --mes-shadow-panel: none;
   --mes-z-header: 30;
   --mes-z-overlay: 40;

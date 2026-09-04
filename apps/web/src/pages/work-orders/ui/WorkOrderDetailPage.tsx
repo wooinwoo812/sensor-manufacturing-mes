@@ -17,20 +17,19 @@ import { ApiRequestError } from "@/shared/api";
 import { MaterialReservationPanel } from "@/features/material-reservations";
 import {
   Badge,
-  type BadgeTone,
   Button,
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
   ConfirmDialog,
   ErrorState,
   Input,
+  KeyValue,
+  KeyValueGrid,
   PageHeading,
+  Panel,
   PriorityBadge,
   Skeleton,
+  type BadgeTone,
 } from "@/shared/ui";
+import { AUDIT_ACTOR_ROLE_OPTIONS } from "@/entities/audit-event";
 import { Main } from "@/widgets/app-shell";
 
 const STATUS_TONES: Record<string, BadgeTone> = {
@@ -62,6 +61,12 @@ interface WorkOrderDetailPageProps {
   canCancel: boolean;
   canReserve: boolean;
   canReleaseAllocation: boolean;
+}
+
+
+/** 감사 이력의 역할 코드는 사람이 읽는 라벨로 보여준다. 모르는 코드는 그대로 둔다. */
+function actorRoleLabel(role: string): string {
+  return (AUDIT_ACTOR_ROLE_OPTIONS as Record<string, string>)[role] ?? role;
 }
 
 function formatDateTime(isoDate: string): string {
@@ -191,46 +196,19 @@ export function WorkOrderDetailPage({
         </span>
       </div>
 
-      <Card className="gap-0 py-0">
-        <CardHeader className="border-b px-5 py-4">
-          <CardTitle>
-            <h2>요약</h2>
-          </CardTitle>
-          <CardDescription>계획 수량과 납기, 진행 상태를 확인합니다.</CardDescription>
-        </CardHeader>
-        <CardContent className="px-5 py-4">
-          <dl className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <div>
-              <dt className="text-xs font-semibold text-text-muted">계획수량</dt>
-              <dd className="mt-1 text-lg font-semibold tabular-nums">
-                {detail.plannedQuantity.toLocaleString("ko-KR")} {detail.unit}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs font-semibold text-text-muted">납기</dt>
-              <dd className="mt-1">
-                {isDueOverdue(detail.dueDate) && detail.status !== "COMPLETED" ? (
+      <Panel description="계획 수량과 납기, 진행 상태를 확인합니다." headingLevel="h2" title="요약">
+          <KeyValueGrid columns={4}>
+            <KeyValue label="계획수량" size="lg">{detail.plannedQuantity.toLocaleString("ko-KR")} {detail.unit}</KeyValue>
+            <KeyValue label="납기">{isDueOverdue(detail.dueDate) && detail.status !== "COMPLETED" ? (
                   <Badge tone="danger">{`${formatWorkOrderDueDate(detail.dueDate)} 지연`}</Badge>
                 ) : (
                   <span className="text-lg font-semibold tabular-nums">
                     {formatWorkOrderDueDate(detail.dueDate)}
                   </span>
-                )}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs font-semibold text-text-muted">진행률</dt>
-              <dd className="mt-1 text-lg font-semibold tabular-nums">
-                {detail.progressPercent}%
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs font-semibold text-text-muted">현재 공정</dt>
-              <dd className="mt-1 text-sm font-semibold">
-                {detail.currentStepName ?? "—"}
-              </dd>
-            </div>
-          </dl>
+                )}</KeyValue>
+            <KeyValue label="진행률" size="lg">{detail.progressPercent}%</KeyValue>
+            <KeyValue label="현재 공정" strong>{detail.currentStepName ?? "—"}</KeyValue>
+          </KeyValueGrid>
           {detail.blockedReason !== null ? (
             <p className="mt-4 rounded-panel border border-danger/40 bg-danger-soft/40 px-4 py-3 text-sm text-danger-strong">
               차단 사유: {detail.blockedReason}
@@ -242,18 +220,10 @@ export function WorkOrderDetailPage({
               {detail.memo}
             </p>
           ) : null}
-        </CardContent>
-      </Card>
+        </Panel>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <Card className="gap-0 py-0">
-          <CardHeader className="border-b px-5 py-4">
-            <CardTitle>
-              <h3>공정 흐름</h3>
-            </CardTitle>
-            <CardDescription>생산 LOT별 공정 준비 상태입니다.</CardDescription>
-          </CardHeader>
-          <CardContent className="px-5 py-4">
+        <Panel description="생산 LOT별 공정 준비 상태입니다." headingLevel="h3" title="공정 흐름">
             {detail.steps.length === 0 ? (
               <p className="py-4 text-sm text-text-muted" role="status">
                 등록된 공정이 없습니다. 초안 상태 작업지시는 발행 후 공정이 구성됩니다.
@@ -288,17 +258,9 @@ export function WorkOrderDetailPage({
                 ))}
               </ul>
             )}
-          </CardContent>
-        </Card>
+          </Panel>
 
-        <Card className="gap-0 py-0">
-          <CardHeader className="border-b px-5 py-4">
-            <CardTitle>
-              <h3>검사</h3>
-            </CardTitle>
-            <CardDescription>게이트별 검사와 판정 결과입니다.</CardDescription>
-          </CardHeader>
-          <CardContent className="px-5 py-4">
+        <Panel description="게이트별 검사와 판정 결과입니다." headingLevel="h3" title="검사">
             {detail.inspections.length === 0 ? (
               <p className="py-4 text-sm text-text-muted" role="status">
                 등록된 검사가 없습니다.
@@ -335,18 +297,10 @@ export function WorkOrderDetailPage({
                 ))}
               </ul>
             )}
-          </CardContent>
-        </Card>
+          </Panel>
       </div>
 
-      <Card className="gap-0 py-0">
-        <CardHeader className="border-b px-5 py-4">
-          <CardTitle>
-            <h3>변경 이력</h3>
-          </CardTitle>
-          <CardDescription>이 작업지시의 감사 기록입니다.</CardDescription>
-        </CardHeader>
-        <CardContent className="px-5 py-4">
+      <Panel description="이 작업지시의 감사 기록입니다." headingLevel="h3" title="변경 이력">
           {detail.recentAudits.length === 0 ? (
             <p className="py-4 text-sm text-text-muted" role="status">
               아직 기록된 변경이 없습니다.
@@ -359,14 +313,13 @@ export function WorkOrderDetailPage({
                     {formatDateTime(event.occurredAt)}
                   </time>
                   <span className="text-sm font-semibold">{event.actorName}</span>
-                  <span className="text-xs text-text-muted">{event.actorRole}</span>
+                  <span className="text-xs text-text-muted">{actorRoleLabel(event.actorRole)}</span>
                   <span className="text-sm text-text">{event.summary}</span>
                 </li>
               ))}
             </ol>
           )}
-        </CardContent>
-      </Card>
+        </Panel>
 
       <MaterialReservationPanel
         canRelease={canReleaseAllocation}

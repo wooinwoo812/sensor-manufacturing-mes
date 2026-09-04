@@ -9,6 +9,8 @@ import { DEMO_MATERIAL_LOTS, DEMO_MATERIALS } from "./demo-material-lots.js";
 import { DEMO_PROCESS_STEPS } from "./demo-process-steps.js";
 import { DEMO_INSPECTIONS } from "./demo-inspections.js";
 import { DEMO_AUDIT_EVENTS } from "./demo-audit-events.js";
+import { DEMO_AUDIT_HISTORY } from "./demo-audit-history.js";
+import { DEMO_MATERIAL_ALLOCATIONS } from "./demo-material-allocations.js";
 import { DEMO_QUALITY_INCIDENTS } from "./demo-quality-incidents.js";
 import { DEMO_TRACE_RELATIONS } from "./demo-trace.js";
 import { DEMO_BOM_REVISIONS, DEMO_PRODUCTS } from "./demo-boms.js";
@@ -105,6 +107,38 @@ try {
         update: { ...lotData, materialId },
       });
       materialLotIdByNumber.set(row.lotNumber, row.id);
+    }
+
+    // 자재 예약: 목록의 reservedQuantity 와 상세의 예약 내역이 같은 숫자를 보이도록 seed
+    const allocationOrderIdByNumber = new Map(
+      (
+        await transaction.workOrder.findMany({
+          select: { id: true, orderNumber: true },
+        })
+      ).map((row) => [row.orderNumber, row.id] as const),
+    );
+    await transaction.materialAllocation.deleteMany({});
+    for (const allocation of DEMO_MATERIAL_ALLOCATIONS) {
+      const workOrderId = allocationOrderIdByNumber.get(allocation.workOrderNumber);
+      const materialLotId = materialLotIdByNumber.get(allocation.lotNumber);
+      if (workOrderId === undefined || materialLotId === undefined) {
+        throw new Error(
+          `예약 seed 대상이 없습니다: ${allocation.workOrderNumber} / ${allocation.lotNumber}`,
+        );
+      }
+      await transaction.materialAllocation.create({
+        data: { workOrderId, materialLotId, quantity: allocation.quantity, status: "ACTIVE" },
+      });
+    }
+    for (const lot of DEMO_MATERIAL_LOTS) {
+      const reserved = DEMO_MATERIAL_ALLOCATIONS.filter(
+        (allocation) => allocation.lotNumber === lot.lotNumber,
+      ).reduce((sum, allocation) => sum + allocation.quantity, 0);
+      if (reserved !== lot.reservedQuantity) {
+        throw new Error(
+          `${lot.lotNumber} 예약 seed 합계(${reserved})가 reservedQuantity(${lot.reservedQuantity})와 다릅니다.`,
+        );
+      }
     }
 
     const productionLotNumbers = [
@@ -384,12 +418,12 @@ try {
 
     await transaction.auditEvent.deleteMany({});
     await transaction.auditEvent.createMany({
-      data: DEMO_AUDIT_EVENTS.map((event) => ({ ...event })),
+      data: [...DEMO_AUDIT_EVENTS, ...DEMO_AUDIT_HISTORY].map((event) => ({ ...event })),
     });
   });
 
   console.log(
-    `가상 데모 계정 ${DEMO_ACCOUNTS.length}개, 작업지시 ${DEMO_WORK_ORDERS.length}건, 자재 LOT ${DEMO_MATERIAL_LOTS.length}건, 공정 ${DEMO_PROCESS_STEPS.length}건, 검사 ${DEMO_INSPECTIONS.length}건, 부적합 ${DEMO_QUALITY_INCIDENTS.length}건, 감사 ${DEMO_AUDIT_EVENTS.length}건, 계보 ${DEMO_TRACE_RELATIONS.length}건, 검사규격 ${DEMO_INSPECTION_SPEC_REVISIONS.length}건 seed 완료`,
+    `가상 데모 계정 ${DEMO_ACCOUNTS.length}개, 작업지시 ${DEMO_WORK_ORDERS.length}건, 자재 LOT ${DEMO_MATERIAL_LOTS.length}건, 공정 ${DEMO_PROCESS_STEPS.length}건, 검사 ${DEMO_INSPECTIONS.length}건, 부적합 ${DEMO_QUALITY_INCIDENTS.length}건, 감사 ${DEMO_AUDIT_EVENTS.length + DEMO_AUDIT_HISTORY.length}건, 자재 예약 ${DEMO_MATERIAL_ALLOCATIONS.length}건, 계보 ${DEMO_TRACE_RELATIONS.length}건, 검사규격 ${DEMO_INSPECTION_SPEC_REVISIONS.length}건 seed 완료`,
   );
 } finally {
   await prisma.$disconnect();

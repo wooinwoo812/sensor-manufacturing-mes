@@ -19,6 +19,11 @@ import {
   PageHeading,
   Pagination,
   Select,
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
   Skeleton,
   type BadgeTone,
   type DataTableColumn,
@@ -328,22 +333,6 @@ export function ExecutionQueuePage({
         />
       ) : (
         <>
-          {completionTarget !== null ? (
-            <ProcessExecutionPanel
-              csrfToken={csrfToken}
-              onDone={() => {
-                setCompletionTarget(null);
-                setReloadCount((count) => count + 1);
-              }}
-              target={{
-                stepId: completionTarget.id,
-                workOrderNumber: completionTarget.workOrderNumber,
-                processStepName: completionTarget.processStepName,
-                productionLotNumber: completionTarget.productionLotNumber,
-                plannedQuantity: completionTarget.plannedQuantity,
-              }}
-            />
-          ) : null}
           <DataTable
             caption="공정 실행 대기열"
             columns={columns}
@@ -359,6 +348,42 @@ export function ExecutionQueuePage({
           />
         </>
       )}
+
+      <Sheet
+        onOpenChange={(open) => {
+          if (!open) {
+            setCompletionTarget(null);
+          }
+        }}
+        open={completionTarget !== null}
+      >
+        <SheetContent className="w-full overflow-y-auto sm:max-w-xl" side="right">
+          <SheetHeader>
+            <SheetTitle>공정 완료 실적 입력</SheetTitle>
+            <SheetDescription>
+              선택한 공정의 양품·불량 수량을 기록합니다. 저장하면 대기열이 갱신됩니다.
+            </SheetDescription>
+          </SheetHeader>
+          {completionTarget !== null ? (
+            <div className="px-4 pb-4">
+              <ProcessExecutionPanel
+                csrfToken={csrfToken}
+                onDone={() => {
+                  setCompletionTarget(null);
+                  setReloadCount((count) => count + 1);
+                }}
+                target={{
+                  stepId: completionTarget.id,
+                  workOrderNumber: completionTarget.workOrderNumber,
+                  processStepName: completionTarget.processStepName,
+                  productionLotNumber: completionTarget.productionLotNumber,
+                  plannedQuantity: completionTarget.plannedQuantity,
+                }}
+              />
+            </div>
+          ) : null}
+        </SheetContent>
+      </Sheet>
     </Main>
   );
 }
