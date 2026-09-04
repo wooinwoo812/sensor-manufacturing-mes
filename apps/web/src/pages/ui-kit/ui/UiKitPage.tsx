@@ -62,7 +62,7 @@ const columns: DataTableColumn<WorkOrderRow>[] = [
     header: "작업지시",
     cell: (row) => (
       <button
-        className="font-mono text-xs font-bold text-accent-strong underline-offset-4 hover:underline"
+        className="text-sm font-semibold tabular-nums text-accent-strong underline-offset-4 hover:underline"
         type="button"
       >
         {row.id}

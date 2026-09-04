@@ -135,7 +135,7 @@ export function WorkOrdersPage({
         header: "작업지시",
         cell: (row) => (
           <button
-            className="font-mono text-xs font-bold text-accent-strong underline-offset-4 hover:underline"
+            className="text-sm font-semibold tabular-nums text-accent-strong underline-offset-4 hover:underline"
             onClick={() => onOpenDetail(row.id)}
             type="button"
           >
@@ -145,11 +145,12 @@ export function WorkOrdersPage({
       },
       {
         key: "product",
+        wrap: true,
         header: "제품",
         cell: (row) => (
           <span className="block min-w-32">
             <span className="block text-sm text-text-strong">{row.productName}</span>
-            <span className="block font-mono text-xs text-text-muted">
+            <span className="block text-xs tabular-nums text-text-muted">
               {row.productCode}
             </span>
           </span>
@@ -216,6 +217,7 @@ export function WorkOrdersPage({
       },
       {
         key: "blockedReason",
+        wrap: true,
         header: "차단 사유",
         cell: (row) =>
           row.blockedReason === null ? (
@@ -380,6 +382,7 @@ export function WorkOrdersPage({
       ) : (
         <>
           <DataTable
+            onRowClick={(row) => onOpenDetail(row.id)}
             busy={isRefreshing}
             caption="작업지시 목록"
             columns={columns}

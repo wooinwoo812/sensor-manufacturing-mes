@@ -136,7 +136,7 @@ export function InspectionsPage({
         header: "검사",
         cell: (row) => (
           <button
-            className="font-mono text-xs font-bold text-accent-strong underline-offset-4 hover:underline"
+            className="text-sm font-semibold tabular-nums text-accent-strong underline-offset-4 hover:underline"
             onClick={() => onOpenDetail(row.id)}
             type="button"
           >
@@ -148,7 +148,7 @@ export function InspectionsPage({
         key: "productionLotNumber",
         header: "생산 LOT",
         cell: (row) => (
-          <span className="font-mono text-xs text-text-muted">
+          <span className="text-xs tabular-nums text-text-muted">
             {row.productionLotNumber}
           </span>
         ),
@@ -169,6 +169,7 @@ export function InspectionsPage({
       },
       {
         key: "specName",
+        wrap: true,
         header: "검사 규격",
         cell: (row) => (
           <span className="block min-w-40 text-sm text-text-strong">
@@ -180,7 +181,7 @@ export function InspectionsPage({
         key: "workOrderNumber",
         header: "작업지시",
         cell: (row) => (
-          <span className="font-mono text-xs text-text-muted">
+          <span className="text-xs tabular-nums text-text-muted">
             {row.workOrderNumber}
           </span>
         ),
@@ -373,6 +374,7 @@ export function InspectionsPage({
             />
           ) : null}
           <DataTable
+            onRowClick={(row) => onOpenDetail(row.id)}
             busy={isRefreshing}
             caption="품질 검사 목록"
             columns={columns}

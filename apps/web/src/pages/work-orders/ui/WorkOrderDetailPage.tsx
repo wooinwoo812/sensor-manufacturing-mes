@@ -101,6 +101,7 @@ export function WorkOrderDetailPage({
     null,
   );
   const [cancelReason, setCancelReason] = useState("");
+  const [cancelOpen, setCancelOpen] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -183,7 +184,36 @@ export function WorkOrderDetailPage({
   return (
     <Main id="main-content" tabIndex={-1}>
       <PageCrumb value={detail.orderNumber} />
+      {/* 주요 행동(발행·취소)은 화면 맨 아래가 아니라 제목 오른쪽에 둔다. 스크롤 없이 "여기서 할 일"이 보여야 한다. */}
       <PageHeading
+        actions={
+          canReleaseNow || canCancelNow ? (
+            <>
+              {canCancelNow ? (
+                <Button
+                  aria-expanded={cancelOpen}
+                  onClick={() => setCancelOpen((open) => !open)}
+                  variant="secondary"
+                >
+                  작업지시 취소
+                </Button>
+              ) : null}
+              {canReleaseNow ? (
+                <ConfirmDialog
+                  title={`${detail.orderNumber}을(를) 발행할까요?`}
+                  description="발행 후 이 작업지시는 실행 팀에 전달되며 초안으로 되돌릴 수 없습니다."
+                  confirmLabel="발행 확정"
+                  trigger={
+                    <Button loading={commandPending === "release"}>작업지시 발행</Button>
+                  }
+                  onConfirm={() =>
+                    runCommand("release", () => releaseWorkOrder(workOrderId, csrfToken))
+                  }
+                />
+              ) : null}
+            </>
+          ) : undefined
+        }
         back={{ label: "작업지시 목록", onClick: onBack }}
         description={`${detail.productName} (${detail.productCode})`}
         eyebrow="작업지시 상세"
@@ -245,7 +275,7 @@ export function WorkOrderDetailPage({
                         {String(step.sequence).padStart(2, "0")}
                       </span>
                       <span className="text-sm font-semibold">{step.processStepName}</span>
-                      <span className="font-mono text-xs text-text-muted">
+                      <span className="text-xs tabular-nums text-text-muted">
                         {step.productionLotNumber}
                       </span>
                     </span>
@@ -278,7 +308,7 @@ export function WorkOrderDetailPage({
                     key={inspection.id}
                   >
                     <span className="flex items-center gap-3">
-                      <span className="font-mono text-xs font-bold">
+                      <span className="text-xs tabular-nums font-bold">
                         {inspection.inspectionNumber}
                       </span>
                       <span className="text-sm">{inspection.processStepName}</span>
@@ -337,21 +367,8 @@ export function WorkOrderDetailPage({
 
       <section aria-label="작업지시 행동" className="space-y-3">
         <h2 className="sr-only">작업지시 행동</h2>
-        {canReleaseNow ? (
-          <ConfirmDialog
-            title={`${detail.orderNumber}을(를) 발행할까요?`}
-            description="발행 후 이 작업지시는 실행 팀에 전달되며 초안으로 되돌릴 수 없습니다."
-            confirmLabel="발행 확정"
-            trigger={
-              <Button loading={commandPending === "release"}>작업지시 발행</Button>
-            }
-            onConfirm={() =>
-              runCommand("release", () => releaseWorkOrder(workOrderId, csrfToken))
-            }
-          />
-        ) : null}
-        {canCancelNow ? (
-          <div className="rounded-panel border border-border bg-surface p-4">
+        {canCancelNow && cancelOpen ? (
+          <div className="rounded-panel border border-danger-border bg-danger-soft/30 p-4">
             <p className="text-sm font-semibold">작업지시 취소</p>
             <p className="mt-1 text-xs text-text-muted">
               취소 사유를 남기면 감사 이력에 기록됩니다. 실적이 있는 지시는 취소할 수

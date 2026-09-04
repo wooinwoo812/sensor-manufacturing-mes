@@ -155,7 +155,7 @@ export function AuditEventsPage({ search, onSearchChange }: AuditEventsPageProps
             <span className="block text-xs text-text-muted">
               {entityLabel(row.entityType)}
             </span>
-            <span className="block font-mono text-xs font-semibold text-text-strong">
+            <span className="block text-xs font-semibold tabular-nums text-text-strong">
               {row.entityId}
             </span>
           </span>
@@ -163,6 +163,7 @@ export function AuditEventsPage({ search, onSearchChange }: AuditEventsPageProps
       },
       {
         key: "summary",
+        wrap: true,
         header: "내용",
         cell: (row) => (
           <span className="block min-w-48 text-sm text-text-strong">{row.summary}</span>
@@ -172,7 +173,7 @@ export function AuditEventsPage({ search, onSearchChange }: AuditEventsPageProps
         key: "requestId",
         header: "요청 ID",
         cell: (row) => (
-          <span className="font-mono text-xs text-text-muted">{row.requestId}</span>
+          <span className="text-xs tabular-nums text-text-muted">{row.requestId}</span>
         ),
       },
     ],

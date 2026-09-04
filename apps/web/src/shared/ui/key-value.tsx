@@ -34,7 +34,7 @@ interface KeyValueProps {
 export function KeyValue({ children, label, size = "sm", strong = false }: KeyValueProps) {
   return (
     <div className="min-w-0">
-      <dt className="text-xs font-semibold text-text-muted">{label}</dt>
+      <dt className="text-xs font-medium text-text-muted">{label}</dt>
       <dd
         className={cn(
           "mt-1",

@@ -159,7 +159,7 @@ export function MaterialLotsPage({
         header: "자재 LOT",
         cell: (row) => (
           <button
-            className="font-mono text-xs font-bold text-accent-strong underline-offset-4 hover:underline"
+            className="text-sm font-semibold tabular-nums text-accent-strong underline-offset-4 hover:underline"
             onClick={() => onOpenDetail(row.id)}
             type="button"
           >
@@ -169,11 +169,12 @@ export function MaterialLotsPage({
       },
       {
         key: "material",
+        wrap: true,
         header: "자재",
         cell: (row) => (
           <span className="block min-w-32">
             <span className="block text-sm text-text-strong">{row.materialName}</span>
-            <span className="block font-mono text-xs text-text-muted">
+            <span className="block text-xs tabular-nums text-text-muted">
               {row.materialCode}
             </span>
           </span>
@@ -390,6 +391,7 @@ export function MaterialLotsPage({
             />
           ) : null}
           <DataTable
+            onRowClick={(row) => onOpenDetail(row.id)}
             busy={isRefreshing}
             caption="자재 LOT 목록"
             columns={columns}

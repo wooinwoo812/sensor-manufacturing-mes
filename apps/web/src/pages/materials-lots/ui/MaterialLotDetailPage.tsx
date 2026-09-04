@@ -207,7 +207,7 @@ export function MaterialLotDetailPage({
                   key={allocation.id}
                 >
                   <span className="flex items-center gap-3">
-                    <span className="font-mono text-xs font-bold">
+                    <span className="text-xs tabular-nums font-bold">
                       {allocation.workOrderNumber}
                     </span>
                     <span className="text-sm tabular-nums">

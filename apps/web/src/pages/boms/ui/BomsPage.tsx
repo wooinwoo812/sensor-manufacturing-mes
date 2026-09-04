@@ -134,7 +134,7 @@ export function BomsPage({ search, onSearchChange }: BomsPageProps) {
         header: "Revision",
         cell: (row) => (
           <span className="block">
-            <span className="block font-mono text-sm">{row.revisionNumber}</span>
+            <span className="block text-sm tabular-nums">{row.revisionNumber}</span>
             <span className="block text-xs text-text-muted">
               생성 {new Date(row.createdAt).toLocaleDateString("ko-KR")}
             </span>
@@ -143,11 +143,12 @@ export function BomsPage({ search, onSearchChange }: BomsPageProps) {
       },
       {
         key: "product",
+        wrap: true,
         header: "제품",
         cell: (row) => (
           <span className="block">
             <span className="block text-sm">{row.productName}</span>
-            <span className="block font-mono text-xs text-text-muted">
+            <span className="block text-xs tabular-nums text-text-muted">
               {row.productCode} · 기준단위 {row.productBaseUom}
             </span>
           </span>

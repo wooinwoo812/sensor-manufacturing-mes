@@ -9,6 +9,8 @@ import { Badge, type BadgeTone } from "@/shared/ui";
 
 interface AttentionQueueProps {
   items: DashboardAttentionItem[];
+  /** 항목을 누르면 해당 대상이 있는 목록으로 이동한다. 대시보드가 막다른 화면이면 안 된다. */
+  onOpen?: ((item: DashboardAttentionItem) => void) | undefined;
 }
 
 interface ItemVisual {
@@ -41,7 +43,7 @@ const fallbackVisual: ItemVisual = {
   railClassName: "border-border",
 };
 
-export function AttentionQueue({ items }: AttentionQueueProps) {
+export function AttentionQueue({ items, onOpen }: AttentionQueueProps) {
   if (items.length === 0) {
     return (
       <p
@@ -60,8 +62,21 @@ export function AttentionQueue({ items }: AttentionQueueProps) {
         const Icon = visual.icon;
         return (
           <article
-            className={`flex h-full gap-3 border-s-2 py-4 ps-3 ${visual.railClassName}`}
+            className={`group flex h-full gap-3 border-s-2 py-4 pe-3 ps-3 ${visual.railClassName} ${onOpen ? "cursor-pointer transition-colors hover:bg-accent-soft/40 motion-reduce:transition-none" : ""}`}
             key={`${status}-${code}`}
+            onClick={onOpen ? () => onOpen({ code, context, reason, status, tone }) : undefined}
+            onKeyDown={
+              onOpen
+                ? (event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      onOpen({ code, context, reason, status, tone });
+                    }
+                  }
+                : undefined
+            }
+            role={onOpen ? "link" : undefined}
+            tabIndex={onOpen ? 0 : undefined}
           >
             <span
               className={`grid size-8 shrink-0 place-items-center rounded-md ${visual.iconClassName}`}
@@ -70,7 +85,7 @@ export function AttentionQueue({ items }: AttentionQueueProps) {
             </span>
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-start justify-between gap-2">
-                <p className="font-mono text-xs font-semibold text-text-strong">
+                <p className="text-xs font-semibold tabular-nums text-text-strong">
                   {code}
                 </p>
                 <Badge tone={tone satisfies BadgeTone}>{status}</Badge>

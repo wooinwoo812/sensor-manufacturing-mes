@@ -140,7 +140,7 @@ export function ExecutionQueuePage({
         key: "workOrderNumber",
         header: "작업지시",
         cell: (row) => (
-          <span className="font-mono text-xs font-bold text-text-strong">
+          <span className="text-xs tabular-nums font-bold text-text-strong">
             {row.workOrderNumber}
           </span>
         ),
@@ -149,7 +149,7 @@ export function ExecutionQueuePage({
         key: "productionLotNumber",
         header: "생산 LOT",
         cell: (row) => (
-          <span className="font-mono text-xs text-text-muted">
+          <span className="text-xs tabular-nums text-text-muted">
             {row.productionLotNumber}
           </span>
         ),
@@ -168,11 +168,12 @@ export function ExecutionQueuePage({
       },
       {
         key: "product",
+        wrap: true,
         header: "제품",
         cell: (row) => (
           <span className="block min-w-32">
             <span className="block text-sm text-text-strong">{row.productName}</span>
-            <span className="block font-mono text-xs text-text-muted">
+            <span className="block text-xs tabular-nums text-text-muted">
               {row.productCode}
             </span>
           </span>
@@ -199,6 +200,7 @@ export function ExecutionQueuePage({
       },
       {
         key: "blockedReasonCodes",
+        wrap: true,
         header: "차단 사유",
         cell: (row) =>
           row.blockedReasonCodes.length === 0 ? (

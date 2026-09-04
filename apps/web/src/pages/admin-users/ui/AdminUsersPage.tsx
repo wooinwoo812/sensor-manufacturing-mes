@@ -72,7 +72,7 @@ export function AdminUsersPage({ csrfToken }: AdminUsersPageProps) {
         cell: (row) => (
           <span className="block">
             <span className="block text-sm">{row.displayName}</span>
-            <span className="block font-mono text-xs text-text-muted">
+            <span className="block text-xs tabular-nums text-text-muted">
               {row.email}
             </span>
           </span>

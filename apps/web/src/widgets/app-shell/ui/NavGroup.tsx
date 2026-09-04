@@ -65,7 +65,7 @@ export function NavGroup({ group, pathname }: NavGroupProps) {
               {item.to ? (
                 <SidebarMenuButton
                   asChild
-                  className="h-8 text-[13px] data-[active=true]:font-semibold [&>svg]:text-text-muted data-[active=true]:[&>svg]:text-sidebar-accent-foreground"
+                  className="h-9 text-sm data-[active=true]:font-semibold [&>svg]:text-text-muted data-[active=true]:[&>svg]:text-sidebar-accent-foreground"
                   // 상세(/work-orders/xxx)에서도 부모 메뉴를 활성으로 유지해 현재 영역을 잃지 않게 한다.
                   isActive={item.to === pathname || pathname.startsWith(`${item.to}/`)}
                   tooltip={item.label}

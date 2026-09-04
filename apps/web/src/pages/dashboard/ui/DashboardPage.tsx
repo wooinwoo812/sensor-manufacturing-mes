@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   fetchDashboardSummary,
   type DashboardSummary,
+  type DashboardAttentionItem,
 } from "@/entities/dashboard";
 import { ApiRequestError } from "@/shared/api";
 import {
@@ -37,7 +38,11 @@ type LoadState =
   | { phase: "error"; message: string }
   | { phase: "success"; summary: DashboardSummary; refreshedAt: string };
 
-export function DashboardPage() {
+interface DashboardPageProps {
+  onOpenAttention?: (item: DashboardAttentionItem) => void;
+}
+
+export function DashboardPage({ onOpenAttention }: DashboardPageProps = {}) {
   const [state, setState] = useState<LoadState>({ phase: "loading" });
   const [reloadCount, setReloadCount] = useState(0);
 
@@ -153,7 +158,7 @@ export function DashboardPage() {
                       주간 달성률
                     </p>
                     <div className="mt-1 flex items-baseline justify-between gap-2">
-                      <strong className="font-mono text-2xl font-bold text-accent-strong">
+                      <strong className="tabular-nums text-2xl font-bold text-accent-strong">
                         {state.summary.weeklyTotals.completionRate}%
                       </strong>
                       <span className="text-xs text-text-muted">
@@ -200,7 +205,7 @@ export function DashboardPage() {
                 </div>
               </CardHeader>
               <CardContent className="flex-1 px-5 py-1 sm:px-6">
-                <AttentionQueue items={state.summary.attentionQueue} />
+                <AttentionQueue items={state.summary.attentionQueue} onOpen={onOpenAttention} />
               </CardContent>
             </Card>
           </div>

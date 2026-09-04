@@ -17,7 +17,8 @@ export function Main({ fixed, className, fluid, ...props }: MainProps) {
       className={cn(
         // 페이지 최상위 블록(제목·필터·표·패널)은 항상 16px 간격으로 쌓인다.
         // 페이지마다 mt-*를 붙이지 않게 해 리듬을 한 곳에서 고정한다.
-        'flex flex-col gap-4 px-4 py-6 md:px-6',
+        // 제목 ↔ 본문 ↔ 표 사이 20px. 16px 은 제목이 필터에 붙어 보였다.
+        'flex flex-col gap-5 px-4 py-6 md:px-8',
 
         // If layout is fixed, make the main container flex and grow
         fixed && 'flex grow flex-col overflow-hidden',

@@ -50,10 +50,10 @@ export function PageHeading({
         {eyebrow ? (
           <p className="text-[11px] font-semibold tracking-wide text-accent-strong">{eyebrow}</p>
         ) : null}
-        <h1 className="text-[22px] font-semibold leading-7 tracking-tight text-text-strong">
+        <h1 className="text-2xl font-semibold leading-8 tracking-tight text-text-strong">
           {title}
         </h1>
-        <p className="mt-1 max-w-2xl text-[13px] leading-5 text-text-muted">
+        <p className="mt-1 max-w-2xl text-sm leading-6 text-text-muted">
           {description}
         </p>
       </div>

@@ -169,10 +169,10 @@ export function InspectionDetailPage({
           <KeyValueGrid columns={3}>
             <KeyValue label="검사 규격" strong>{detail.specName}</KeyValue>
             <KeyValue label="작업지시" strong>
-              <span className="font-mono">{detail.workOrderNumber}</span>
+              <span className="tabular-nums">{detail.workOrderNumber}</span>
             </KeyValue>
             <KeyValue label="생산 LOT / 공정">
-              <span className="font-mono">{detail.productionLotNumber}</span>
+              <span className="tabular-nums">{detail.productionLotNumber}</span>
               {` · ${detail.processStepName}`}
             </KeyValue>
             <KeyValue label="완료 일시">{detail.completedAt === null ? (

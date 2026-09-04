@@ -72,7 +72,7 @@ export function LoginPage({ onAuthenticated, reason }: LoginPageProps) {
                   className="grid grid-cols-[2rem_7rem_1fr] items-baseline gap-3 border-b border-white/10 py-3 text-sm"
                   key={step}
                 >
-                  <span className="font-mono text-xs text-[oklch(0.65_0.06_255)]">
+                  <span className="text-xs tabular-nums text-[oklch(0.65_0.06_255)]">
                     {String(index + 1).padStart(2, "0")}
                   </span>
                   <span className="font-semibold">{step}</span>

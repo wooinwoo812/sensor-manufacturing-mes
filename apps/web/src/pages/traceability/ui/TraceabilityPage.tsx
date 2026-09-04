@@ -123,10 +123,11 @@ export function TraceabilityPage({
     () => [
       {
         key: "label",
+        wrap: true,
         header: "LOT 식별",
         cell: (row) => (
           <span className="block">
-            <span className="block font-mono text-sm">{row.label}</span>
+            <span className="block text-sm tabular-nums">{row.label}</span>
             <span className="block text-xs text-text-muted">
               생성 {new Date(row.createdAt).toLocaleDateString("ko-KR")}
             </span>
@@ -272,6 +273,7 @@ export function TraceabilityPage({
         />
       ) : (
         <DataTable
+          onRowClick={(row) => onOpenDetail(row.id)}
           busy={isRefreshing}
           caption="추적 노드 목록"
           columns={columns}

@@ -118,6 +118,8 @@ describe("WorkOrderDetailPage", () => {
     renderPage();
 
     await screen.findByText("WO-2026-093");
+    // 취소 폼은 제목 오른쪽 "작업지시 취소" 버튼으로 연다.
+    await userEvent.click(screen.getByRole("button", { name: "작업지시 취소" }));
     const reasonInput = screen.getByLabelText("취소 사유");
     await userEvent.type(reasonInput, "계획 변경");
     await userEvent.click(screen.getByRole("button", { name: "취소 확정" }));

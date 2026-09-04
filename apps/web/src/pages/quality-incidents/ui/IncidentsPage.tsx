@@ -139,13 +139,14 @@ export function IncidentsPage({
         key: "incidentNumber",
         header: "사건",
         cell: (row) => (
-          <span className="font-mono text-xs font-bold text-text-strong">
+          <span className="text-xs tabular-nums font-bold text-text-strong">
             {row.incidentNumber}
           </span>
         ),
       },
       {
         key: "title",
+        wrap: true,
         header: "제목",
         cell: (row) => (
           <span className="block min-w-48">
@@ -158,13 +159,14 @@ export function IncidentsPage({
       },
       {
         key: "source",
+        wrap: true,
         header: "원천 대상",
         cell: (row) => (
           <span className="block">
             <span className="block text-sm">
               {QUALITY_INCIDENT_SOURCE_TYPE_LABELS[row.sourceType]}
             </span>
-            <span className="block font-mono text-xs text-text-muted">
+            <span className="block text-xs tabular-nums text-text-muted">
               {row.sourceLotNumber}
             </span>
           </span>
@@ -342,6 +344,7 @@ export function IncidentsPage({
       ) : (
         <>
           <DataTable
+            onRowClick={(row) => onOpenDetail(row.id)}
             busy={isRefreshing}
             caption="부적합 사건 목록"
             columns={columns}

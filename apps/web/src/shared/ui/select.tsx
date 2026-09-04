@@ -35,7 +35,7 @@ export function Select({
 
   return (
     <div className="grid gap-2">
-      <span className="text-xs font-semibold text-text" id={labelId}>
+      <span className="text-[13px] font-medium text-text" id={labelId}>
         {label}
       </span>
       <SelectPrimitive.Root

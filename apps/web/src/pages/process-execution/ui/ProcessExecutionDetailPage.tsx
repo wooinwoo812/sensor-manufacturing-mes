@@ -164,7 +164,7 @@ export function ProcessExecutionDetailPage({
                         key={inspection.id}
                         className="flex flex-wrap items-center justify-between gap-2 py-3 first:pt-0 last:pb-0"
                       >
-                        <span className="font-mono text-sm">
+                        <span className="text-sm tabular-nums">
                           {inspection.inspectionNumber}
                         </span>
                         <span className="flex items-center gap-2">

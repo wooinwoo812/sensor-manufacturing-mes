@@ -107,7 +107,7 @@ export function OperationsSummary({ metrics }: OperationsSummaryProps) {
                 </dt>
                 <dd className="mt-2 flex items-baseline gap-1">
                   <strong
-                    className={`font-mono text-2xl font-bold tabular-nums ${valueClassName}`}
+                    className={`tabular-nums text-2xl font-bold tabular-nums ${valueClassName}`}
                   >
                     {value}
                   </strong>

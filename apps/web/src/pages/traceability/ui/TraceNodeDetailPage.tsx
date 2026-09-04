@@ -56,7 +56,7 @@ function EdgeList({
                 className="flex flex-wrap items-center justify-between gap-2 py-3 first:pt-0 last:pb-0"
               >
                 <div>
-                  <p className="font-mono text-sm">{edge.node.label}</p>
+                  <p className="text-sm tabular-nums">{edge.node.label}</p>
                   <p className="text-xs text-text-muted">
                     {TRACE_NODE_TYPE_LABELS[edge.node.nodeType]} · 기록{" "}
                     {formatDateTime(edge.createdAt)}

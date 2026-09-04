@@ -156,11 +156,11 @@ export function MaterialReservationPanel({
                 key={row.id}
               >
                 <span className="flex flex-wrap items-center gap-3">
-                  <span className="font-mono text-xs font-bold">{row.lotNumber}</span>
+                  <span className="text-xs tabular-nums font-bold">{row.lotNumber}</span>
                   <span className="text-sm">
                     {row.materialName} ({row.materialCode})
                   </span>
-                  <span className="font-mono text-sm font-semibold tabular-nums">
+                  <span className="text-sm tabular-nums font-semibold tabular-nums">
                     {row.quantity.toLocaleString("ko-KR")} {row.unit}
                   </span>
                 </span>
