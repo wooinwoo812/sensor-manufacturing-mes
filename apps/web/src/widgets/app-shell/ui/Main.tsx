@@ -23,9 +23,9 @@ export function Main({ fixed, className, fluid, ...props }: MainProps) {
         // If layout is fixed, make the main container flex and grow
         fixed && 'flex grow flex-col overflow-hidden',
 
-        // If layout is not fluid, set the max-width
-        !fluid &&
-          '@7xl/content:mx-auto @7xl/content:w-full @7xl/content:max-w-7xl',
+        // 폭 규칙: 항상 왼쪽 정렬, 최대 1400px. 컨테이너가 1280px 을 넘는 순간(사이드바 접기,
+        // 큰 모니터)에만 가운데 정렬로 바뀌던 이전 규칙은 화면·상태에 따라 폭과 위치가 튀었다.
+        !fluid && 'w-full max-w-[1400px]',
         className
       )}
       {...props}
