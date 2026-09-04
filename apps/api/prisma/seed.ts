@@ -1,4 +1,3 @@
-import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client.js";
 import { ROLE_CONFIG } from "../src/auth/auth.contract.js";
@@ -13,11 +12,10 @@ import { DEMO_QUALITY_INCIDENTS } from "./demo-quality-incidents.js";
 import { DEMO_TRACE_RELATIONS } from "./demo-trace.js";
 import { DEMO_BOM_REVISIONS, DEMO_PRODUCTS } from "./demo-boms.js";
 import { DEMO_INSPECTION_SPEC_REVISIONS } from "./demo-inspection-specs.js";
+import { resolveDatabaseUrl } from "../src/database/database-url.js";
 
-const localDatabaseUrl =
-  "postgresql://sensor_mes:sensor_mes_local@localhost:5432/sensor_mes?schema=public";
 const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL ?? localDatabaseUrl,
+  connectionString: resolveDatabaseUrl(),
 });
 const prisma = new PrismaClient({ adapter });
 
