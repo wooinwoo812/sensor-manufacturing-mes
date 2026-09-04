@@ -24,7 +24,7 @@ import {
   PageHeading,
   Pagination,
   Select,
-  Skeleton,
+  TableSkeleton,
   type BadgeTone,
   type DataTableColumn,
 } from "@/shared/ui";
@@ -144,10 +144,13 @@ export function MaterialLotsPage({
     };
   }, [searchKey, reloadCount]);
 
+  const isCurrent =
+    result !== null && result.key === searchKey && result.reload === reloadCount;
+  // 조건이 바뀌어도 이전 결과가 있으면 그대로 두고 흐리게만 표시한다.
+  // 매번 스켈레톤으로 갈아끼우면 표가 사라졌다 나타나 화면이 흔들린다.
+  const isRefreshing = result !== null && result.state.phase === "success" && !isCurrent;
   const state: LoadState =
-    result !== null && result.key === searchKey && result.reload === reloadCount
-      ? result.state
-      : { phase: "loading" };
+    isCurrent || isRefreshing ? result!.state : { phase: "loading" };
 
   const columns = useMemo<DataTableColumn<MaterialLotListItem>[]>(
     () => [
@@ -352,11 +355,7 @@ export function MaterialLotsPage({
       </FilterBar>
 
       {state.phase === "loading" ? (
-        <div className="space-y-2" aria-label="자재 LOT 조회 중" role="status">
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
-        </div>
+        <TableSkeleton label="자재 LOT 조회 중" />
       ) : state.phase === "error" ? (
         <ErrorState
           description={state.message}
@@ -391,6 +390,7 @@ export function MaterialLotsPage({
             />
           ) : null}
           <DataTable
+            busy={isRefreshing}
             caption="자재 LOT 목록"
             columns={columns}
             emptyMessage="조건에 맞는 자재 LOT가 없습니다."

@@ -31,13 +31,16 @@
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.945 0.005 250);
+  /* 사이드바는 흰색 + 오른쪽 hairline. 회색 사이드바는 콘텐츠 평면과 경쟁해 '더러운 회색'으로 읽혔다.
+     흰 사이드바 / 연회색 콘텐츠 / 흰 카드 순서가 되면 카드가 콘텐츠 위에 놓인 것으로 읽힌다. */
+  --sidebar: oklch(1 0 0);
   --sidebar-foreground: oklch(0.3 0.016 262);
   --sidebar-primary: oklch(0.51 0.17 262);
   --sidebar-primary-foreground: oklch(0.985 0.002 247.839);
-  --sidebar-accent: oklch(0.905 0.012 256);
-  --sidebar-accent-foreground: oklch(0.19 0.016 262);
-  --sidebar-border: oklch(0.88 0.006 250);
+  /* 활성 메뉴 = accent-soft 배경 + accent 글자. 왼쪽 막대 같은 보조 표식은 두지 않는다(중복 신호). */
+  --sidebar-accent: oklch(0.945 0.02 258);
+  --sidebar-accent-foreground: oklch(0.42 0.15 260);
+  --sidebar-border: oklch(0.905 0.006 250);
   --sidebar-ring: oklch(0.51 0.17 262);
 
   /* 기존 공통 컴포넌트가 기본 shadcn 색을 공유하도록 남긴 호환 alias */

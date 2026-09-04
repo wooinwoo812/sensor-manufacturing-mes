@@ -17,7 +17,7 @@ import {
   PageHeading,
   Pagination,
   Select,
-  Skeleton,
+  TableSkeleton,
   type BadgeTone,
   type DataTableColumn,
 } from "@/shared/ui";
@@ -112,10 +112,12 @@ export function TraceabilityPage({
     };
   }, [params, reloadCount]);
 
+  const isCurrent =
+    result !== null && result.key === params && result.reload === reloadCount;
+  // 조건이 바뀌어도 이전 결과가 있으면 그대로 두고 흐리게만 표시한다(스켈레톤 교체 깜빡임 방지).
+  const isRefreshing = result !== null && result.state.phase === "success" && !isCurrent;
   const state: LoadState =
-    result !== null && result.key === params && result.reload === reloadCount
-      ? result.state
-      : { phase: "loading" };
+    isCurrent || isRefreshing ? result!.state : { phase: "loading" };
 
   const columns = useMemo<DataTableColumn<TraceNodeListItem>[]>(
     () => [
@@ -241,7 +243,7 @@ export function TraceabilityPage({
       </FilterBar>
 
       {state.phase === "loading" ? (
-        <Skeleton className="h-64 w-full" />
+        <TableSkeleton label="추적 노드 조회 중" />
       ) : state.phase === "error" ? (
         <ErrorState
           title="추적 노드를 불러올 수 없습니다"
@@ -270,6 +272,7 @@ export function TraceabilityPage({
         />
       ) : (
         <DataTable
+          busy={isRefreshing}
           caption="추적 노드 목록"
           columns={columns}
           rows={state.items}

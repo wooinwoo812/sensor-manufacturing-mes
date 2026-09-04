@@ -19,21 +19,18 @@ export function PageHeading({
   return (
     <header
       className={cn(
-        "mb-5 border-b border-border pb-4",
+        "flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between",
         className,
       )}
     >
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      {/* 왼쪽 파란 막대와 밑줄은 2015년식 admin 템플릿 신호라 제거했다. 제목 크기와 Main 의 gap 만으로 구획한다. */}
+      <>
         <div className="flex min-w-0 gap-3">
-          <span
-            aria-hidden="true"
-            className="mt-1 h-6 w-0.5 shrink-0 rounded-full bg-primary"
-          />
           <div className="min-w-0">
-            <h1 className="text-xl font-bold tracking-tight text-text-strong">
+            <h1 className="text-[22px] font-semibold leading-7 tracking-tight text-text-strong">
               {title}
             </h1>
-            <p className="mt-0.5 max-w-2xl text-sm leading-6 text-text-muted">
+            <p className="mt-1 max-w-2xl text-[13px] leading-5 text-text-muted">
               {description}
             </p>
           </div>
@@ -42,7 +39,7 @@ export function PageHeading({
           {meta ? <div className="text-xs text-text-muted">{meta}</div> : null}
           {actions}
         </div>
-      </div>
+      </>
     </header>
   );
 }

@@ -32,7 +32,7 @@ export function AppSidebar({
   showDevelopmentTools = import.meta.env.DEV,
 }: AppSidebarProps) {
   return (
-    <Sidebar collapsible="icon" variant="inset">
+    <Sidebar collapsible="icon" variant="sidebar">
       <SidebarHeader>
         <AppTitle />
       </SidebarHeader>

@@ -20,6 +20,7 @@ export {
 export { Toast, ToastRegion } from "./toast";
 export {
   DataTable,
+  TableSkeleton,
   type DataTableColumn,
 } from "./data-table";
 export {

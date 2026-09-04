@@ -57,7 +57,7 @@ export function AppShell({
         )}
       >
         <Header
-          className="border-b border-border bg-background lg:rounded-t-lg"
+          className="border-b border-border bg-surface"
           fixed
         >
           <nav aria-label="현재 위치" className="me-auto flex min-w-0 items-center gap-1.5 text-sm">

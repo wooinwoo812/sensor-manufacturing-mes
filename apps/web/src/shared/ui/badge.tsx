@@ -53,12 +53,24 @@ export function PriorityBadge({ priority }: { priority: "low" | "normal" | "high
     critical: { label: "긴급", tone: "danger" },
   } as const;
 
+  // 우선순위는 점 + 텍스트로만 표시한다. 한 행에 상태·차단 사유·우선순위 배지가 나란히 놓이면
+  // 세 번째 pill 은 정보가 아니라 소음이 된다. 긴급만 아이콘을 붙여 색 없이도 구분되게 한다.
+  const dotTone: Record<BadgeTone, string> = {
+    neutral: "bg-text-subtle",
+    info: "bg-accent-strong",
+    success: "bg-success",
+    warning: "bg-warning",
+    danger: "bg-danger",
+  };
+
   return (
-    <Badge
-      {...(priority === "critical" ? { icon: ShieldAlert } : {})}
-      tone={config[priority].tone}
-    >
+    <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-xs font-medium text-text">
+      {priority === "critical" ? (
+        <ShieldAlert className="size-3.5 text-danger-strong" aria-hidden="true" />
+      ) : (
+        <span aria-hidden="true" className={cn("size-2 rounded-full", dotTone[config[priority].tone])} />
+      )}
       {config[priority].label}
-    </Badge>
+    </span>
   );
 }

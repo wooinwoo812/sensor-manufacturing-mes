@@ -1,4 +1,4 @@
-import { Factory, ShieldCheck, Waypoints } from "lucide-react";
+import { Factory, ShieldCheck } from "lucide-react";
 import type { Session } from "@/entities/session";
 import {
   RoleLoginList,
@@ -41,56 +41,64 @@ export function LoginPage({ onAuthenticated, reason }: LoginPageProps) {
       </header>
 
       <main
-        className="mx-auto grid min-h-[calc(100svh-4.0625rem)] max-w-6xl lg:grid-cols-[minmax(0,0.85fr)_minmax(28rem,1.15fr)]"
+        className="grid min-h-[calc(100svh-4.0625rem)] lg:grid-cols-[minmax(0,0.9fr)_minmax(28rem,1.1fr)]"
         id="main-content"
         tabIndex={-1}
       >
-        <section className="flex flex-col justify-center border-b border-border px-5 py-10 sm:px-8 sm:py-14 lg:border-b-0 lg:border-e lg:py-16">
+        {/* 왼쪽은 어두운 브랜드 평면. 로그인은 제품의 첫 화면이라 한 번은 톤 대비가 필요하다.
+            gradient·glow 없이 단색 navy 하나로 끝내고, 내용은 제조 흐름 5단계라는 이 제품만의 정보로 채운다. */}
+        <section className="flex flex-col justify-between bg-[oklch(0.22_0.03_262)] px-6 py-10 text-[oklch(0.97_0.005_250)] sm:px-10 sm:py-14 lg:py-16">
           <div>
-            <h1 className="max-w-xl text-balance text-3xl font-bold tracking-[-0.025em] text-text-strong sm:text-4xl">
+            <p className="text-[11px] font-semibold tracking-[0.18em] text-[oklch(0.75_0.08_255)]">
+              SENSOR MANUFACTURING MES
+            </p>
+            <h1 className="mt-5 max-w-md text-balance text-[2rem] font-semibold leading-[1.2] tracking-[-0.02em] sm:text-[2.5rem]">
               역할을 선택해 데모를 시작하세요
             </h1>
-            <p className="mt-4 max-w-xl text-pretty text-sm leading-7 text-text-muted sm:text-base">
-              생산계획부터 품질과 감사이력까지, 각 담당자의 실제 권한 경계로
-              같은 제조 흐름을 확인합니다.
+            <p className="mt-5 max-w-md text-[15px] leading-7 text-[oklch(0.82_0.01_255)]">
+              생산계획부터 품질과 감사이력까지, 각 담당자의 실제 권한 경계로 같은 제조 흐름을
+              확인합니다.
             </p>
 
-            <div className="mt-9 border-y border-border py-5">
-              <div className="flex items-start gap-3">
-                <Waypoints
-                  className="mt-0.5 size-5 shrink-0 text-accent-strong"
-                  aria-hidden="true"
-                />
-                <div>
-                  <strong className="text-sm text-text-strong">
-                    작업지시 → 자재 → 공정 → 품질 → LOT 계보
-                  </strong>
-                  <p className="mt-1 text-xs leading-5 text-text-muted">
-                    역할을 바꿀 때 이전 세션을 종료해 조회 결과와 실행 권한이
-                    섞이지 않습니다.
-                  </p>
-                </div>
-              </div>
-            </div>
+            <ol className="mt-10 grid max-w-md gap-0 border-t border-white/10" aria-label="제조 흐름">
+              {[
+                ["작업지시", "계획 수량·납기·우선순위를 발행"],
+                ["자재", "LOT 단위 예약과 가용량 통제"],
+                ["공정", "실적 입력과 다음 공정 준비 판정"],
+                ["품질", "게이트별 검사와 판정·격리"],
+                ["LOT 계보", "원천과 영향을 양방향 추적"],
+              ].map(([step, detail], index) => (
+                <li
+                  className="grid grid-cols-[2rem_7rem_1fr] items-baseline gap-3 border-b border-white/10 py-3 text-sm"
+                  key={step}
+                >
+                  <span className="font-mono text-xs text-[oklch(0.65_0.06_255)]">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  <span className="font-semibold">{step}</span>
+                  <span className="text-[13px] text-[oklch(0.78_0.01_255)]">{detail}</span>
+                </li>
+              ))}
+            </ol>
           </div>
 
-          <div className="mt-9 flex items-start gap-3 text-xs leading-5 text-text-muted">
+          <div className="mt-12 flex items-start gap-3 text-xs leading-5 text-[oklch(0.75_0.01_255)]">
             <ShieldCheck
-              className="mt-0.5 size-4 shrink-0 text-success-strong"
+              className="mt-0.5 size-4 shrink-0 text-[oklch(0.78_0.14_158)]"
               aria-hidden="true"
             />
             <p>
-              모든 계정과 데이터는 가상입니다. 로그인은 HttpOnly 세션을 발급하고
-              API가 역할별 권한을 다시 검증합니다.
+              모든 계정과 데이터는 가상입니다. 로그인은 HttpOnly 세션을 발급하고 API가 역할별
+              권한을 다시 검증합니다.
             </p>
           </div>
         </section>
 
         <section
           aria-labelledby="demo-access-title"
-          className="flex items-center px-5 py-10 sm:px-8 sm:py-14 lg:py-20"
+          className="flex items-center px-5 py-10 sm:px-10 sm:py-14 lg:py-20"
         >
-          <div className="w-full overflow-hidden rounded-panel border border-border-strong bg-surface shadow-panel">
+          <div className="mx-auto w-full max-w-2xl overflow-hidden rounded-panel border border-border-strong bg-surface">
             <div className="border-b border-border bg-surface-subtle/45 px-5 py-5 sm:px-6">
               <h2 className="text-lg font-bold text-text-strong" id="demo-access-title">
                 데모 접근 권한

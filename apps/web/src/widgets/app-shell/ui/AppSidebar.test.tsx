@@ -46,7 +46,8 @@ describe("shadcn-admin 기반 MES 앱 사이드바", () => {
     );
 
     const sidebar = container.querySelector('[data-slot="sidebar"]');
-    expect(sidebar).toHaveAttribute("data-variant", "inset");
+    // 흰 사이드바 + 오른쪽 hairline 의 표준 variant. inset(둥근 콘텐츠 패널)은 회색 사이드바 전제라 폐기했다.
+    expect(sidebar).toHaveAttribute("data-variant", "sidebar");
     expect(sidebar).toHaveAttribute("data-collapsible", "");
 
     fireEvent.keyDown(window, { key: "b", ctrlKey: true });

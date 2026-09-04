@@ -53,7 +53,9 @@ export function NavGroup({ group, pathname }: NavGroupProps) {
 
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+      <SidebarGroupLabel className="h-7 text-[11px] font-semibold tracking-wide text-text-subtle">
+        {group.label}
+      </SidebarGroupLabel>
       <SidebarMenu>
         {group.items.map((item) => {
           const Icon = iconByName[item.icon];
@@ -63,7 +65,7 @@ export function NavGroup({ group, pathname }: NavGroupProps) {
               {item.to ? (
                 <SidebarMenuButton
                   asChild
-                  className="relative after:absolute after:inset-y-2 after:start-0 after:w-0.5 after:rounded-full after:bg-sidebar-primary after:opacity-0 data-[active=true]:font-semibold data-[active=true]:after:opacity-100"
+                  className="h-8 text-[13px] data-[active=true]:font-semibold [&>svg]:text-text-muted data-[active=true]:[&>svg]:text-sidebar-accent-foreground"
                   isActive={item.to === pathname}
                   tooltip={item.label}
                 >
