@@ -19,11 +19,11 @@ interface BadgeProps {
 }
 
 const toneClasses: Record<BadgeTone, string> = {
-  neutral: "border-border bg-surface-subtle text-text-muted",
-  info: "border-accent/30 bg-accent-soft text-accent-strong",
-  success: "border-success-border bg-success-soft text-success-strong",
-  warning: "border-warning-border bg-warning-soft text-warning-strong",
-  danger: "border-danger-border bg-danger-soft text-danger-strong",
+  neutral: "border-border/70 bg-surface-subtle text-text-muted",
+  info: "border-accent/60 bg-accent-soft text-accent-strong",
+  success: "border-success-border/60 bg-success-soft text-success-strong",
+  warning: "border-warning-border/60 bg-warning-soft text-warning-strong",
+  danger: "border-danger-border/60 bg-danger-soft text-danger-strong",
 };
 
 const defaultIcon: Record<BadgeTone, LucideIcon> = {
@@ -38,8 +38,8 @@ export function Badge({ children, className, icon, tone = "neutral" }: BadgeProp
   const Icon = icon ?? defaultIcon[tone];
 
   return (
-    <span className={cn("inline-flex min-h-6 items-center gap-1 rounded-md border px-2 text-xs font-semibold", toneClasses[tone], className)}>
-      <Icon className="size-4" aria-hidden="true" />
+    <span className={cn("inline-flex h-6 items-center gap-1 whitespace-nowrap rounded-md border px-1.5 text-xs font-medium leading-none", toneClasses[tone], className)}>
+      <Icon className="size-3.5" aria-hidden="true" />
       {children}
     </span>
   );

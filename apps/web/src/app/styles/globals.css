@@ -1,3 +1,4 @@
+@import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "./tokens.css";
@@ -21,6 +22,9 @@
     font-synthesis: none;
     line-height: var(--mes-leading-body);
     text-rendering: optimizeLegibility;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+    -webkit-font-smoothing: antialiased;
   }
 
   ::selection {

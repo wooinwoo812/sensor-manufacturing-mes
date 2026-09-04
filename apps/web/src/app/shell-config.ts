@@ -103,6 +103,7 @@ const navigation: { label: string; items: ConfiguredNavigationItem[] }[] = [
 const routeTitles: Record<string, { title: string }> = {
   "/dashboard": { title: "운영 대시보드" },
   "/work-orders": { title: "작업지시" },
+  "/work-orders/new": { title: "작업지시 생성" },
   "/materials/lots": { title: "자재 LOT" },
   "/materials/boms": { title: "BOM 기준정보" },
   "/execution/queue": { title: "공정 실행" },
@@ -119,7 +120,7 @@ export function resolveShellContext(
   pathname: string,
   session: Session,
 ): AppShellConfiguration {
-  const current = routeTitles[pathname] ?? { title: "화면을 찾을 수 없음" };
+  const current = resolveRouteTitle(pathname);
   const allowedNavigation = navigation
     .map((group) => ({
       label: group.label,
@@ -135,6 +136,19 @@ export function resolveShellContext(
     pageTitle: current.title,
     currentRole: session.activeRole.label,
   };
+}
+
+function resolveRouteTitle(pathname: string): { title: string } {
+  const exact = routeTitles[pathname];
+  if (exact) {
+    return exact;
+  }
+
+  const parent = Object.keys(routeTitles)
+    .filter((route) => pathname.startsWith(`${route}/`))
+    .sort((a, b) => b.length - a.length)[0];
+
+  return parent ? routeTitles[parent]! : { title: "화면을 찾을 수 없음" };
 }
 
 function toNavigationItem(item: ConfiguredNavigationItem): NavigationItem {

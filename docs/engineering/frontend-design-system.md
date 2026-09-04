@@ -30,22 +30,24 @@ Figma나 외부 template는 진실 공급원이 아니다. 실제 token, compone
 
 | Token | 값 | 용도 |
 |---|---:|---|
-| `--mes-font-sans` | OS system UI + 한국어 system fallback | 모든 사용자 문구와 표 |
-| `--mes-font-mono` | Cascadia Mono·SFMono·Consolas fallback | LOT·작업지시 번호, 수량 지표 |
+| `--mes-font-sans` | Pretendard Variable(번들) + OS system fallback | 모든 사용자 문구와 표 |
+| `--mes-font-mono` | Cascadia Mono·SFMono·Consolas fallback | LOT·작업지시 번호 같은 식별자 (수량·날짜는 sans + `tabular-nums`) |
 | `--mes-space-unit` | `0.25rem` | Tailwind spacing scale의 기준 |
 | `--mes-leading-body` | `1.5` | 설명·복구 안내 본문 |
 
 제조 현장의 폐쇄망·느린 초기 연결에서도 글꼴 때문에 화면이 흔들리지 않도록 외부
-Google Fonts 요청을 사용하지 않는다. 설치돼 있으면 Pretendard를 우선하고,
-Windows는 Segoe UI와 Malgun Gothic, Apple 환경은 system UI와 Apple SD Gothic
-Neo로 이어진다. 특정 OS에서 서체가 달라지는 비용보다 offline 가용성과 첫 렌더링
-안정성을 우선한 결정이다. `font-synthesis: none`으로 설치되지 않은 굵기를 브라우저가
+Google Fonts 요청을 사용하지 않는다. 대신 `pretendard` npm package의 dynamic
+subset woff2를 앱 번들에 포함해 self-host하며, 로드 전에는 Windows의 Segoe UI와
+Malgun Gothic, Apple 환경의 system UI와 Apple SD Gothic Neo로 이어진다. OS별
+기본 한국어 서체(특히 Malgun Gothic)의 자간·굵기 편차가 업무 화면 인상을 크게
+바꾸기 때문에 offline 가용성을 유지하면서 서체를 고정한 결정이다. 본문은
+`word-break: keep-all`로 한국어 어절 중간 줄바꿈을 막는다. `font-synthesis: none`으로 설치되지 않은 굵기를 브라우저가
 임의 생성하지 않으며, mobile form control은 iOS 자동 확대를 막기 위해 16px을
 유지한다. 전역 scrollbar 모양은 강제하지 않아 OS 접근성 설정을 보존한다.
 
 | 단계 | 크기·굵기 | 용도 | 이유 |
 |---|---|---|---|
-| page title | 24px·700 | 현재 업무영역의 최상위 제목 | 내부 업무 화면에서 30px 이상 marketing heading이 data보다 앞서는 것을 막는다 |
+| page title | 20px·700 | 현재 업무영역의 최상위 제목 | 내부 업무 화면에서 30px 이상 marketing heading이 data보다 앞서는 것을 막는다 |
 | section title | 16px·600~700 | panel·table heading | 14px body와 구분하면서 한 화면에 여러 section을 유지한다 |
 | body·control | 14px·400~600 | 설명·cell·button·input | 정보 밀도와 1024px 가독성의 기본값이다 |
 | metadata·badge | 12px·500~600 | timestamp·단위·상태 보조정보 | 12px 미만 한국어를 실제 업무 화면에 사용하지 않는다 |

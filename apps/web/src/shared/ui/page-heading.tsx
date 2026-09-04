@@ -19,7 +19,7 @@ export function PageHeading({
   return (
     <header
       className={cn(
-        "mb-6 border-b border-border-strong pb-5",
+        "mb-5 border-b border-border pb-4",
         className,
       )}
     >
@@ -30,10 +30,10 @@ export function PageHeading({
             className="mt-1 h-6 w-0.5 shrink-0 rounded-full bg-primary"
           />
           <div className="min-w-0">
-            <h1 className="text-2xl font-bold tracking-tight text-text-strong">
+            <h1 className="text-xl font-bold tracking-tight text-text-strong">
               {title}
             </h1>
-            <p className="mt-1 max-w-2xl text-sm leading-6 text-text-muted">
+            <p className="mt-0.5 max-w-2xl text-sm leading-6 text-text-muted">
               {description}
             </p>
           </div>

@@ -202,7 +202,7 @@ export function WorkOrderDetailPage({
           <dl className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <div>
               <dt className="text-xs font-semibold text-text-muted">계획수량</dt>
-              <dd className="mt-1 font-mono text-lg font-bold tabular-nums">
+              <dd className="mt-1 text-lg font-semibold tabular-nums">
                 {detail.plannedQuantity.toLocaleString("ko-KR")} {detail.unit}
               </dd>
             </div>
@@ -212,7 +212,7 @@ export function WorkOrderDetailPage({
                 {isDueOverdue(detail.dueDate) && detail.status !== "COMPLETED" ? (
                   <Badge tone="danger">{`${formatWorkOrderDueDate(detail.dueDate)} 지연`}</Badge>
                 ) : (
-                  <span className="font-mono text-lg font-bold tabular-nums">
+                  <span className="text-lg font-semibold tabular-nums">
                     {formatWorkOrderDueDate(detail.dueDate)}
                   </span>
                 )}
@@ -220,7 +220,7 @@ export function WorkOrderDetailPage({
             </div>
             <div>
               <dt className="text-xs font-semibold text-text-muted">진행률</dt>
-              <dd className="mt-1 font-mono text-lg font-bold tabular-nums">
+              <dd className="mt-1 text-lg font-semibold tabular-nums">
                 {detail.progressPercent}%
               </dd>
             </div>

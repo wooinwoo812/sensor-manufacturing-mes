@@ -16,17 +16,17 @@ export function MetricCard({ emphasis = "neutral", helper, icon: Icon, label, va
   }[emphasis];
 
   return (
-    <article className="min-h-36 rounded-panel border border-border bg-surface p-5">
+    <article className="rounded-panel border border-border bg-surface p-4">
       <div className="flex items-start justify-between gap-4">
         <div>
           <span className="text-xs font-semibold text-text-muted">{label}</span>
-          <strong className="mt-2 block font-mono text-2xl font-bold tracking-tight text-text-strong">{value}</strong>
+          <strong className="mt-1.5 block text-[1.75rem] font-semibold leading-none tracking-tight text-text-strong tabular-nums">{value}</strong>
         </div>
-        <span className={`grid size-9 place-items-center rounded-control ${iconTone}`}>
+        <span className={`grid size-8 place-items-center rounded-control ${iconTone}`}>
           <Icon className="size-4" aria-hidden="true" />
         </span>
       </div>
-      <p className="mt-4 border-t border-border pt-3 text-xs text-text-muted">{helper}</p>
+      <p className="mt-3 text-xs text-text-muted">{helper}</p>
     </article>
   );
 }

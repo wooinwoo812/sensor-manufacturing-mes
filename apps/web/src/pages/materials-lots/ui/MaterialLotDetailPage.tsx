@@ -176,19 +176,19 @@ export function MaterialLotDetailPage({
           <dl className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
             <div>
               <dt className="text-xs font-semibold text-text-muted">입고</dt>
-              <dd className="mt-1 font-mono text-lg font-bold tabular-nums">
+              <dd className="mt-1 text-lg font-semibold tabular-nums">
                 {detail.receivedQuantity.toLocaleString("ko-KR")} {detail.unit}
               </dd>
             </div>
             <div>
               <dt className="text-xs font-semibold text-text-muted">재고</dt>
-              <dd className="mt-1 font-mono text-lg font-bold tabular-nums">
+              <dd className="mt-1 text-lg font-semibold tabular-nums">
                 {detail.onHand.toLocaleString("ko-KR")} {detail.unit}
               </dd>
             </div>
             <div>
               <dt className="text-xs font-semibold text-text-muted">예약</dt>
-              <dd className="mt-1 font-mono text-lg font-bold tabular-nums">
+              <dd className="mt-1 text-lg font-semibold tabular-nums">
                 {detail.reservedQuantity.toLocaleString("ko-KR")} {detail.unit}
               </dd>
             </div>
@@ -198,7 +198,7 @@ export function MaterialLotDetailPage({
                 {detail.availableQuantity === 0 ? (
                   <Badge tone="danger">{`0 ${detail.unit}`}</Badge>
                 ) : (
-                  <span className="font-mono text-lg font-bold tabular-nums">
+                  <span className="text-lg font-semibold tabular-nums">
                     {detail.availableQuantity.toLocaleString("ko-KR")} {detail.unit}
                   </span>
                 )}
@@ -206,7 +206,7 @@ export function MaterialLotDetailPage({
             </div>
             <div>
               <dt className="text-xs font-semibold text-text-muted">소비 / 폐기</dt>
-              <dd className="mt-1 font-mono text-lg font-bold tabular-nums">
+              <dd className="mt-1 text-lg font-semibold tabular-nums">
                 {detail.consumedQuantity.toLocaleString("ko-KR")} /{" "}
                 {detail.scrappedQuantity.toLocaleString("ko-KR")} {detail.unit}
               </dd>
