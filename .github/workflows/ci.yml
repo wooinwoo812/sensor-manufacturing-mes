@@ -19,6 +19,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
+    env:
+      # 코드에 localhost fallback이 없으므로 CI에서도 명시적으로 지정한다.
+      DATABASE_URL: postgresql://sensor_mes:sensor_mes_local@localhost:5432/sensor_mes?schema=public
+
     steps:
       - name: Check out repository
         uses: actions/checkout@v5

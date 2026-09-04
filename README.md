@@ -55,7 +55,7 @@ corepack pnpm dev
 - API health: <http://localhost:3000/api/health>
 - PostgreSQL: `localhost:5432`
 
-기본 local 값은 [`.env.example`](.env.example)에 있으며 실제 `.env`와 비밀값은 commit하지 않습니다. Web 개발 서버는 `/api` 요청만 NestJS로 proxy합니다.
+기본 local 값은 [`.env.example`](.env.example)에 있으며 실제 `.env`와 비밀값은 commit하지 않습니다. `DATABASE_URL`은 필수이며, 없으면 API·seed·DB 스크립트가 localhost로 대체 접속하지 않고 즉시 실패합니다. `.env.example`을 `apps/api/.env`로 복사해 사용하거나 프로세스 환경변수로 넘기세요. Web 개발 서버는 `/api` 요청만 NestJS로 proxy합니다.
 
 ### 품질 검사
 

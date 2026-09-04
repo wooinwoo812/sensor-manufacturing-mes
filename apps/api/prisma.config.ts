@@ -1,8 +1,5 @@
-import "dotenv/config";
 import { defineConfig } from "prisma/config";
-
-const localDatabaseUrl =
-  "postgresql://sensor_mes:sensor_mes_local@localhost:5432/sensor_mes?schema=public";
+import { resolveDatabaseUrl } from "./src/database/database-url.js";
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
@@ -11,6 +8,6 @@ export default defineConfig({
     seed: "tsx prisma/seed.ts",
   },
   datasource: {
-    url: process.env.DATABASE_URL ?? localDatabaseUrl,
+    url: resolveDatabaseUrl(),
   },
 });

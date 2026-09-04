@@ -1,12 +1,8 @@
-import "dotenv/config";
 import pg from "pg";
+import { resolveDatabaseUrl } from "../src/database/database-url.js";
 
 const { Client } = pg;
-const connectionString =
-  process.env.DATABASE_URL ??
-  "postgresql://sensor_mes:sensor_mes_local@localhost:5432/sensor_mes?schema=public";
-
-const client = new Client({ connectionString });
+const client = new Client({ connectionString: resolveDatabaseUrl() });
 
 try {
   await client.connect();
