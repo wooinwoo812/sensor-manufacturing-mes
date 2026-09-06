@@ -110,7 +110,7 @@ dc up -d --wait api caddy
 
 - 코드·문서·TypeScript·테스트·실제 PostgreSQL 회귀 검사·빌드를 통과한 뒤 배포 파일을 만든다.
 - [package-release.sh](../../deploy/lightsail/package-release.sh)는 명시한 파일만 묶는다. 환경변수·개인키·로컬 DB는 제외하며 결과물은 GitHub에 1일 보관한다.
-- [github-deploy.sh](../../deploy/lightsail/github-deploy.sh)는 OIDC 역할과 Lightsail의 임시 SSH 키를 사용한다. 저장소에 장기 AWS access key나 SSH private key를 등록하지 않는다.
+- [github-deploy.sh](../../deploy/lightsail/github-deploy.sh)는 OIDC 역할과 Lightsail의 임시 SSH 키를 사용한다. 저장소에 장기 AWS access key나 SSH private key를 등록하지 않는다. 서버 식별은 기존 신뢰된 SSH 연결로 확인한 [공개 host key](../../deploy/lightsail/ssh-host-key.pub)를 고정해 검증하며, 서버를 재생성하면 이 공개키도 다시 확인해 갱신한다.
 - IAM 신뢰 조건은 이 저장소의 `main`만 허용하고, 권한은 이 인스턴스의 임시 접속 정보 조회와 방화벽 열기·닫기로 제한한다. 실제 배포는 서버의 Ubuntu 계정 및 Docker 관리 권한으로 실행된다.
 - runner의 IPv4 `/32`에만 SSH를 임시 허용하고 EXIT 처리와 `always()` 단계에서 닫는다. runner 강제 종료처럼 후처리 자체가 실행되지 않으면 Lightsail의 22번 규칙에 남은 runner IP를 정리해야 한다.
 - [deploy-release.sh](../../deploy/lightsail/deploy-release.sh)는 서버 잠금, Linux 이미지 빌드, DB dump와 목록 검증, migration, 앱·Caddy 상태 및 공개 HTTPS 검증 순으로 실행한다. DB 서비스와 데이터 volume은 재생성하지 않으며 seed는 실행하지 않는다.

@@ -26,6 +26,14 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
 
+      - name: Check deployment scripts
+        run: |
+          bash -n deploy/lightsail/package-release.sh
+          bash -n deploy/lightsail/deploy-release.sh
+          bash -n deploy/lightsail/github-deploy.sh
+          shellcheck deploy/lightsail/*.sh
+          python3 deploy/lightsail/test_deploy.py
+
       - name: Set up pnpm
         uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
         with:
@@ -76,14 +84,6 @@ jobs:
 
       - name: Check documentation
         run: pnpm docs:check
-
-      - name: Check deployment scripts
-        run: |
-          bash -n deploy/lightsail/package-release.sh
-          bash -n deploy/lightsail/deploy-release.sh
-          bash -n deploy/lightsail/github-deploy.sh
-          shellcheck deploy/lightsail/*.sh
-          python3 deploy/lightsail/test_deploy.py
 
       - name: Package the verified release
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'

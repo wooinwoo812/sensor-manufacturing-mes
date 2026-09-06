@@ -32,9 +32,11 @@ jq -er '.accessDetails.certKey' "$connection/access.json" > "$connection/key-cer
 host=$(jq -er '.accessDetails.ipAddress' "$connection/access.json")
 username=$(jq -er '.accessDetails.username' "$connection/access.json")
 [[ $host =~ ^[0-9.]+$ && $username =~ ^[a-z_][a-z0-9_-]*$ ]] || exit 1
-# Trust keys returned by the authenticated AWS API, never an unverified keyscan.
-jq -er '.accessDetails as $d | $d.hostKeys[] | "\($d.ipAddress) \(.algorithm) \(.publicKey)"' \
-  "$connection/access.json" > "$connection/known_hosts"
+# Pin the public host key verified through the existing trusted SSH connection.
+# Lightsail can return an empty hostKeys list for a newly provisioned instance.
+host_key=$(cat deploy/lightsail/ssh-host-key.pub)
+[[ $host_key =~ ^ssh-ed25519\ [A-Za-z0-9+/=]+$ ]] || exit 1
+printf '%s %s\n' "$host" "$host_key" > "$connection/known_hosts"
 chmod 600 "$connection/key" "$connection/key-cert.pub" "$connection/known_hosts"
 
 runner_ip=$(curl -4 --fail --silent --show-error --max-time 15 https://checkip.amazonaws.com)
@@ -64,4 +66,4 @@ ssh "${options[@]}" "$destination" "set -eu; umask 077
   tar -xzf '$release.tar.gz' -C '/opt/fabriscope/releases/$release'
   cd '/opt/fabriscope/releases/$release'
   bash deploy/lightsail/deploy-release.sh '$release' '$GITHUB_SHA'" </dev/null
-printf '### Deployment succeeded\n\nCommit: `%s`\n' "$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+printf '### Deployment succeeded\n\nCommit: %s\n' "$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
