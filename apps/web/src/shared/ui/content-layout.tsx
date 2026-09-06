@@ -34,9 +34,19 @@ export function FormFields({ children }: { children: ReactNode }) {
   return <div className="grid min-w-0 gap-5 sm:grid-cols-2">{children}</div>;
 }
 
-export function FormActions({ children }: { children: ReactNode }) {
+export function FormActions({
+  children,
+  tourAnchor,
+}: {
+  children: ReactNode;
+  tourAnchor?: string;
+}) {
   return (
-    <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-border pt-5">
+    <div
+      data-form-actions="true"
+      data-tour={tourAnchor}
+      className="mt-5 flex flex-wrap items-center justify-end gap-3 border-t border-border pt-4"
+    >
       {children}
     </div>
   );

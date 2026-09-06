@@ -11,6 +11,8 @@ import {
   useEffect,
   useRef,
   useState,
+  Children,
+  isValidElement,
   type KeyboardEvent,
   type MouseEvent,
   type ReactNode,
@@ -65,6 +67,22 @@ interface DataTableProps<Row> {
 function isInsideControl(event: MouseEvent | KeyboardEvent): boolean {
   const target = event.target as HTMLElement;
   return target.closest("button, a, input, select, [role='combobox']") !== null;
+}
+
+/** 말줄임된 값도 마우스 오버와 접근성 트리에서 원문을 확인할 수 있다. */
+function cellText(content: ReactNode): string {
+  return Children.toArray(content)
+    .map((part) => {
+      if (typeof part === "string" || typeof part === "number")
+        return String(part);
+      return isValidElement<{ children?: ReactNode }>(part)
+        ? cellText(part.props.children)
+        : "";
+    })
+    .filter(Boolean)
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 export function DataTable<Row>({
@@ -359,31 +377,39 @@ export function DataTable<Row>({
                     {(rowNumberStart ?? rows.length) - rowIndex}
                   </td>
                 ) : null}
-                {columns.map((column, columnIndex) => (
-                  <td
-                    className={cn(
-                      "px-3 py-2 align-middle text-text tabular-nums last:pr-4",
-                      columnIndex === 0 && "sticky z-[1] bg-inherit",
-                      column.align === "center" && "[&>.flex]:justify-center",
-                      column.wrap
-                        ? "min-w-32 whitespace-normal [&_.rounded-full]:h-auto [&_.rounded-full]:min-h-6 [&_.rounded-full]:whitespace-normal [&_.rounded-full]:py-1 [&_.rounded-full]:leading-4 [&_svg]:shrink-0"
-                        : "whitespace-nowrap",
-                    )}
-                    key={column.key}
-                    data-sticky-column={columnIndex === 0 ? "true" : undefined}
-                    style={{
-                      textAlign: column.align ?? "left",
-                      left:
-                        columnIndex === 0
-                          ? showRowNumbers
-                            ? 64
-                            : 0
-                          : undefined,
-                    }}
-                  >
-                    {column.cell(row)}
-                  </td>
-                ))}
+                {columns.map((column, columnIndex) => {
+                  const content = column.cell(row);
+                  return (
+                    <td
+                      className={cn(
+                        "overflow-hidden px-3 py-2 align-middle text-text tabular-nums last:pr-4",
+                        columnIndex === 0 && "sticky z-[1] bg-inherit",
+                        column.align === "center" && "[&>.flex]:justify-center",
+                        column.wrap
+                          ? "min-w-32 whitespace-normal [&_.rounded-full]:h-auto [&_.rounded-full]:min-h-6 [&_.rounded-full]:whitespace-normal [&_.rounded-full]:py-1 [&_.rounded-full]:leading-4 [&_svg]:shrink-0"
+                          : "text-ellipsis whitespace-nowrap [&>button]:max-w-full [&>button]:truncate [&>button]:align-middle [&>a]:inline-block [&>a]:max-w-full [&>a]:truncate [&>a]:align-middle",
+                      )}
+                      key={column.key}
+                      title={
+                        column.wrap ? undefined : cellText(content) || undefined
+                      }
+                      data-sticky-column={
+                        columnIndex === 0 ? "true" : undefined
+                      }
+                      style={{
+                        textAlign: column.align ?? "left",
+                        left:
+                          columnIndex === 0
+                            ? showRowNumbers
+                              ? 64
+                              : 0
+                            : undefined,
+                      }}
+                    >
+                      {content}
+                    </td>
+                  );
+                })}
                 {clickable ? (
                   <td className="w-10 px-2 text-center">
                     <ChevronRight

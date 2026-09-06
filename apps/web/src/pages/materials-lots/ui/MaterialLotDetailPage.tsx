@@ -17,6 +17,7 @@ import {
   Timeline,
   Skeleton,
   DataRegion,
+  FormActions,
   type BadgeTone,
 } from "@/shared/ui";
 import { useLoadState } from "@/shared/lib";
@@ -133,16 +134,6 @@ export function MaterialLotDetailPage({
         eyebrow="자재 LOT 상세"
         meta={<span>가상 데모 데이터</span>}
         title={detail.lotNumber}
-        actions={
-          onOpenTrace !== undefined ? (
-            <Button
-              variant="secondary"
-              onClick={() => onOpenTrace(detail.lotNumber)}
-            >
-              계보 추적하기
-            </Button>
-          ) : undefined
-        }
       />
       <DataRegion name="detail">
         <StatusStrip>
@@ -265,6 +256,19 @@ export function MaterialLotDetailPage({
             }))}
           />
         </Panel>
+        <FormActions>
+          <Button variant="secondary" onClick={onBack}>
+            목록으로
+          </Button>
+          {onOpenTrace !== undefined ? (
+            <Button
+              variant="secondary"
+              onClick={() => onOpenTrace(detail.lotNumber)}
+            >
+              계보 추적하기
+            </Button>
+          ) : undefined}
+        </FormActions>
       </DataRegion>
     </Main>
   );

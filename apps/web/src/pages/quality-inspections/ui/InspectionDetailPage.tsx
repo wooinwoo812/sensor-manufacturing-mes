@@ -128,7 +128,9 @@ export function InspectionDetailPage({
 
   const detail = state.detail;
   const canVerdictNow =
-    canVerdict && detail.eligibility.canVerdict && ["PENDING", "IN_PROGRESS"].includes(detail.executionStatus);
+    canVerdict &&
+    detail.eligibility.canVerdict &&
+    ["PENDING", "IN_PROGRESS"].includes(detail.executionStatus);
   const canReviewNow = canReview && detail.eligibility.canReview;
 
   return (
@@ -173,7 +175,12 @@ export function InspectionDetailPage({
               {detail.specName}
             </KeyValue>
             <KeyValue label="작업지시" strong>
-              <button className="tabular-nums text-accent-strong underline underline-offset-4" onClick={() => onOpenWorkOrder?.(detail.workOrderId)}>{detail.workOrderNumber}</button>
+              <button
+                className="tabular-nums text-accent-strong underline underline-offset-4"
+                onClick={() => onOpenWorkOrder?.(detail.workOrderId)}
+              >
+                {detail.workOrderNumber}
+              </button>
             </KeyValue>
             <KeyValue label="생산 LOT / 공정">
               <span className="tabular-nums">{detail.productionLotNumber}</span>
@@ -205,31 +212,22 @@ export function InspectionDetailPage({
           </KeyValueGrid>
         </Panel>
 
-        {detail.eligibility.blockedReason && (detail.verdict === null || detail.verdict === "HOLD") ? (
-          <p className="rounded-panel border border-warning-border bg-warning-soft p-4 text-sm text-warning-strong">{detail.eligibility.blockedReason}</p>
-        ) : null}
-        {detail.verdict === "HOLD" && !canReview ? <p className="text-sm text-text-muted">품질 담당자 또는 시스템 관리자가 보류를 검토할 수 있습니다.</p> : null}
-        {canVerdictNow || canReviewNow ? (
-          <InspectionVerdictPanel
-            review={canReviewNow}
-            csrfToken={csrfToken}
-            onDone={() => reload()}
-            target={{
-              inspectionId: detail.id,
-              inspectionNumber: detail.inspectionNumber,
-              specName: detail.specName,
-              productionLotNumber: detail.productionLotNumber,
-            }}
-          />
-        ) : null}
-
         {detail.decisions.length > 0 ? (
-          <Panel title="판정 이력" headingLevel="h2" description="최초 판정과 보류 검토의 사유·담당자를 시간순으로 확인합니다.">
-            <Timeline emptyMessage="판정 이력이 없습니다." items={detail.decisions.map(decision => ({
-              id: decision.id, dateTime: decision.occurredAt, timeLabel: formatDateTime(decision.occurredAt),
-              title: `${decision.phase === "HOLD_REVIEW" ? "보류 검토" : decision.phase === "LEGACY" ? "기존 판정" : "최초 판정"} · ${INSPECTION_VERDICT_LABELS[decision.verdict]}`,
-              description: `${decision.memo ?? "사유 없음"} · ${decision.actorName ?? "기존 기록: 담당자 정보 없음"}${decision.actorRole ? ` (${actorRoleLabel(decision.actorRole)})` : ""}`,
-            }))} />
+          <Panel
+            title="판정 이력"
+            headingLevel="h2"
+            description="최초 판정과 보류 검토의 사유·담당자를 시간순으로 확인합니다."
+          >
+            <Timeline
+              emptyMessage="판정 이력이 없습니다."
+              items={detail.decisions.map((decision) => ({
+                id: decision.id,
+                dateTime: decision.occurredAt,
+                timeLabel: formatDateTime(decision.occurredAt),
+                title: `${decision.phase === "HOLD_REVIEW" ? "보류 검토" : decision.phase === "LEGACY" ? "기존 판정" : "최초 판정"} · ${INSPECTION_VERDICT_LABELS[decision.verdict]}`,
+                description: `${decision.memo ?? "사유 없음"} · ${decision.actorName ?? "기존 기록: 담당자 정보 없음"}${decision.actorRole ? ` (${actorRoleLabel(decision.actorRole)})` : ""}`,
+              }))}
+            />
           </Panel>
         ) : null}
         <Panel
@@ -249,6 +247,30 @@ export function InspectionDetailPage({
             }))}
           />
         </Panel>
+        {detail.eligibility.blockedReason &&
+        (detail.verdict === null || detail.verdict === "HOLD") ? (
+          <p className="rounded-panel border border-warning-border bg-warning-soft p-4 text-sm text-warning-strong">
+            {detail.eligibility.blockedReason}
+          </p>
+        ) : null}
+        {detail.verdict === "HOLD" && !canReview ? (
+          <p className="text-sm text-text-muted">
+            품질 담당자 또는 시스템 관리자가 보류를 검토할 수 있습니다.
+          </p>
+        ) : null}
+        {canVerdictNow || canReviewNow ? (
+          <InspectionVerdictPanel
+            review={canReviewNow}
+            csrfToken={csrfToken}
+            onDone={() => reload()}
+            target={{
+              inspectionId: detail.id,
+              inspectionNumber: detail.inspectionNumber,
+              specName: detail.specName,
+              productionLotNumber: detail.productionLotNumber,
+            }}
+          />
+        ) : null}
       </DataRegion>
     </Main>
   );

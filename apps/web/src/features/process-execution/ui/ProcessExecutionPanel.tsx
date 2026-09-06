@@ -5,7 +5,7 @@ import {
   startProcessStep,
 } from "../api/process-execution-commands";
 import { ApiRequestError } from "@/shared/api";
-import { Button, Input, Panel } from "@/shared/ui";
+import { Button, Input, Panel, FormActions } from "@/shared/ui";
 
 export interface ExecutionTarget {
   stepId: string;
@@ -28,7 +28,9 @@ export function ProcessExecutionPanel({
   onDone,
 }: ProcessExecutionPanelProps) {
   const [goodQuantity, setGoodQuantity] = useState(
-    target.outputQuantityLimit === null ? "" : String(target.outputQuantityLimit),
+    target.outputQuantityLimit === null
+      ? ""
+      : String(target.outputQuantityLimit),
   );
   const [defectQuantity, setDefectQuantity] = useState("0");
   const [memo, setMemo] = useState("");
@@ -36,17 +38,26 @@ export function ProcessExecutionPanel({
   const [error, setError] = useState<string | null>(null);
 
   useNavigationSafety(
-    goodQuantity !== (target.outputQuantityLimit === null ? "" : String(target.outputQuantityLimit)) ||
+    goodQuantity !==
+      (target.outputQuantityLimit === null
+        ? ""
+        : String(target.outputQuantityLimit)) ||
       defectQuantity !== "0" ||
       memo !== "",
     pending,
   );
 
   const total = Number(goodQuantity) + Number(defectQuantity);
-  const valid = goodQuantity.trim() !== "" && defectQuantity.trim() !== "" &&
-    Number.isSafeInteger(Number(goodQuantity)) && Number(goodQuantity) >= 0 &&
-    Number.isSafeInteger(Number(defectQuantity)) && Number(defectQuantity) >= 0 &&
-    target.outputQuantityLimit !== null && target.outputQuantityLimit > 0 && total === target.outputQuantityLimit;
+  const valid =
+    goodQuantity.trim() !== "" &&
+    defectQuantity.trim() !== "" &&
+    Number.isSafeInteger(Number(goodQuantity)) &&
+    Number(goodQuantity) >= 0 &&
+    Number.isSafeInteger(Number(defectQuantity)) &&
+    Number(defectQuantity) >= 0 &&
+    target.outputQuantityLimit !== null &&
+    target.outputQuantityLimit > 0 &&
+    total === target.outputQuantityLimit;
 
   async function submit() {
     if (pending || !valid) {
@@ -128,19 +139,19 @@ export function ProcessExecutionPanel({
             value={memo}
           />
         </div>
+      </div>
+      <FormActions>
+        <Button variant="secondary" onClick={onDone}>
+          취소
+        </Button>
         <Button
-          disabled={
-            pending || !valid
-          }
+          disabled={pending || !valid}
           loading={pending}
           onClick={() => void submit()}
         >
           완료 확정
         </Button>
-        <Button variant="ghost" onClick={onDone}>
-          취소
-        </Button>
-      </div>
+      </FormActions>
       {error !== null ? (
         <p className="mt-3 rounded-panel border border-danger/40 bg-danger-soft/40 px-4 py-3 text-sm text-danger-strong">
           {error}

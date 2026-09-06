@@ -32,6 +32,7 @@ import {
   PriorityBadge,
   Skeleton,
   DataRegion,
+  FormActions,
   type BadgeTone,
 } from "@/shared/ui";
 import { useLoadState } from "@/shared/lib";
@@ -188,48 +189,8 @@ export function WorkOrderDetailPage({
   return (
     <Main id="main-content" tabIndex={-1}>
       <PageCrumb value={detail.orderNumber} />
-      {/* 주요 행동(발행·취소)은 화면 맨 아래가 아니라 제목 오른쪽에 둔다. 스크롤 없이 "여기서 할 일"이 보여야 한다. */}
       <PageHeading
         key="detail-heading"
-        actions={
-          canReleaseNow ||
-          canCancelNow ||
-          (canReadReservations && onOpenReservations !== undefined) ? (
-            <>
-              {canReadReservations && onOpenReservations ? (
-                <Button variant="secondary" onClick={onOpenReservations}>
-                  자재 예약
-                </Button>
-              ) : null}
-              {canCancelNow ? (
-                <Button
-                  aria-expanded={cancelOpen}
-                  onClick={() => setCancelOpen((open) => !open)}
-                  variant="secondary"
-                >
-                  작업지시 취소
-                </Button>
-              ) : null}
-              {canReleaseNow ? (
-                <ConfirmDialog
-                  title={`${detail.orderNumber}을(를) 발행할까요?`}
-                  description="발행 후 이 작업지시는 실행 팀에 전달되며 초안으로 되돌릴 수 없습니다."
-                  confirmLabel="발행 확정"
-                  trigger={
-                    <Button loading={commandPending === "release"}>
-                      작업지시 발행
-                    </Button>
-                  }
-                  onConfirm={() =>
-                    runCommand("release", () =>
-                      releaseWorkOrder(workOrderId, csrfToken),
-                    )
-                  }
-                />
-              ) : null}
-            </>
-          ) : undefined
-        }
         back={{ label: "작업지시 목록", onClick: onBack }}
         description={`${detail.productName} (${detail.productCode})`}
         eyebrow="작업지시 상세"
@@ -246,46 +207,6 @@ export function WorkOrderDetailPage({
             등록 {formatDateTime(detail.createdAt)}
           </span>
         </StatusStrip>
-        {/* 취소 사유 패널은 버튼 바로 아래(제목 근처)에 펼친다. 화면 맨 아래에 열리면 눌렀는데 아무 일도 없는 것처럼 보인다. */}
-        {canCancelNow && cancelOpen ? (
-          <div className="rounded-panel border border-danger-border bg-danger-soft/30 p-4">
-            <p className="text-sm font-semibold">작업지시 취소</p>
-            <p className="mt-1 text-xs text-text-muted">
-              취소 사유를 남기면 감사 이력에 기록됩니다. 실적이 있는 지시는
-              취소할 수 없습니다.
-            </p>
-            <div className="mt-3 flex flex-wrap items-end gap-3">
-              <div className="min-w-64 flex-1">
-                <Input
-                  id="cancel-reason"
-                  label="취소 사유"
-                  name="cancelReason"
-                  onChange={(event) => setCancelReason(event.target.value)}
-                  placeholder="예: 계획 변경으로 생산 제외"
-                  value={cancelReason}
-                />
-              </div>
-              <Button
-                variant="danger"
-                disabled={
-                  cancelReason.trim().length < 2 || commandPending !== null
-                }
-                loading={commandPending === "cancel"}
-                onClick={() =>
-                  runCommand("cancel", () =>
-                    cancelWorkOrder(
-                      workOrderId,
-                      cancelReason.trim(),
-                      csrfToken,
-                    ),
-                  )
-                }
-              >
-                취소 확정
-              </Button>
-            </div>
-          </div>
-        ) : null}
 
         <Panel
           description="계획 수량과 납기, 진행 상태를 확인합니다."
@@ -350,10 +271,20 @@ export function WorkOrderDetailPage({
                         {String(step.sequence).padStart(2, "0")}
                       </span>
                       {onOpenProcess ? (
-                        <button type="button" className="text-sm font-semibold text-primary underline underline-offset-4" onClick={() => onOpenProcess(step.id, step.productionLotNumber)}>
+                        <button
+                          type="button"
+                          className="text-sm font-semibold text-primary underline underline-offset-4"
+                          onClick={() =>
+                            onOpenProcess(step.id, step.productionLotNumber)
+                          }
+                        >
                           {step.processStepName}
                         </button>
-                      ) : <span className="text-sm font-semibold">{step.processStepName}</span>}
+                      ) : (
+                        <span className="text-sm font-semibold">
+                          {step.processStepName}
+                        </span>
+                      )}
                       <span className="text-xs tabular-nums text-text-muted">
                         {step.productionLotNumber}
                       </span>
@@ -397,10 +328,18 @@ export function WorkOrderDetailPage({
                   >
                     <span className="flex items-center gap-3">
                       {onOpenInspection ? (
-                        <button type="button" className="text-xs tabular-nums font-bold text-primary underline underline-offset-4" onClick={() => onOpenInspection(inspection.id)}>
+                        <button
+                          type="button"
+                          className="text-xs tabular-nums font-bold text-primary underline underline-offset-4"
+                          onClick={() => onOpenInspection(inspection.id)}
+                        >
                           {inspection.inspectionNumber}
                         </button>
-                      ) : <span className="text-xs tabular-nums font-bold">{inspection.inspectionNumber}</span>}
+                      ) : (
+                        <span className="text-xs tabular-nums font-bold">
+                          {inspection.inspectionNumber}
+                        </span>
+                      )}
                       <span className="text-sm">
                         {inspection.processStepName}
                       </span>
@@ -470,20 +409,111 @@ export function WorkOrderDetailPage({
           />
         ) : null}
 
-        {(!canRelease && detail.status === "DRAFT") || commandError !== null ? <section aria-label="작업지시 행동" className="space-y-3">
-          <h2 className="sr-only">작업지시 행동</h2>
+        <section
+          aria-label="작업지시 행동"
+          data-tour-region="true"
+          data-tour="order-actions"
+          className="space-y-3"
+        >
           {!canRelease && detail.status === "DRAFT" ? (
-            <p className="text-xs text-text-muted">
-              발행은 생산계획 담당자가 처리합니다. 현재
-              역할로는 이 작업지시의 상태와 이력을 조회할 수 있습니다.
+            <p className="text-sm text-text-muted">
+              발행은 생산계획 담당자가 처리합니다. 현재 역할로는 이 작업지시의
+              상태와 이력을 조회할 수 있습니다.
             </p>
           ) : null}
+          {canCancelNow && cancelOpen ? (
+            <div className="rounded-panel border border-danger-border bg-danger-soft/30 p-4">
+              <p className="text-sm font-semibold">작업지시 취소</p>
+              <p className="mt-1 text-xs text-text-muted">
+                취소 사유를 남기면 감사 이력에 기록됩니다. 실적이 있는 지시는
+                취소할 수 없습니다.
+              </p>
+              <div className="mt-3 flex flex-wrap items-end gap-3">
+                <div className="min-w-0 basis-64 flex-1">
+                  <Input
+                    autoFocus
+                    id="cancel-reason"
+                    label="취소 사유"
+                    name="cancelReason"
+                    onChange={(event) => setCancelReason(event.target.value)}
+                    placeholder="예: 계획 변경으로 생산 제외"
+                    value={cancelReason}
+                  />
+                </div>
+              </div>
+              <FormActions>
+                <Button
+                  variant="danger"
+                  disabled={
+                    cancelReason.trim().length < 2 || commandPending !== null
+                  }
+                  loading={commandPending === "cancel"}
+                  onClick={() =>
+                    runCommand("cancel", () =>
+                      cancelWorkOrder(
+                        workOrderId,
+                        cancelReason.trim(),
+                        csrfToken,
+                      ),
+                    )
+                  }
+                >
+                  취소 확정
+                </Button>
+              </FormActions>
+            </div>
+          ) : null}
           {commandError !== null ? (
-            <p className="rounded-panel border border-danger/40 bg-danger-soft/40 px-4 py-3 text-sm text-danger-strong">
+            <p
+              role="alert"
+              className="rounded-panel border border-danger/40 bg-danger-soft/40 px-4 py-3 text-sm text-danger-strong"
+            >
               {commandError}
             </p>
           ) : null}
-        </section> : null}
+          <FormActions tourAnchor="page-actions">
+            <Button variant="secondary" onClick={onBack}>
+              목록으로
+            </Button>
+            {canReleaseNow ||
+            canCancelNow ||
+            (canReadReservations && onOpenReservations !== undefined) ? (
+              <>
+                {canReadReservations && onOpenReservations ? (
+                  <Button variant="secondary" onClick={onOpenReservations}>
+                    자재 예약
+                  </Button>
+                ) : null}
+                {canCancelNow ? (
+                  <Button
+                    aria-expanded={cancelOpen}
+                    onClick={() => setCancelOpen((open) => !open)}
+                    variant="secondary"
+                  >
+                    작업지시 취소
+                  </Button>
+                ) : null}
+                {canReleaseNow ? (
+                  <ConfirmDialog
+                    title={`${detail.orderNumber}을(를) 발행할까요?`}
+                    description="발행 후 이 작업지시는 실행 팀에 전달되며 초안으로 되돌릴 수 없습니다."
+                    confirmLabel="발행 확정"
+                    trigger={
+                      <Button loading={commandPending === "release"}>
+                        작업지시 발행
+                      </Button>
+                    }
+                    onConfirm={() =>
+                      runCommand("release", () =>
+                        releaseWorkOrder(workOrderId, csrfToken),
+                      )
+                    }
+                  />
+                ) : null}
+              </>
+            ) : undefined}
+          </FormActions>
+        </section>
       </DataRegion>
     </Main>
   );
