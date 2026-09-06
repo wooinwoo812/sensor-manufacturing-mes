@@ -56,6 +56,26 @@
   }
 }
 
+/* A cell can contain a name/code stack, badges, or a button. Every text line
+   follows the same default overflow rule, including nested flex children. */
+[data-cell-overflow="ellipsis"] :where(span, div, p, a, button, time, strong) {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+[data-cell-overflow="ellipsis"] :where(.flex, .inline-flex) {
+  flex-wrap: nowrap;
+}
+
+[data-cell-overflow="ellipsis"]
+  > :where(span, time, strong, a):not(.flex, .inline-flex, .block) {
+  display: inline-block;
+  vertical-align: middle;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

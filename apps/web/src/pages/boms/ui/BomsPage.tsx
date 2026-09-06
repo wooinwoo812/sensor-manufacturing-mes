@@ -109,7 +109,6 @@ export function BomsPage({ search, onSearchChange }: BomsPageProps) {
         width: 260,
         sortKey: "productName",
         align: "left",
-        wrap: true,
         header: "제품",
         cell: (row) => (
           <span className="block">
@@ -135,7 +134,6 @@ export function BomsPage({ search, onSearchChange }: BomsPageProps) {
       },
       {
         key: "items",
-        wrap: true,
         width: 340,
         align: "left",
         header: "구성 자재",

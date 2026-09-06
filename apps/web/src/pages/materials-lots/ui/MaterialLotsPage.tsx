@@ -135,7 +135,6 @@ export function MaterialLotsPage({
         key: "material",
         width: 224,
         align: "left",
-        wrap: true,
         header: "자재",
         cell: (row) => (
           <span className="block min-w-32">

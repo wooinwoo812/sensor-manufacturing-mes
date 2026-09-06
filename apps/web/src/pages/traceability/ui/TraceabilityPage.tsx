@@ -84,7 +84,6 @@ export function TraceabilityPage({
         width: 280,
         sortKey: "label",
         align: "left",
-        wrap: true,
         header: "LOT 식별",
         cell: (row) => (
           <span className="block">

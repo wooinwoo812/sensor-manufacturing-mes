@@ -48,13 +48,13 @@ export function Badge({
   return (
     <span
       className={cn(
-        "inline-flex h-6 items-center gap-1 whitespace-nowrap rounded-full border px-2 text-xs font-medium leading-none",
+        "inline-flex h-6 min-w-0 max-w-full items-center gap-1 whitespace-nowrap rounded-full border px-2 text-xs font-medium leading-none",
         toneClasses[tone],
         className,
       )}
     >
-      <Icon className="size-3.5" aria-hidden="true" />
-      {children}
+      <Icon className="size-3.5 shrink-0" aria-hidden="true" />
+      <span className="min-w-0 truncate">{children}</span>
     </span>
   );
 }
@@ -85,12 +85,12 @@ export function PriorityBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 whitespace-nowrap text-sm font-medium leading-5",
+        "inline-flex min-w-0 max-w-full items-center gap-1 whitespace-nowrap text-sm font-medium leading-5",
         priorityColors[config[priority].tone],
       )}
     >
       <Icon className="size-4 shrink-0" aria-hidden="true" />
-      {config[priority].label}
+      <span className="min-w-0 truncate">{config[priority].label}</span>
     </span>
   );
 }
