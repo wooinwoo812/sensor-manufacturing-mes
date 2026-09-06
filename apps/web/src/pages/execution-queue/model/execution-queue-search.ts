@@ -1,10 +1,11 @@
+import { readListSort, appendListSort, type ListSort } from "@/shared/lib";
 import { getPageSize, readPageSize } from "@/shared/lib";
 import {
   PROCESS_READINESS_FILTER_OPTIONS,
   type ProcessReadinessFilterOption,
 } from "@/entities/process-execution";
 
-export interface ExecutionQueueSearch {
+export interface ExecutionQueueSearch extends ListSort {
   q?: string;
   readiness?: ProcessReadinessFilterOption;
   page?: number;
@@ -33,6 +34,7 @@ export function readExecutionQueueSearch(
     typeof raw.q === "string" && raw.q.trim() !== "" ? raw.q.trim() : undefined;
 
   return stripUndefinedSearch({
+    ...readListSort(raw, ["orderNumber", "sequence", "productionLotNumber"]),
     q,
     readiness,
     page,
@@ -77,5 +79,6 @@ export function toExecutionQueueParams(
     params.set("page", String(search.page));
   }
   params.set("pageSize", String(getPageSize(search.pageSize)));
+  appendListSort(params, search);
   return params;
 }

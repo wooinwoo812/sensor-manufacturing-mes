@@ -81,6 +81,8 @@ export function TraceabilityPage({
     () => [
       {
         key: "label",
+        width: 280,
+        sortKey: "label",
         align: "left",
         wrap: true,
         header: "LOT 식별",
@@ -95,6 +97,7 @@ export function TraceabilityPage({
       },
       {
         key: "nodeType",
+        width: 144,
         align: "center",
         header: "구분",
         cell: (row) => (
@@ -105,6 +108,8 @@ export function TraceabilityPage({
       },
       {
         key: "upstreamCount",
+        width: 160,
+        sortKey: "upstreamCount",
         align: "center",
         header: "원천 (투입)",
         cell: (row) => (
@@ -113,6 +118,8 @@ export function TraceabilityPage({
       },
       {
         key: "downstreamCount",
+        width: 160,
+        sortKey: "downstreamCount",
         align: "center",
         header: "영향 (산출)",
         cell: (row) => (
@@ -212,7 +219,17 @@ export function TraceabilityPage({
       </FilterBar>
 
       {state.phase === "loading" ? (
-        <TableSkeleton label="추적 노드 조회 중" rows={pageSize} />
+        <TableSkeleton
+          columns={columns}
+          caption="추적 노드 목록"
+          clickable
+          sort={{ sort: search.sort ?? "label", order: search.order ?? "asc" }}
+          onSortChange={(next) =>
+            onSearchChange({ ...search, ...next, page: 1 })
+          }
+          label="추적 노드 조회 중"
+          rows={pageSize}
+        />
       ) : state.phase === "error" ? (
         <ErrorState
           title="추적 노드를 불러올 수 없습니다"
@@ -238,6 +255,10 @@ export function TraceabilityPage({
         />
       ) : (
         <DataTable
+          sort={{ sort: search.sort ?? "label", order: search.order ?? "asc" }}
+          onSortChange={(next) =>
+            onSearchChange({ ...search, ...next, page: 1 })
+          }
           footer={pagination}
           rowNumberStart={state.total - (currentPage - 1) * pageSize}
           onRowClick={(row) => onOpenDetail(row.id)}
@@ -247,7 +268,6 @@ export function TraceabilityPage({
           rows={state.items}
           getRowKey={(row) => row.id}
           tourRecord="trace-node"
-
           emptyMessage="조건에 맞는 추적 노드가 없습니다."
         />
       )}

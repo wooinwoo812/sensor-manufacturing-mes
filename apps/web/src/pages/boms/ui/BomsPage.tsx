@@ -89,6 +89,8 @@ export function BomsPage({ search, onSearchChange }: BomsPageProps) {
     () => [
       {
         key: "revisionNumber",
+        width: 170,
+        sortKey: "revisionNumber",
         align: "left",
         header: "Revision",
         cell: (row) => (
@@ -104,6 +106,8 @@ export function BomsPage({ search, onSearchChange }: BomsPageProps) {
       },
       {
         key: "product",
+        width: 260,
+        sortKey: "productName",
         align: "left",
         wrap: true,
         header: "제품",
@@ -120,6 +124,7 @@ export function BomsPage({ search, onSearchChange }: BomsPageProps) {
       },
       {
         key: "lifecycle",
+        width: 112,
         align: "center",
         header: "상태",
         cell: (row) => (
@@ -130,6 +135,8 @@ export function BomsPage({ search, onSearchChange }: BomsPageProps) {
       },
       {
         key: "items",
+        wrap: true,
+        width: 340,
         align: "left",
         header: "구성 자재",
         cell: (row) => (
@@ -138,6 +145,8 @@ export function BomsPage({ search, onSearchChange }: BomsPageProps) {
       },
       {
         key: "itemCount",
+        width: 112,
+        sortKey: "itemCount",
         align: "center",
         header: "항목 수",
         cell: (row) => <span className="tabular-nums">{row.items.length}</span>,
@@ -236,7 +245,19 @@ export function BomsPage({ search, onSearchChange }: BomsPageProps) {
       </FilterBar>
 
       {state.phase === "loading" ? (
-        <TableSkeleton label="BOM 목록 조회 중" rows={pageSize} />
+        <TableSkeleton
+          columns={columns}
+          caption="BOM revision 목록"
+          sort={{
+            sort: search.sort ?? "createdAt",
+            order: search.order ?? "desc",
+          }}
+          onSortChange={(next) =>
+            onSearchChange({ ...search, ...next, page: 1 })
+          }
+          label="BOM 목록 조회 중"
+          rows={pageSize}
+        />
       ) : state.phase === "error" ? (
         <ErrorState
           title="BOM 목록을 불러올 수 없습니다"
@@ -262,6 +283,13 @@ export function BomsPage({ search, onSearchChange }: BomsPageProps) {
         />
       ) : (
         <DataTable
+          sort={{
+            sort: search.sort ?? "createdAt",
+            order: search.order ?? "desc",
+          }}
+          onSortChange={(next) =>
+            onSearchChange({ ...search, ...next, page: 1 })
+          }
           footer={pagination}
           rowNumberStart={state.total - (currentPage - 1) * pageSize}
           busy={isRefreshing}

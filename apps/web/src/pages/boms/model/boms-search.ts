@@ -1,7 +1,8 @@
+import { readListSort, appendListSort, type ListSort } from "@/shared/lib";
 import { getPageSize, readPageSize } from "@/shared/lib";
 import { BOM_LIFECYCLES, type BomLifecycle } from "@/entities/bom";
 
-export interface BomsSearch {
+export interface BomsSearch extends ListSort {
   q?: string;
   lifecycle?: readonly BomLifecycle[];
   page?: number;
@@ -53,6 +54,12 @@ export function readBomsSearch(raw: Record<string, unknown>): BomsSearch {
     typeof raw.q === "string" && raw.q.trim() !== "" ? raw.q.trim() : undefined;
 
   return stripUndefinedSearch({
+    ...readListSort(raw, [
+      "revisionNumber",
+      "productName",
+      "createdAt",
+      "itemCount",
+    ]),
     q,
     lifecycle: parseLifecycleList(raw.lifecycle, BOM_LIFECYCLES),
     page,
@@ -79,5 +86,6 @@ export function toBomsParams(search: BomsSearch): URLSearchParams {
     params.set("page", String(search.page));
   }
   params.set("pageSize", String(getPageSize(search.pageSize)));
+  appendListSort(params, search);
   return params;
 }

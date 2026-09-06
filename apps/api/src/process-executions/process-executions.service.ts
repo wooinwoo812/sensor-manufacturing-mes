@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import type { Prisma } from "../generated/prisma/client.js";
 import { PrismaService } from "../database/prisma.service.js";
 import { outputQuantityLimit } from "./production-flow.js";
@@ -36,7 +40,9 @@ function invalidQuery(detail: string) {
 export class ProcessExecutionsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  parseQuery(query: Record<string, string | string[] | undefined>): ProcessExecutionQuery {
+  parseQuery(
+    query: Record<string, string | string[] | undefined>,
+  ): ProcessExecutionQuery {
     const read = (key: string): string | undefined => {
       const value = query[key];
       const first = Array.isArray(value) ? value[0] : value;
@@ -55,7 +61,8 @@ export class ProcessExecutionsService {
         ? []
         : [PROCESS_READINESS_BY_FILTER[readinessFilter]];
 
-    const sortRaw = (read("sort") ?? "orderNumber") as ProcessExecutionSortField;
+    const sortRaw = (read("sort") ??
+      "orderNumber") as ProcessExecutionSortField;
     if (!PROCESS_EXECUTION_SORT_FIELDS.includes(sortRaw)) {
       throw invalidQuery(`sort에 허용되지 않는 값: ${sortRaw}`);
     }
@@ -86,19 +93,23 @@ export class ProcessExecutionsService {
     };
   }
 
-  async list(query: ProcessExecutionQuery): Promise<ProcessExecutionListResult> {
+  async list(
+    query: ProcessExecutionQuery,
+  ): Promise<ProcessExecutionListResult> {
     const where = this.buildWhere(query);
-    const { rows, total } = await this.prisma.$transaction(async (transaction) => {
-      const rows = await transaction.processStepExecution.findMany({
-        where,
-        orderBy: this.buildOrderBy(query),
-        include: { workOrder: { include: { processSteps: true } } },
-        skip: (query.page - 1) * query.pageSize,
-        take: query.pageSize,
-      });
-      const total = await transaction.processStepExecution.count({ where });
-      return { rows, total };
-    });
+    const { rows, total } = await this.prisma.$transaction(
+      async (transaction) => {
+        const rows = await transaction.processStepExecution.findMany({
+          where,
+          orderBy: this.buildOrderBy(query),
+          include: { workOrder: { include: { processSteps: true } } },
+          skip: (query.page - 1) * query.pageSize,
+          take: query.pageSize,
+        });
+        const total = await transaction.processStepExecution.count({ where });
+        return { rows, total };
+      },
+    );
 
     return {
       items: rows.map((row) => ({
@@ -107,7 +118,11 @@ export class ProcessExecutionsService {
         productCode: row.workOrder.productCode,
         productName: row.workOrder.productName,
         plannedQuantity: row.workOrder.plannedQuantity,
-        outputQuantityLimit: outputQuantityLimit(row, row.workOrder.processSteps, row.workOrder.plannedQuantity),
+        outputQuantityLimit: outputQuantityLimit(
+          row,
+          row.workOrder.processSteps,
+          row.workOrder.plannedQuantity,
+        ),
         unit: row.workOrder.unit,
         dueDate: row.workOrder.dueDate.toISOString(),
         sequence: row.sequence,
@@ -149,7 +164,11 @@ export class ProcessExecutionsService {
       productCode: step.workOrder.productCode,
       productName: step.workOrder.productName,
       plannedQuantity: step.workOrder.plannedQuantity,
-      outputQuantityLimit: outputQuantityLimit(step, step.workOrder.processSteps, step.workOrder.plannedQuantity),
+      outputQuantityLimit: outputQuantityLimit(
+        step,
+        step.workOrder.processSteps,
+        step.workOrder.plannedQuantity,
+      ),
       unit: step.workOrder.unit,
       dueDate: step.workOrder.dueDate.toISOString(),
       sequence: step.sequence,
@@ -172,7 +191,9 @@ export class ProcessExecutionsService {
     };
   }
 
-  private buildWhere(query: ProcessExecutionQuery): Prisma.ProcessStepExecutionWhereInput {
+  private buildWhere(
+    query: ProcessExecutionQuery,
+  ): Prisma.ProcessStepExecutionWhereInput {
     const where: Prisma.ProcessStepExecutionWhereInput = {};
     if (query.q) {
       where.OR = [
@@ -201,9 +222,14 @@ export class ProcessExecutionsService {
       return [
         { workOrder: { orderNumber: query.order } },
         { sequence: query.order },
+        { id: "asc" },
       ];
     }
-    return [{ [query.sort]: query.order }, { workOrder: { orderNumber: "asc" } }];
+    return [
+      { [query.sort]: query.order },
+      { workOrder: { orderNumber: "asc" } },
+      { id: "asc" },
+    ];
   }
 }
 

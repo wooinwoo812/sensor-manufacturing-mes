@@ -1,3 +1,4 @@
+import { readListSort, appendListSort, type ListSort } from "@/shared/lib";
 import { getPageSize, readPageSize } from "@/shared/lib";
 import {
   INSPECTION_EXECUTION_STATUS_LABELS,
@@ -8,7 +9,7 @@ import {
   type InspectionVerdict,
 } from "@/entities/inspection";
 
-export interface InspectionsSearch {
+export interface InspectionsSearch extends ListSort {
   q?: string;
   executionStatus?: readonly InspectionExecutionStatus[];
   verdict?: readonly InspectionVerdict[];
@@ -50,6 +51,7 @@ export function readInspectionsSearch(
     typeof raw.q === "string" && raw.q.trim() !== "" ? raw.q.trim() : undefined;
 
   return stripUndefinedSearch({
+    ...readListSort(raw, ["inspectionNumber", "createdAt", "completedAt"]),
     q,
     executionStatus: parseList(
       raw.executionStatus,
@@ -116,5 +118,6 @@ export function toInspectionsParams(
     params.set("page", String(search.page));
   }
   params.set("pageSize", String(getPageSize(search.pageSize)));
+  appendListSort(params, search);
   return params;
 }

@@ -78,6 +78,8 @@ export function AuditEventsPage({
     () => [
       {
         key: "occurredAt",
+        width: 184,
+        sortKey: "occurredAt",
         align: "center",
         header: "시각",
         cell: (row) => (
@@ -91,6 +93,7 @@ export function AuditEventsPage({
       },
       {
         key: "actor",
+        width: 128,
         align: "left",
         header: "행위자",
         cell: (row) => (
@@ -106,6 +109,7 @@ export function AuditEventsPage({
       },
       {
         key: "action",
+        width: 140,
         align: "left",
         header: "행동",
         cell: (row) => (
@@ -116,6 +120,9 @@ export function AuditEventsPage({
       },
       {
         key: "entity",
+        wrap: true,
+        width: 190,
+        sortKey: "entityId",
         align: "left",
         header: "대상",
         cell: (row) => (
@@ -131,21 +138,22 @@ export function AuditEventsPage({
       },
       {
         key: "summary",
+        width: 280,
         align: "left",
         wrap: true,
         header: "내용",
         cell: (row) => (
-          <span className="block min-w-48 text-sm text-text-strong">
-            {row.summary}
-          </span>
+          <span className="block text-sm text-text-strong">{row.summary}</span>
         ),
       },
       {
         key: "requestId",
+        wrap: true,
+        width: 290,
         align: "left",
         header: "요청 ID",
         cell: (row) => (
-          <span className="text-xs tabular-nums text-text-muted">
+          <span className="break-all text-sm tabular-nums text-text-muted">
             {row.requestId}
           </span>
         ),
@@ -206,7 +214,7 @@ export function AuditEventsPage({
         hasPendingChanges={hasPendingChanges}
         resultLabel={
           state.phase === "success"
-            ? `총 ${state.total.toLocaleString("ko-KR")}건 중 ${state.items.length.toLocaleString("ko-KR")}건 표시 (최근 순서)`
+            ? `총 ${state.total.toLocaleString("ko-KR")}건 중 ${state.items.length.toLocaleString("ko-KR")}건 표시`
             : "조회 조건을 선택하면 감사 이벤트를 확인합니다."
         }
       >
@@ -277,7 +285,19 @@ export function AuditEventsPage({
       </FilterBar>
 
       {state.phase === "loading" ? (
-        <TableSkeleton label="감사 이벤트 조회 중" rows={pageSize} />
+        <TableSkeleton
+          columns={columns}
+          caption="감사 이벤트 목록"
+          sort={{
+            sort: search.sort ?? "occurredAt",
+            order: search.order ?? "desc",
+          }}
+          onSortChange={(next) =>
+            onSearchChange({ ...search, ...next, page: 1 })
+          }
+          label="감사 이벤트 조회 중"
+          rows={pageSize}
+        />
       ) : state.phase === "error" ? (
         <ErrorState
           description={state.message}
@@ -298,6 +318,13 @@ export function AuditEventsPage({
       ) : (
         <>
           <DataTable
+            sort={{
+              sort: search.sort ?? "occurredAt",
+              order: search.order ?? "desc",
+            }}
+            onSortChange={(next) =>
+              onSearchChange({ ...search, ...next, page: 1 })
+            }
             footer={pagination}
             rowNumberStart={state.total - (currentPage - 1) * pageSize}
             busy={isRefreshing}
@@ -306,7 +333,6 @@ export function AuditEventsPage({
             emptyMessage="조건에 맞는 감사 이벤트가 없습니다."
             getRowKey={(row) => row.id}
             tourRecord="audit"
-
             rows={state.items}
           />
         </>

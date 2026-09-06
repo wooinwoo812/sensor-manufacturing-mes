@@ -117,6 +117,8 @@ export function MaterialLotsPage({
     () => [
       {
         key: "lotNumber",
+        width: 150,
+        sortKey: "lotNumber",
         align: "left",
         header: "자재 LOT",
         cell: (row) => (
@@ -131,6 +133,7 @@ export function MaterialLotsPage({
       },
       {
         key: "material",
+        width: 224,
         align: "left",
         wrap: true,
         header: "자재",
@@ -147,6 +150,7 @@ export function MaterialLotsPage({
       },
       {
         key: "receivedQuantity",
+        width: 80,
         align: "center",
         header: "입고량",
 
@@ -158,6 +162,8 @@ export function MaterialLotsPage({
       },
       {
         key: "onHand",
+        width: 80,
+        sortKey: "onHand",
         align: "center",
         header: "재고",
 
@@ -169,6 +175,7 @@ export function MaterialLotsPage({
       },
       {
         key: "reservedQuantity",
+        width: 80,
         align: "center",
         header: "예약",
 
@@ -180,6 +187,7 @@ export function MaterialLotsPage({
       },
       {
         key: "availableQuantity",
+        width: 88,
         align: "center",
         header: "가용",
 
@@ -194,6 +202,7 @@ export function MaterialLotsPage({
       },
       {
         key: "qualityDisposition",
+        width: 104,
         align: "center",
         header: "품질 상태",
         cell: (row) => (
@@ -204,6 +213,8 @@ export function MaterialLotsPage({
       },
       {
         key: "expiresAt",
+        width: 136,
+        sortKey: "expiresAt",
         align: "center",
         header: "유효기간",
         cell: (row) => <ExpiryCell expiresAt={row.expiresAt} />,
@@ -212,6 +223,7 @@ export function MaterialLotsPage({
         ? [
             {
               key: "actions",
+              width: 120,
               align: "center",
               header: "행동",
               cell: (row: MaterialLotListItem) =>
@@ -295,7 +307,7 @@ export function MaterialLotsPage({
         hasPendingChanges={hasPendingChanges}
         resultLabel={
           state.phase === "success"
-            ? `총 ${state.total.toLocaleString("ko-KR")}건 중 ${state.items.length.toLocaleString("ko-KR")}건 표시 (최근 입고 순서)`
+            ? `총 ${state.total.toLocaleString("ko-KR")}건 중 ${state.items.length.toLocaleString("ko-KR")}건 표시`
             : "조회 조건을 선택하면 자재 LOT를 확인합니다."
         }
       >
@@ -356,7 +368,20 @@ export function MaterialLotsPage({
       </FilterBar>
 
       {state.phase === "loading" ? (
-        <TableSkeleton label="자재 LOT 조회 중" rows={pageSize} />
+        <TableSkeleton
+          columns={columns}
+          caption="자재 LOT 목록"
+          clickable
+          sort={{
+            sort: search.sort ?? "receivedAt",
+            order: search.order ?? "desc",
+          }}
+          onSortChange={(next) =>
+            onSearchChange({ ...search, ...next, page: 1 })
+          }
+          label="자재 LOT 조회 중"
+          rows={pageSize}
+        />
       ) : state.phase === "error" ? (
         <ErrorState
           description={state.message}
@@ -396,6 +421,13 @@ export function MaterialLotsPage({
             ) : null}
           </ActionSheet>
           <DataTable
+            sort={{
+              sort: search.sort ?? "receivedAt",
+              order: search.order ?? "desc",
+            }}
+            onSortChange={(next) =>
+              onSearchChange({ ...search, ...next, page: 1 })
+            }
             footer={pagination}
             rowNumberStart={state.total - (currentPage - 1) * pageSize}
             onRowClick={(row) => onOpenDetail(row.id)}
@@ -405,7 +437,6 @@ export function MaterialLotsPage({
             emptyMessage="조건에 맞는 자재 LOT가 없습니다."
             getRowKey={(row) => row.id}
             tourRecord="material-lot"
-
             rows={state.items}
           />
         </>

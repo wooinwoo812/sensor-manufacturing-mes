@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
 import { PrismaService } from "../database/prisma.service.js";
+import type { Prisma } from "../generated/prisma/client.js";
 import {
   BOM_LIFECYCLES,
   type BomLifecycle,
@@ -9,6 +10,12 @@ import {
 
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 100;
+const BOM_SORT_FIELDS = [
+  "revisionNumber",
+  "productName",
+  "createdAt",
+  "itemCount",
+] as const;
 
 interface BomQuery {
   q?: string;
@@ -16,6 +23,8 @@ interface BomQuery {
   productId?: string;
   page: number;
   pageSize: number;
+  sort: (typeof BOM_SORT_FIELDS)[number];
+  order: "asc" | "desc";
 }
 
 function invalidQuery(detail: string) {
@@ -48,6 +57,12 @@ export function parseBomQuery(
   }
 
   const q = read("q");
+  const sort = (read("sort") ?? "createdAt") as BomQuery["sort"];
+  if (!BOM_SORT_FIELDS.includes(sort))
+    throw invalidQuery("허용되지 않는 정렬 필드입니다.");
+  const order = read("order") ?? "desc";
+  if (order !== "asc" && order !== "desc")
+    throw invalidQuery("order는 asc 또는 desc여야 합니다.");
   if (q !== undefined && q.length > 40) {
     throw invalidQuery("검색어는 40자 이하여야 합니다.");
   }
@@ -66,7 +81,9 @@ export function parseBomQuery(
   if (pageSizeRaw !== undefined) {
     const size = Number(pageSizeRaw);
     if (!Number.isInteger(size) || size < 1 || size > MAX_PAGE_SIZE) {
-      throw invalidQuery(`pageSize는 1 이상 ${MAX_PAGE_SIZE} 이하 정수여야 합니다.`);
+      throw invalidQuery(
+        `pageSize는 1 이상 ${MAX_PAGE_SIZE} 이하 정수여야 합니다.`,
+      );
     }
     pageSize = size;
   }
@@ -79,6 +96,8 @@ export function parseBomQuery(
       : { productId: read("productId")! }),
     page,
     pageSize,
+    sort,
+    order,
   };
 }
 
@@ -87,6 +106,12 @@ export class BomsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async search(query: BomQuery): Promise<BomRevisionListResult> {
+    const primary: Prisma.BomRevisionOrderByWithRelationInput =
+      query.sort === "productName"
+        ? { product: { name: query.order } }
+        : query.sort === "itemCount"
+          ? { items: { _count: query.order } }
+          : { [query.sort]: query.order };
     const where = {
       AND: [
         ...(query.q === undefined
@@ -104,10 +129,16 @@ export class BomsService {
                     product: {
                       OR: [
                         {
-                          code: { contains: query.q, mode: "insensitive" as const },
+                          code: {
+                            contains: query.q,
+                            mode: "insensitive" as const,
+                          },
                         },
                         {
-                          name: { contains: query.q, mode: "insensitive" as const },
+                          name: {
+                            contains: query.q,
+                            mode: "insensitive" as const,
+                          },
                         },
                       ],
                     },
@@ -118,7 +149,9 @@ export class BomsService {
         ...(query.lifecycle.length === 0
           ? []
           : [{ lifecycle: { in: [...query.lifecycle] } }]),
-        ...(query.productId === undefined ? [] : [{ productId: query.productId }]),
+        ...(query.productId === undefined
+          ? []
+          : [{ productId: query.productId }]),
       ],
     };
 
@@ -126,7 +159,7 @@ export class BomsService {
       this.prisma.bomRevision.count({ where }),
       this.prisma.bomRevision.findMany({
         where,
-        orderBy: [{ createdAt: "desc" }, { revisionNumber: "asc" }],
+        orderBy: [primary, { revisionNumber: "asc" }, { id: "asc" }],
         skip: (query.page - 1) * query.pageSize,
         take: query.pageSize,
         include: {

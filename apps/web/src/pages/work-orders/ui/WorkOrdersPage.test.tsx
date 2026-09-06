@@ -1,6 +1,6 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   fetchWorkOrders,
   type WorkOrderListResult,
@@ -17,6 +17,7 @@ vi.mock("@/entities/work-order", async (importOriginal) => {
 });
 
 const fetchMock = vi.mocked(fetchWorkOrders);
+beforeEach(() => fetchMock.mockReset());
 
 function sampleResult(
   overrides: Partial<WorkOrderListResult> = {},
@@ -77,6 +78,29 @@ function renderPage(search: WorkOrdersListSearch = {}) {
 }
 
 describe("WorkOrdersPage", () => {
+  it("열 정렬은 적용된 필터를 보존하고 첫 페이지의 전체 결과를 요청한다", async () => {
+    fetchMock.mockResolvedValue(sampleResult());
+    const { onSearchChange } = renderPage({
+      page: 3,
+      pageSize: 20,
+      q: "센서",
+      sort: "dueDate",
+      order: "asc",
+    });
+    await screen.findByText("WO-2026-091");
+    expect(fetchMock.mock.calls[0]?.[0].get("sort")).toBe("dueDate");
+    expect(fetchMock.mock.calls[0]?.[0].get("order")).toBe("asc");
+    await userEvent.click(
+      screen.getByRole("button", { name: "납기 내림차순 정렬" }),
+    );
+    expect(onSearchChange).toHaveBeenCalledWith({
+      page: 1,
+      pageSize: 20,
+      q: "센서",
+      sort: "dueDate",
+      order: "desc",
+    });
+  });
   it("작업지시 목록을 핵심 열과 함께 표시한다", async () => {
     fetchMock.mockResolvedValue(sampleResult());
     renderPage();

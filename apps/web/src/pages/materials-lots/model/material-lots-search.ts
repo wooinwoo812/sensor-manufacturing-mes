@@ -1,3 +1,4 @@
+import { readListSort, appendListSort, type ListSort } from "@/shared/lib";
 import { getPageSize, readPageSize } from "@/shared/lib";
 import {
   MATERIAL_LOT_AVAILABILITY_OPTIONS,
@@ -6,7 +7,7 @@ import {
   type MaterialLotDisposition,
 } from "@/entities/material-lot";
 
-export interface MaterialLotsListSearch {
+export interface MaterialLotsListSearch extends ListSort {
   q?: string;
   disposition?: readonly MaterialLotDisposition[];
   availability?: MaterialLotAvailability;
@@ -52,6 +53,7 @@ export function readMaterialLotsSearch(
     typeof raw.q === "string" && raw.q.trim() !== "" ? raw.q.trim() : undefined;
 
   return stripUndefinedSearch({
+    ...readListSort(raw, ["lotNumber", "expiresAt", "receivedAt", "onHand"]),
     q,
     disposition: parseDispositionList(raw.disposition),
     availability,
@@ -100,5 +102,6 @@ export function toMaterialLotsSearchParams(
     params.set("page", String(search.page));
   }
   params.set("pageSize", String(getPageSize(search.pageSize)));
+  appendListSort(params, search);
   return params;
 }

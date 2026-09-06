@@ -1,3 +1,4 @@
+import { readListSort, appendListSort, type ListSort } from "@/shared/lib";
 import { getPageSize, readPageSize } from "@/shared/lib";
 import {
   QUALITY_INCIDENT_SOURCE_TYPE_LABELS,
@@ -6,7 +7,7 @@ import {
   type QualityIncidentStatus,
 } from "@/entities/quality-incident";
 
-export interface IncidentsSearch {
+export interface IncidentsSearch extends ListSort {
   q?: string;
   status?: readonly QualityIncidentStatus[];
   sourceType?: readonly QualityIncidentSourceType[];
@@ -47,6 +48,7 @@ export function readIncidentsSearch(
     typeof raw.q === "string" && raw.q.trim() !== "" ? raw.q.trim() : undefined;
 
   return stripUndefinedSearch({
+    ...readListSort(raw, ["detectedAt", "incidentNumber"]),
     q,
     status: parseList(
       raw.status,
@@ -101,5 +103,6 @@ export function toIncidentsParams(search: IncidentsSearch): URLSearchParams {
     params.set("page", String(search.page));
   }
   params.set("pageSize", String(getPageSize(search.pageSize)));
+  appendListSort(params, search);
   return params;
 }

@@ -1,6 +1,13 @@
 import { useState } from "react";
 
-type ListQuery = { q?: string; page?: number; pageSize?: number };
+type ListQuery = {
+  q?: string;
+  page?: number;
+  pageSize?: number;
+  sort?: string;
+  order?: "asc" | "desc";
+};
+const displayKeys = new Set(["page", "pageSize", "sort", "order"]);
 const signature = (query: object) =>
   JSON.stringify(
     Object.entries(query)
@@ -15,11 +22,33 @@ export function useQueryDraft<Query extends ListQuery>(
   reload: () => void,
 ) {
   const appliedKey = signature(applied);
-  const [edit, setEdit] = useState({ key: appliedKey, value: applied });
+  const filterKey = signature(
+    Object.fromEntries(
+      Object.entries(applied).filter(([key]) => !displayKeys.has(key)),
+    ),
+  );
+  const [edit, setEdit] = useState({
+    key: appliedKey,
+    filterKey,
+    value: applied,
+  });
   // Sync on back/forward, pagination and external links without an effect or input remount.
-  if (edit.key !== appliedKey) setEdit({ key: appliedKey, value: applied });
-  const draft = edit.key === appliedKey ? edit.value : applied;
-  const setDraft = (value: Query) => setEdit({ key: appliedKey, value });
+  const nextDraft =
+    edit.filterKey === filterKey
+      ? ({
+          ...Object.fromEntries(
+            Object.entries(edit.value).filter(([key]) => !displayKeys.has(key)),
+          ),
+          ...Object.fromEntries(
+            Object.entries(applied).filter(([key]) => displayKeys.has(key)),
+          ),
+        } as Query)
+      : applied;
+  if (edit.key !== appliedKey)
+    setEdit({ key: appliedKey, filterKey, value: nextDraft });
+  const draft = edit.key === appliedKey ? edit.value : nextDraft;
+  const setDraft = (value: Query) =>
+    setEdit({ key: appliedKey, filterKey, value });
   const normalize = (value: Query): Query => {
     const next = { ...value };
     delete next.page;
@@ -44,9 +73,12 @@ export function useQueryDraft<Query extends ListQuery>(
     submit: () => commit(normalize(draft)),
     reset: () =>
       commit(
-        (applied.pageSize === undefined
-          ? {}
-          : { pageSize: applied.pageSize }) as Query,
+        Object.fromEntries(
+          Object.entries(applied).filter(
+            ([key, value]) =>
+              key !== "page" && displayKeys.has(key) && value !== undefined,
+          ),
+        ) as Query,
       ),
   };
 }

@@ -97,6 +97,8 @@ export function IncidentsPage({
     () => [
       {
         key: "incidentNumber",
+        width: 180,
+        sortKey: "incidentNumber",
         align: "left",
         header: "사건",
         cell: (row) => (
@@ -107,6 +109,7 @@ export function IncidentsPage({
       },
       {
         key: "title",
+        width: 280,
         align: "left",
         wrap: true,
         header: "제목",
@@ -123,6 +126,7 @@ export function IncidentsPage({
       },
       {
         key: "source",
+        width: 240,
         align: "left",
         wrap: true,
         header: "원천 대상",
@@ -139,6 +143,7 @@ export function IncidentsPage({
       },
       {
         key: "status",
+        width: 120,
         align: "center",
         header: "상태",
         cell: (row) => (
@@ -149,6 +154,8 @@ export function IncidentsPage({
       },
       {
         key: "detectedAt",
+        width: 170,
+        sortKey: "detectedAt",
         align: "center",
         header: "발견",
         cell: (row) => (
@@ -221,7 +228,7 @@ export function IncidentsPage({
         hasPendingChanges={hasPendingChanges}
         resultLabel={
           state.phase === "success"
-            ? `총 ${state.total.toLocaleString("ko-KR")}건 중 ${state.items.length.toLocaleString("ko-KR")}건 표시 (최근 발견 순서)`
+            ? `총 ${state.total.toLocaleString("ko-KR")}건 중 ${state.items.length.toLocaleString("ko-KR")}건 표시`
             : "조회 조건을 선택하면 부적합 사건 목록을 확인합니다."
         }
       >
@@ -288,7 +295,20 @@ export function IncidentsPage({
       </FilterBar>
 
       {state.phase === "loading" ? (
-        <TableSkeleton label="부적합 사건 조회 중" rows={pageSize} />
+        <TableSkeleton
+          columns={columns}
+          caption="부적합 사건 목록"
+          clickable
+          sort={{
+            sort: search.sort ?? "detectedAt",
+            order: search.order ?? "desc",
+          }}
+          onSortChange={(next) =>
+            onSearchChange({ ...search, ...next, page: 1 })
+          }
+          label="부적합 사건 조회 중"
+          rows={pageSize}
+        />
       ) : state.phase === "error" ? (
         <ErrorState
           description={state.message}
@@ -314,6 +334,13 @@ export function IncidentsPage({
       ) : (
         <>
           <DataTable
+            sort={{
+              sort: search.sort ?? "detectedAt",
+              order: search.order ?? "desc",
+            }}
+            onSortChange={(next) =>
+              onSearchChange({ ...search, ...next, page: 1 })
+            }
             footer={pagination}
             rowNumberStart={state.total - (currentPage - 1) * pageSize}
             onRowClick={(row) => onOpenDetail(row.id)}
@@ -323,7 +350,6 @@ export function IncidentsPage({
             emptyMessage="조건에 맞는 부적합 사건이 없습니다."
             getRowKey={(row) => row.id}
             tourRecord="incident"
-
             rows={state.items}
           />
         </>
