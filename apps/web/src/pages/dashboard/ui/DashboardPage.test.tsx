@@ -71,14 +71,14 @@ describe("DashboardPage", () => {
     expect(
       await screen.findByRole("heading", { level: 1, name: "운영 대시보드" }),
     ).toBeInTheDocument();
-    expect(screen.getByText("진행 중 작업지시")).toBeInTheDocument();
+    expect(await screen.findByText("진행 중 작업지시")).toBeInTheDocument();
     expect(screen.getAllByText("3").length).toBeGreaterThan(0);
     expect(
       screen.getByRole("heading", { level: 3, name: "이번 주 납기 계획 대비 진행" }),
     ).toBeInTheDocument();
     expect(screen.getByText("56.7%")).toBeInTheDocument();
     expect(
-      screen.getByRole("progressbar", { name: "주간 생산 달성률 56.7%" }),
+      screen.getByRole("progressbar", { name: "주간 공정 진행률 56.7%" }),
     ).toHaveAttribute("aria-valuenow", "56.7");
     expect(
       screen.getByRole("heading", { level: 3, name: "조치 필요" }),

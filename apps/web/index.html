@@ -8,19 +8,35 @@
       content="센서 제조의 생산·자재·품질·LOT 계보를 연결하는 MES"
     />
     <meta name="theme-color" content="#f8fafc" />
-    <title>Sensor Manufacturing MES</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <script src="/boot.js"></script>
+    <script src="/session-bootstrap.js"></script>
+    <script src="/layout-snapshot.js"></script>
+    <link rel="stylesheet" href="/boot.css" />
+    <title>FabriScope MES · 센서 제조 운영</title>
   </head>
   <body>
-    <!--
-      IMPECCABLE-SURFACE: login-auth-v1
-      THESIS: 제조 업무의 정밀 출입 명부이며 마케팅 로그인과 카드 갤러리를 거부한다.
-      OWN-WORLD: cool-neutral canvas, 흰 업무 surface, cobalt 선택 상태와 기존 MES control 문법.
-      STORY: 다섯 역할의 책임을 비교하고 가상 데이터·서버 권한을 확인한 뒤 한 번에 진입한다.
-      FIRST VIEWPORT: 왼쪽에 제조 흐름과 보안 근거, 오른쪽 단일 목록에 다섯 역할과 시작점을 둔다.
-      FORM: 비교 가능한 세로 access roster; seed login-auth-v1.
-      FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
-    -->
-    <div id="root"></div>
+    <!-- Visual contract: docs/engineering/frontend-design-system.md -->
+    <div id="root">
+      <div class="mes-boot" aria-busy="true" data-initial-loading>
+        <div class="boot-sidebar" aria-hidden="true">
+          <div class="boot-brand">FabriScope MES</div>
+        </div>
+        <div class="boot-workspace">
+          <div class="boot-header" aria-hidden="true">
+            <span data-boot-page-title></span>
+          </div>
+          <main id="main-content" class="boot-main">
+            <h1 data-boot-page-title></h1>
+            <p class="boot-status" role="status">화면을 여는 중입니다.</p>
+          </main>
+        </div>
+      </div>
+    </div>
+    <noscript
+      >이 데모를 사용하려면 브라우저에서 JavaScript를 허용해 주세요.</noscript
+    >
+    <script src="/sidebar-presentation.js"></script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

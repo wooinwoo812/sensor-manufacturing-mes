@@ -1,115 +1,33 @@
-import { Factory, ShieldCheck, Waypoints } from "lucide-react";
+import { Factory } from "lucide-react";
 import type { Session } from "@/entities/session";
-import {
-  RoleLoginList,
-  type LoginReason,
-} from "@/features/auth/login-as-role";
+import { RoleLoginList, type LoginReason, type LoginExperience } from "@/features/auth/login-as-role";
 import { SkipToMain, ThemeSwitch } from "@/widgets/app-shell";
 
-const reasonMessage: Record<LoginReason, string> = {
-  required: "이 화면을 보려면 먼저 역할을 선택해 주세요.",
-  "session-expired": "세션이 만료되었습니다. 역할을 다시 선택해 주세요.",
-  "role-changed": "이전 역할의 세션을 종료했습니다. 새 역할을 선택해 주세요.",
-};
-
 interface LoginPageProps {
-  onAuthenticated: (session: Session) => void | Promise<void>;
+  onAuthenticated: (session: Session, experience: LoginExperience) => void | Promise<void>;
   reason?: LoginReason;
+  onLoginStart?: () => void;
 }
 
-export function LoginPage({ onAuthenticated, reason }: LoginPageProps) {
+export function LoginPage({ onAuthenticated, reason, onLoginStart }: LoginPageProps) {
   return (
     <div className="min-h-svh bg-canvas">
       <SkipToMain />
-      <header className="border-b border-border bg-surface/95">
-        <div className="mx-auto flex min-h-16 max-w-6xl items-center justify-between gap-4 px-5 sm:px-8">
-          <div className="flex min-w-0 items-center gap-3">
-            <span className="grid size-9 shrink-0 place-items-center rounded-brand bg-primary text-primary-foreground">
-              <Factory className="size-5" aria-hidden="true" />
-            </span>
-            <div className="min-w-0 leading-tight">
-              <strong className="block truncate text-sm text-text-strong">
-                FabriScope MES
-              </strong>
-              <span className="block truncate text-xs text-text-muted">
-                센서 제조 운영 데모
-              </span>
-            </div>
-          </div>
-          <ThemeSwitch />
-        </div>
+      <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6 sm:px-10">
+        <span className="flex items-center gap-2.5 text-lg font-semibold text-text-strong"><Factory className="size-6 text-accent-strong" aria-hidden="true" /> FabriScope</span>
+        <ThemeSwitch />
       </header>
-
-      <main
-        className="mx-auto grid min-h-[calc(100svh-4.0625rem)] max-w-6xl lg:grid-cols-[minmax(0,0.85fr)_minmax(28rem,1.15fr)]"
-        id="main-content"
-        tabIndex={-1}
-      >
-        <section className="flex flex-col justify-between border-b border-border px-5 py-10 sm:px-8 sm:py-14 lg:border-b-0 lg:border-e lg:py-20">
-          <div>
-            <h1 className="max-w-xl text-balance text-3xl font-bold tracking-[-0.025em] text-text-strong sm:text-4xl">
-              역할을 선택해 데모를 시작하세요
-            </h1>
-            <p className="mt-4 max-w-xl text-pretty text-sm leading-7 text-text-muted sm:text-base">
-              생산계획부터 품질과 감사이력까지, 각 담당자의 실제 권한 경계로
-              같은 제조 흐름을 확인합니다.
-            </p>
-
-            <div className="mt-9 border-y border-border py-5">
-              <div className="flex items-start gap-3">
-                <Waypoints
-                  className="mt-0.5 size-5 shrink-0 text-accent-strong"
-                  aria-hidden="true"
-                />
-                <div>
-                  <strong className="text-sm text-text-strong">
-                    작업지시 → 자재 → 공정 → 품질 → LOT 계보
-                  </strong>
-                  <p className="mt-1 text-xs leading-5 text-text-muted">
-                    역할을 바꿀 때 이전 세션을 종료해 조회 결과와 실행 권한이
-                    섞이지 않습니다.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-9 flex items-start gap-3 text-xs leading-5 text-text-muted lg:mt-16">
-            <ShieldCheck
-              className="mt-0.5 size-4 shrink-0 text-success-strong"
-              aria-hidden="true"
-            />
-            <p>
-              모든 계정과 데이터는 가상입니다. 로그인은 HttpOnly 세션을 발급하고
-              API가 역할별 권한을 다시 검증합니다.
-            </p>
-          </div>
-        </section>
-
-        <section
-          aria-labelledby="demo-access-title"
-          className="flex items-center px-5 py-10 sm:px-8 sm:py-14 lg:py-20"
-        >
-          <div className="w-full overflow-hidden rounded-panel border border-border-strong bg-surface shadow-panel">
-            <div className="border-b border-border bg-surface-subtle/45 px-5 py-5 sm:px-6">
-              <h2 className="text-lg font-bold text-text-strong" id="demo-access-title">
-                데모 접근 권한
-              </h2>
-              <p className="mt-1 text-sm leading-6 text-text-muted">
-                선택한 역할의 가상 계정으로 바로 로그인합니다.
-              </p>
-              {reason === undefined ? null : (
-                <p
-                  className="mt-4 rounded-control border border-warning-border bg-warning-soft px-3 py-2 text-xs font-medium leading-5 text-warning-strong"
-                  role="status"
-                >
-                  {reasonMessage[reason]}
-                </p>
-              )}
-            </div>
-            <RoleLoginList onAuthenticated={onAuthenticated} />
-          </div>
-        </section>
+      <main id="main-content" tabIndex={-1} className="mx-auto max-w-4xl px-6 pb-10 pt-6">
+        <p className="text-base font-medium tracking-[0.18em] text-text-muted">SENSOR MANUFACTURING MES</p>
+        <h1 className="mt-4 text-4xl font-semibold tracking-tight text-text-strong sm:text-[2.5rem]">센서 제조 운영</h1>
+        <div className="mt-4 space-y-2 text-lg leading-8">
+          <p className="font-medium text-text-strong">가상의 센서 제조 현장을 바탕으로 만든 개발 포트폴리오 사이트입니다.</p>
+          <p className="text-text-muted">작업지시부터 자재 투입, 공정 실적, 검사 판정까지 이어지는 업무 흐름을 구현했습니다.<br className="hidden sm:block" /> 자재 부족이나 검사 보류에 따른 공정 차단과 변경 이력을 직접 확인할 수 있습니다.</p>
+          <p className="text-text-muted">별도 가입 없이 아래 데모 계정으로 바로 접속할 수 있습니다.</p>
+        </div>
+        {reason === "session-expired" ? <p role="status" className="mt-5 rounded-control border border-warning-border bg-warning-soft p-3 text-lg leading-8 text-warning-strong">세션이 만료되었습니다. 다시 접속해 주세요.</p> : null}
+        <div className="mt-8"><RoleLoginList onAuthenticated={onAuthenticated} {...(onLoginStart ? { onLoginStart } : {})} /></div>
+        <p className="mt-6 text-base leading-7 text-text-muted">개발 포트폴리오 · 모든 계정과 제조 데이터는 가상입니다.</p>
       </main>
     </div>
   );

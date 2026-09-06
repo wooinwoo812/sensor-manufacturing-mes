@@ -11,7 +11,8 @@ import { cn } from "@/shared/lib";
 export function Skeleton({ className }: { className?: string }) {
   return (
     <span
-      className={cn("block animate-pulse rounded-control bg-border motion-reduce:animate-none", className)}
+      data-loading-placeholder="true"
+      className={cn("block rounded-control bg-surface", className)}
       aria-hidden="true"
     />
   );
@@ -56,11 +57,11 @@ function StatePanel({
 
   return (
     <section
-      className="rounded-panel border border-border bg-surface px-6 py-8 text-center"
+      className="rounded-panel border border-dashed border-border-strong bg-surface px-6 py-12 text-center"
       role={role}
     >
       <span
-        className={`mx-auto grid size-11 place-items-center rounded-lg ${iconTone}`}
+        className={`mx-auto grid size-12 place-items-center rounded-panel ${iconTone}`}
       >
         <Icon className="size-5" aria-hidden="true" />
       </span>

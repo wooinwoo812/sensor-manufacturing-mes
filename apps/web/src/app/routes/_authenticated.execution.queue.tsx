@@ -17,7 +17,7 @@ export const Route = createFileRoute("/_authenticated/execution/queue")({
   component: ExecutionQueueRoute,
 });
 
-function ExecutionQueueRoute() {
+export function ExecutionQueueRoute() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const { session } = Route.useRouteContext();
@@ -31,7 +31,14 @@ function ExecutionQueueRoute() {
         void navigate({
           to: "/execution/queue",
           search: next,
-          replace: true,
+          replace: false,
+          resetScroll: false,
+        });
+      }}
+      onOpenDetail={(row) => {
+        void navigate({
+          to: "/execution/lots/$productionLotId/steps/$processStepRevisionId",
+          params: { productionLotId: row.productionLotNumber, processStepRevisionId: row.id },
         });
       }}
     />

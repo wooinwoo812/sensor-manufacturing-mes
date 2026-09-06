@@ -25,7 +25,7 @@ export const Route = createFileRoute("/_authenticated")({
   component: AuthenticatedRoute,
 });
 
-function AuthenticatedRoute() {
+export function AuthenticatedRoute() {
   const { session } = Route.useRouteContext();
   return <AuthenticatedLayout session={session} />;
 }

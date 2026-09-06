@@ -17,7 +17,7 @@ export const Route = createFileRoute(
   component: MaterialLotDetailRoute,
 });
 
-function MaterialLotDetailRoute() {
+export function MaterialLotDetailRoute() {
   const { materialLotId } = Route.useParams();
   const navigate = useNavigate({ from: Route.fullPath });
 

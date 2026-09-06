@@ -11,6 +11,8 @@ export interface SelectOption {
 
 export interface SelectProps {
   label: string;
+  hideLabel?: boolean;
+  tourAnchor?: string;
   options: SelectOption[];
   value?: string;
   defaultValue?: string;
@@ -25,17 +27,25 @@ export function Select({
   disabled,
   error,
   label,
+  hideLabel = false,
   onValueChange,
   options,
   placeholder = "선택하세요",
   value,
+  tourAnchor,
 }: SelectProps) {
   const labelId = useId();
   const errorId = `${labelId}-error`;
 
   return (
     <div className="grid gap-2">
-      <span className="text-xs font-semibold text-text" id={labelId}>
+      <span
+        className={cn(
+          "text-xs font-medium text-text-muted",
+          hideLabel && "sr-only",
+        )}
+        id={labelId}
+      >
         {label}
       </span>
       <SelectPrimitive.Root
@@ -45,8 +55,9 @@ export function Select({
         {...(value !== undefined ? { value } : {})}
       >
         <SelectPrimitive.Trigger
+          data-tour={tourAnchor}
           className={cn(
-            "flex h-10 min-w-44 items-center justify-between gap-3 rounded-control border border-border-strong bg-surface px-3 text-sm text-text-strong shadow-control outline-none transition-colors hover:border-text-subtle focus:border-accent focus:ring-3 focus:ring-focus/20 disabled:cursor-not-allowed disabled:bg-surface-subtle disabled:text-text-subtle",
+            "flex h-10 w-full min-w-0 items-center justify-between gap-3 rounded-control border border-input bg-surface px-3 [&>span:first-child]:min-w-0 [&>span:first-child]:truncate text-sm text-text-strong shadow-control outline-none transition-colors hover:border-text-subtle focus:border-primary focus:ring-3 focus:ring-focus/20 disabled:cursor-not-allowed disabled:bg-surface-subtle disabled:text-text-subtle",
             error && "border-danger focus:border-danger focus:ring-danger/15",
           )}
           aria-labelledby={labelId}
@@ -55,7 +66,10 @@ export function Select({
         >
           <SelectPrimitive.Value placeholder={placeholder} />
           <SelectPrimitive.Icon asChild>
-            <ChevronDown className="size-4 text-text-muted" aria-hidden="true" />
+            <ChevronDown
+              className="size-4 text-text-muted"
+              aria-hidden="true"
+            />
           </SelectPrimitive.Icon>
         </SelectPrimitive.Trigger>
         <SelectPrimitive.Portal>
@@ -80,7 +94,9 @@ export function Select({
                       <Check className="size-4" aria-hidden="true" />
                     </SelectPrimitive.ItemIndicator>
                   </span>
-                  <SelectPrimitive.ItemText>{option.label}</SelectPrimitive.ItemText>
+                  <SelectPrimitive.ItemText>
+                    {option.label}
+                  </SelectPrimitive.ItemText>
                 </SelectPrimitive.Item>
               ))}
             </SelectPrimitive.Viewport>

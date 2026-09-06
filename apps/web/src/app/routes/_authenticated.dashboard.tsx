@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   requireRoutePermission,
   RoutePermission,
@@ -12,5 +12,26 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
       RoutePermission.DASHBOARD_READ,
       location.href,
     ),
-  component: DashboardPage,
+  component: DashboardRoute,
 });
+
+export function DashboardRoute() {
+  const navigate = useNavigate({ from: Route.fullPath });
+
+  return (
+    <DashboardPage
+      onOpenWorkOrder={id => { void navigate({ to: "/work-orders/$workOrderId", params: { workOrderId: id } }); }}
+      onOpenAttention={(item) => {
+        // 코드 접두어로 대상 목록을 고른다: WO=작업지시, PL=생산 LOT(공정 실행), INSP=검사
+        const search = { q: item.code };
+        if (item.code.startsWith("INSP-")) {
+          void navigate({ to: "/quality/inspections", search });
+        } else if (item.code.startsWith("PL-")) {
+          void navigate({ to: "/execution/queue", search });
+        } else {
+          void navigate({ to: "/work-orders", search });
+        }
+      }}
+    />
+  );
+}

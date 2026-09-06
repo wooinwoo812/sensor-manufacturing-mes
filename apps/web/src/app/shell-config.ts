@@ -1,7 +1,4 @@
-import type {
-  AppShellConfiguration,
-  AppShellProps,
-} from "@/widgets/app-shell";
+import type { AppShellConfiguration, AppShellProps } from "@/widgets/app-shell";
 import { sessionHasPermission, type Session } from "@/entities/session";
 
 type NavigationItem = AppShellProps["navigation"][number]["items"][number];
@@ -9,7 +6,7 @@ type ConfiguredNavigationItem = NavigationItem & { permission: string };
 
 const navigation: { label: string; items: ConfiguredNavigationItem[] }[] = [
   {
-    label: "운영",
+    label: "생산 운영",
     items: [
       {
         label: "대시보드",
@@ -17,11 +14,7 @@ const navigation: { label: string; items: ConfiguredNavigationItem[] }[] = [
         icon: "dashboard",
         permission: "dashboard:read",
       },
-    ],
-  },
-  {
-    label: "생산",
-    items: [
+
       {
         label: "작업지시",
         icon: "work-order",
@@ -37,7 +30,7 @@ const navigation: { label: string; items: ConfiguredNavigationItem[] }[] = [
     ],
   },
   {
-    label: "자재",
+    label: "자재·품질",
     items: [
       {
         label: "BOM 기준정보",
@@ -51,11 +44,7 @@ const navigation: { label: string; items: ConfiguredNavigationItem[] }[] = [
         to: "/materials/lots",
         permission: "material-lot:read",
       },
-    ],
-  },
-  {
-    label: "품질",
-    items: [
+
       {
         label: "검사",
         icon: "inspection",
@@ -71,7 +60,7 @@ const navigation: { label: string; items: ConfiguredNavigationItem[] }[] = [
     ],
   },
   {
-    label: "추적",
+    label: "추적·관리",
     items: [
       {
         label: "LOT 계보",
@@ -79,11 +68,7 @@ const navigation: { label: string; items: ConfiguredNavigationItem[] }[] = [
         to: "/traceability",
         permission: "trace:read",
       },
-    ],
-  },
-  {
-    label: "관리",
-    items: [
+
       {
         label: "감사이력",
         icon: "audit",
@@ -101,11 +86,14 @@ const navigation: { label: string; items: ConfiguredNavigationItem[] }[] = [
 ];
 
 const routeTitles: Record<string, { title: string }> = {
+  "/guide": { title: "업무 가이드" },
   "/dashboard": { title: "운영 대시보드" },
   "/work-orders": { title: "작업지시" },
+  "/work-orders/new": { title: "작업지시 생성" },
   "/materials/lots": { title: "자재 LOT" },
   "/materials/boms": { title: "BOM 기준정보" },
   "/execution/queue": { title: "공정 실행" },
+  "/execution/lots": { title: "공정 실행" },
   "/quality/inspections": { title: "품질검사" },
   "/quality/incidents": { title: "부적합·격리" },
   "/traceability": { title: "LOT 계보" },
@@ -119,7 +107,7 @@ export function resolveShellContext(
   pathname: string,
   session: Session,
 ): AppShellConfiguration {
-  const current = routeTitles[pathname] ?? { title: "화면을 찾을 수 없음" };
+  const current = resolveRouteTitle(pathname);
   const allowedNavigation = navigation
     .map((group) => ({
       label: group.label,
@@ -133,8 +121,38 @@ export function resolveShellContext(
     navigation: allowedNavigation,
     pathname,
     pageTitle: current.title,
+    pageGroup: resolvePageGroup(pathname),
     currentRole: session.activeRole.label,
   };
+}
+
+function resolvePageGroup(pathname: string): string | undefined {
+  const exact = navigation.find((group) =>
+    group.items.some(
+      (item) => pathname === item.to || pathname.startsWith(`${item.to}/`),
+    ),
+  );
+  if (exact) {
+    return exact.label;
+  }
+  // /execution/lots/... 처럼 메뉴 경로의 하위가 아닌 상세는 첫 경로 조각(execution)으로 그룹을 찾는다.
+  const [, head] = pathname.split("/");
+  return navigation.find((group) =>
+    group.items.some((item) => item.to?.split("/")[1] === head),
+  )?.label;
+}
+
+function resolveRouteTitle(pathname: string): { title: string } {
+  const exact = routeTitles[pathname];
+  if (exact) {
+    return exact;
+  }
+
+  const parent = Object.keys(routeTitles)
+    .filter((route) => pathname.startsWith(`${route}/`))
+    .sort((a, b) => b.length - a.length)[0];
+
+  return parent ? routeTitles[parent]! : { title: "화면을 찾을 수 없음" };
 }
 
 function toNavigationItem(item: ConfiguredNavigationItem): NavigationItem {

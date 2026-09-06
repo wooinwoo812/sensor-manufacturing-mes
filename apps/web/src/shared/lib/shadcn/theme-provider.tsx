@@ -74,6 +74,7 @@ export function ThemeProvider({
     const applyTheme = (next: ResolvedTheme) => {
       root.classList.remove("light", "dark");
       root.classList.add(next);
+      root.style.colorScheme = next;
     };
 
     const handleChange = () => {

@@ -25,6 +25,9 @@ function sampleDetail(
   overrides: Partial<InspectionDetail> = {},
 ): InspectionDetail {
   return {
+    workOrderId: "work-order-1",
+    eligibility: { canVerdict: true, canReview: false, blockedReason: null },
+    decisions: [],
     id: "inspection-1",
     inspectionNumber: "INSP-2026-0106",
     workOrderNumber: "WO-2026-092",

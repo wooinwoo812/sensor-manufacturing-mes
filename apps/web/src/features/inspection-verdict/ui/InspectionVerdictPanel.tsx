@@ -1,7 +1,8 @@
+import { useNavigationSafety } from "@/shared/lib";
 import { useState } from "react";
 import { verdictInspection } from "../api/inspection-verdict";
 import { ApiRequestError } from "@/shared/api";
-import { Badge, Button, Input, Select } from "@/shared/ui";
+import { Badge, Button, Input, Panel, Select } from "@/shared/ui";
 
 export interface InspectionVerdictTarget {
   inspectionId: string;
@@ -14,6 +15,7 @@ interface InspectionVerdictPanelProps {
   target: InspectionVerdictTarget;
   csrfToken: string;
   onDone: () => void;
+  review?: boolean;
 }
 
 const VERDICT_OPTIONS = [
@@ -26,11 +28,14 @@ export function InspectionVerdictPanel({
   target,
   csrfToken,
   onDone,
+  review = false,
 }: InspectionVerdictPanelProps) {
   const [verdict, setVerdict] = useState<string>("PASS");
   const [memo, setMemo] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useNavigationSafety(verdict !== "PASS" || memo !== "", pending);
 
   async function submit() {
     if (pending) {
@@ -46,6 +51,7 @@ export function InspectionVerdictPanel({
           ...(memo.trim() === "" ? {} : { memo: memo.trim() }),
         },
         csrfToken,
+        review,
       );
       onDone();
     } catch (cause: unknown) {
@@ -59,36 +65,40 @@ export function InspectionVerdictPanel({
   }
 
   return (
-    <div className="rounded-panel border border-border bg-surface p-4" aria-label="검사 판정 입력">
-      <p className="text-sm font-semibold">
-        {`${target.inspectionNumber} · ${target.specName} (${target.productionLotNumber})`}
-      </p>
-      <p className="mt-1 text-xs text-text-muted">
-        판정 확정 시 감사 이력에 기록되며 불합격·보류는 다음 공정 진행을 차단합니다.
-      </p>
-      <div className="mt-3 flex flex-wrap items-end gap-3">
+    <Panel
+      ariaLabel={review ? "보류 검토 입력" : "검사 판정 입력"}
+      description={review ? "기존 보류 판정과 사유를 보존하고, 검토 결과를 새 이력으로 기록합니다." : "불합격·보류는 다음 공정을 차단합니다. 판정 후에는 보류 검사만 추가 검토할 수 있습니다."}
+      headingLevel="h2"
+      title={`${review ? "보류 검토" : "판정 입력"} · ${target.specName} (${target.productionLotNumber})`}
+    >
+      <div className="flex flex-wrap items-end gap-3">
         <div className="min-w-44">
           <Select
             label="판정"
-            options={VERDICT_OPTIONS.map((option) => ({ ...option }))}
+            tourAnchor="inspection-verdict"
+            disabled={pending}
+            options={VERDICT_OPTIONS.filter(option => !review || option.value !== "HOLD").map((option) => ({ ...option }))}
             value={verdict}
             onValueChange={setVerdict}
           />
         </div>
         <div className="min-w-56 flex-1">
           <Input
-            hint="선택 사항입니다."
+            hint={review || verdict !== "PASS" ? "검토 근거와 사유를 2~300자로 입력해 주세요." : "선택 사항 · 최대 300자"}
+            maxLength={300}
+            disabled={pending}
             id="verdict-memo"
-            label="판정 메모"
+            data-tour="inspection-memo"
+            label={review ? "검토 사유" : "판정 사유"}
             name="verdictMemo"
             onChange={(event) => setMemo(event.target.value)}
             value={memo}
           />
         </div>
-        <Button loading={pending} onClick={() => void submit()}>
-          판정 확정
+        <Button loading={pending} disabled={(review || verdict !== "PASS") && memo.trim().length < 2} onClick={() => void submit()}>
+          {review ? "검토 결과 확정" : "판정 확정"}
         </Button>
-        <Button variant="ghost" onClick={onDone}>
+        <Button variant="ghost" disabled={pending} onClick={onDone}>
           취소
         </Button>
       </div>
@@ -96,8 +106,8 @@ export function InspectionVerdictPanel({
         <p className="mt-3">
           <Badge tone={verdict === "FAIL" ? "danger" : "warning"}>
             {verdict === "FAIL"
-              ? "불합격은 품질 처분 대상이 됩니다"
-              : "보류는 재측정 전까지 진행을 막습니다"}
+              ? "불합격으로 후속 진행을 차단합니다"
+              : "검토 결과가 확정될 때까지 진행을 차단합니다"}
           </Badge>
         </p>
       ) : null}
@@ -106,6 +116,6 @@ export function InspectionVerdictPanel({
           {error}
         </p>
       ) : null}
-    </div>
+    </Panel>
   );
 }

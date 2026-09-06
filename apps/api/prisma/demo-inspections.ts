@@ -31,7 +31,7 @@ export const DEMO_INSPECTIONS: DemoInspection[] = [
     processStepName: "최종 검사",
     gate: "LOT_COMPLETE",
     specName: "적외선 모듈 최종검사 규격 v3",
-    executionStatus: "IN_PROGRESS",
+    executionStatus: "PENDING",
     verdict: null,
     completedAt: null,
   },

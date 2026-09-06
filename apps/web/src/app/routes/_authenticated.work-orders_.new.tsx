@@ -15,7 +15,7 @@ export const Route = createFileRoute("/_authenticated/work-orders_/new")({
   component: WorkOrderCreateRoute,
 });
 
-function WorkOrderCreateRoute() {
+export function WorkOrderCreateRoute() {
   const navigate = useNavigate();
   const { session } = Route.useRouteContext();
 
@@ -28,6 +28,9 @@ function WorkOrderCreateRoute() {
           params: { workOrderId },
           replace: true,
         });
+      }}
+      onCancel={() => {
+        void navigate({ to: "/work-orders", search: {} });
       }}
     />
   );

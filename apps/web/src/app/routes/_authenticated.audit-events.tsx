@@ -17,7 +17,7 @@ export const Route = createFileRoute("/_authenticated/audit-events")({
   component: AuditEventsRoute,
 });
 
-function AuditEventsRoute() {
+export function AuditEventsRoute() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
 
@@ -28,7 +28,8 @@ function AuditEventsRoute() {
         void navigate({
           to: "/audit-events",
           search: next,
-          replace: true,
+          replace: false,
+          resetScroll: false,
         });
       }}
     />

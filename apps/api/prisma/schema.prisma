@@ -211,12 +211,30 @@ model Inspection {
   createdAt        DateTime                  @default(now())
   updatedAt        DateTime                  @updatedAt
   workOrder        WorkOrder                 @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  decisions        InspectionDecision[]
 
   @@index([executionStatus, verdict])
   @@index([workOrderId])
 }
 
+model InspectionDecision {
+  id           String            @id @default(cuid())
+  inspectionId String
+  sequence     Int
+  phase        String            @db.VarChar(20)
+  verdict      InspectionVerdict
+  memo         String?           @db.VarChar(300)
+  actorId      String?           @db.VarChar(64)
+  actorName    String?           @db.VarChar(100)
+  actorRole    RoleCode?
+  occurredAt   DateTime          @default(now())
+  inspection   Inspection        @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+
+  @@unique([inspectionId, sequence])
+}
+
 enum AuditAction {
+  USER_ACCESS_CHANGED
   SESSION_LOGIN
   SESSION_LOGOUT
   WORK_ORDER_CREATED
@@ -272,6 +290,7 @@ model AuditEvent {
   entityId   String     @db.VarChar(64)
   summary    String     @db.VarChar(200)
   requestId  String     @db.VarChar(64)
+  details    Json?
   createdAt  DateTime   @default(now())
 
   @@index([occurredAt])

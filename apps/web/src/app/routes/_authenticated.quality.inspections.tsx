@@ -17,7 +17,7 @@ export const Route = createFileRoute("/_authenticated/quality/inspections")({
   component: InspectionsRoute,
 });
 
-function InspectionsRoute() {
+export function InspectionsRoute() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const { session } = Route.useRouteContext();
@@ -37,7 +37,8 @@ function InspectionsRoute() {
         void navigate({
           to: "/quality/inspections",
           search: next,
-          replace: true,
+          replace: false,
+          resetScroll: false,
         });
       }}
     />

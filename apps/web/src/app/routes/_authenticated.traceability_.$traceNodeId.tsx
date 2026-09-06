@@ -17,7 +17,7 @@ export const Route = createFileRoute(
   component: TraceNodeDetailRoute,
 });
 
-function TraceNodeDetailRoute() {
+export function TraceNodeDetailRoute() {
   const { traceNodeId } = Route.useParams();
   const navigate = useNavigate({ from: Route.fullPath });
 
@@ -26,6 +26,12 @@ function TraceNodeDetailRoute() {
       traceNodeId={traceNodeId}
       onBack={() => {
         void navigate({ to: "/traceability", search: {}, replace: true });
+      }}
+      onOpenNode={(nextNodeId) => {
+        void navigate({
+          to: "/traceability/$traceNodeId",
+          params: { traceNodeId: nextNodeId },
+        });
       }}
     />
   );

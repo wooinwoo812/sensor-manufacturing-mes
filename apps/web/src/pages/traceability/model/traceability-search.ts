@@ -1,12 +1,11 @@
-import {
-  TRACE_NODE_TYPES,
-  type TraceNodeType,
-} from "@/entities/trace-node";
+import { getPageSize, readPageSize } from "@/shared/lib";
+import { TRACE_NODE_TYPES, type TraceNodeType } from "@/entities/trace-node";
 
 export interface TraceabilitySearch {
   q?: string;
   nodeType?: readonly TraceNodeType[];
   page?: number;
+  pageSize?: number;
 }
 
 export type TraceabilitySearchPatch = {
@@ -24,8 +23,8 @@ function parseNodeTypeList(
     .split(",")
     .map((value) => value.trim())
     .filter((value) => value !== "");
-  const valid = values.filter(
-    (value): value is TraceNodeType => allowed.includes(value as TraceNodeType),
+  const valid = values.filter((value): value is TraceNodeType =>
+    allowed.includes(value as TraceNodeType),
   );
   return valid.length > 0 ? valid : undefined;
 }
@@ -61,6 +60,7 @@ export function readTraceabilitySearch(
     q,
     nodeType: parseNodeTypeList(raw.nodeType, TRACE_NODE_TYPES),
     page,
+    pageSize: readPageSize(raw.pageSize),
   });
 }
 
@@ -84,5 +84,6 @@ export function toTraceabilityParams(
   if (search.page !== undefined && search.page > 1) {
     params.set("page", String(search.page));
   }
+  params.set("pageSize", String(getPageSize(search.pageSize)));
   return params;
 }

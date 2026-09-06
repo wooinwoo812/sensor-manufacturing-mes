@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import {
@@ -18,7 +18,9 @@ vi.mock("@/entities/process-execution", async (importOriginal) => {
 
 const fetchMock = vi.mocked(fetchProcessExecutions);
 
-function sampleResult(overrides: Partial<ProcessExecutionListResult> = {}): ProcessExecutionListResult {
+function sampleResult(
+  overrides: Partial<ProcessExecutionListResult> = {},
+): ProcessExecutionListResult {
   return {
     items: [
       {
@@ -27,6 +29,7 @@ function sampleResult(overrides: Partial<ProcessExecutionListResult> = {}): Proc
         productCode: "SEN-XR-1280",
         productName: "X선 검출기 패널 1280px",
         plannedQuantity: 40,
+        outputQuantityLimit: 40,
         unit: "EA",
         dueDate: "2026-09-02T08:00:00.000Z",
         sequence: 10,
@@ -41,6 +44,7 @@ function sampleResult(overrides: Partial<ProcessExecutionListResult> = {}): Proc
         productCode: "SEN-IR-640",
         productName: "적외선 센서 모듈 640px",
         plannedQuantity: 80,
+        outputQuantityLimit: 80,
         unit: "EA",
         dueDate: "2026-09-03T03:00:00.000Z",
         sequence: 40,
@@ -76,10 +80,18 @@ describe("ExecutionQueuePage", () => {
     renderPage();
 
     expect(await screen.findByText("PL-2026-092A")).toBeInTheDocument();
-    expect(screen.getByText("절단 1공정")).toBeInTheDocument();
-    expect(screen.getByText("차단")).toBeInTheDocument();
-    expect(screen.getByText("자재 부족")).toBeInTheDocument();
-    expect(screen.getByText("실행 가능")).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("table")).getByText("절단 1공정"),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("table")).getByText("차단"),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("table")).getByText("자재 부족"),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("table")).getByText("실행 가능"),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("table", { name: "공정 실행 대기열" }),
     ).toBeInTheDocument();
@@ -116,6 +128,8 @@ describe("ExecutionQueuePage", () => {
 
     await user.click(screen.getByRole("combobox", { name: "준비 상태" }));
     await user.click(await screen.findByRole("option", { name: "실행 가능" }));
+    expect(onSearchChange).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: "조회" }));
 
     expect(onSearchChange).toHaveBeenCalledWith({ readiness: "ready" });
   });

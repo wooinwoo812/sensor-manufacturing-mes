@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { getPageSize } from "@/shared/lib";
+import { useMemo } from "react";
 import {
   AUDIT_ACTION_LABELS,
   AUDIT_ACTOR_ROLE_OPTIONS,
@@ -7,37 +8,26 @@ import {
   formatAuditDateTime,
   type AuditEventListItem,
 } from "@/entities/audit-event";
-import { ApiRequestError } from "@/shared/api";
 import {
   Button,
   DataTable,
-  type DataTableColumn,
   EmptyState,
   ErrorState,
   FilterBar,
   Input,
   PageHeading,
+  Pagination,
   Select,
-  Skeleton,
+  TableSkeleton,
+  type DataTableColumn,
 } from "@/shared/ui";
+import { useLoadState, useQueryDraft } from "@/shared/lib";
 import { Main } from "@/widgets/app-shell";
 import {
   mergeAuditEventsSearch,
   toAuditEventsParams,
   type AuditEventsSearch,
 } from "../model/audit-events-search";
-
-const PAGE_SIZE = 20;
-
-type LoadState =
-  | { phase: "loading" }
-  | { phase: "error"; message: string }
-  | {
-      phase: "success";
-      items: AuditEventListItem[];
-      total: number;
-      page: number;
-    };
 
 interface AuditEventsPageProps {
   search: AuditEventsSearch;
@@ -52,66 +42,43 @@ function entityLabel(entityType: string): string {
   );
 }
 
-export function AuditEventsPage({ search, onSearchChange }: AuditEventsPageProps) {
+export function AuditEventsPage({
+  search,
+  onSearchChange,
+}: AuditEventsPageProps) {
   const searchKey = JSON.stringify(search);
-  const [reloadCount, setReloadCount] = useState(0);
-  const [result, setResult] = useState<{
-    key: string;
-    reload: number;
-    state: Exclude<LoadState, { phase: "loading" }>;
-  } | null>(null);
+  const { state, isRefreshing, reload } = useLoadState<{
+    items: AuditEventListItem[];
+    total: number;
+    page: number;
+    pageSize: number;
+  }>(
+    searchKey,
+    (signal) => {
+      const searchValue = JSON.parse(searchKey) as AuditEventsSearch;
+      return fetchAuditEvents(toAuditEventsParams(searchValue), signal).then(
+        (response) => ({
+          items: response.items,
+          total: response.total,
+          page: response.page,
+          pageSize: response.pageSize,
+        }),
+      );
+    },
+    "감사 이벤트를 불러오지 못했습니다.",
+  );
 
-  useEffect(() => {
-    const searchValue = JSON.parse(searchKey) as AuditEventsSearch;
-    const controller = new AbortController();
-    let active = true;
-    fetchAuditEvents(toAuditEventsParams(searchValue), controller.signal)
-      .then((response) => {
-        if (!active) {
-          return;
-        }
-        setResult({
-          key: searchKey,
-          reload: reloadCount,
-          state: {
-            phase: "success",
-            items: response.items,
-            total: response.total,
-            page: response.page,
-          },
-        });
-      })
-      .catch((error: unknown) => {
-        if (!active) {
-          return;
-        }
-        setResult({
-          key: searchKey,
-          reload: reloadCount,
-          state: {
-            phase: "error",
-            message:
-              error instanceof ApiRequestError
-                ? error.message
-                : "감사 이벤트를 불러오지 못했습니다.",
-          },
-        });
-      });
-    return () => {
-      active = false;
-      controller.abort();
-    };
-  }, [searchKey, reloadCount]);
-
-  const state: LoadState =
-    result !== null && result.key === searchKey && result.reload === reloadCount
-      ? result.state
-      : { phase: "loading" };
+  const { draft, setDraft, submit, reset, hasPendingChanges } = useQueryDraft(
+    search,
+    onSearchChange,
+    reload,
+  );
 
   const columns = useMemo<DataTableColumn<AuditEventListItem>[]>(
     () => [
       {
         key: "occurredAt",
+        align: "center",
         header: "시각",
         cell: (row) => (
           <time
@@ -124,10 +91,13 @@ export function AuditEventsPage({ search, onSearchChange }: AuditEventsPageProps
       },
       {
         key: "actor",
+        align: "left",
         header: "행위자",
         cell: (row) => (
           <span className="block min-w-28">
-            <span className="block text-sm text-text-strong">{row.actorName}</span>
+            <span className="block text-sm text-text-strong">
+              {row.actorName}
+            </span>
             <span className="block text-xs text-text-muted">
               {AUDIT_ACTOR_ROLE_OPTIONS[row.actorRole]}
             </span>
@@ -136,6 +106,7 @@ export function AuditEventsPage({ search, onSearchChange }: AuditEventsPageProps
       },
       {
         key: "action",
+        align: "left",
         header: "행동",
         cell: (row) => (
           <span className="text-sm text-text-strong">
@@ -145,13 +116,14 @@ export function AuditEventsPage({ search, onSearchChange }: AuditEventsPageProps
       },
       {
         key: "entity",
+        align: "left",
         header: "대상",
         cell: (row) => (
           <span className="block min-w-28">
             <span className="block text-xs text-text-muted">
               {entityLabel(row.entityType)}
             </span>
-            <span className="block font-mono text-xs font-semibold text-text-strong">
+            <span className="block text-xs font-semibold tabular-nums text-text-strong">
               {row.entityId}
             </span>
           </span>
@@ -159,16 +131,23 @@ export function AuditEventsPage({ search, onSearchChange }: AuditEventsPageProps
       },
       {
         key: "summary",
+        align: "left",
+        wrap: true,
         header: "내용",
         cell: (row) => (
-          <span className="block min-w-48 text-sm text-text-strong">{row.summary}</span>
+          <span className="block min-w-48 text-sm text-text-strong">
+            {row.summary}
+          </span>
         ),
       },
       {
         key: "requestId",
+        align: "left",
         header: "요청 ID",
         cell: (row) => (
-          <span className="font-mono text-xs text-text-muted">{row.requestId}</span>
+          <span className="text-xs tabular-nums text-text-muted">
+            {row.requestId}
+          </span>
         ),
       },
     ],
@@ -180,11 +159,37 @@ export function AuditEventsPage({ search, onSearchChange }: AuditEventsPageProps
     search.actorRole !== undefined ||
     search.action !== undefined;
 
-  const currentPage = state.phase === "success" ? state.page : search.page ?? 1;
+  const pageSize =
+    state.phase === "success" ? state.pageSize : getPageSize(search.pageSize);
+  const currentPage =
+    state.phase === "success" ? state.page : (search.page ?? 1);
   const totalPages =
     state.phase === "success"
-      ? Math.max(1, Math.ceil(state.total / PAGE_SIZE))
+      ? Math.max(1, Math.ceil(state.total / pageSize))
       : 1;
+
+  const pagination =
+    state.phase === "success" ? (
+      <Pagination
+        currentPage={currentPage}
+        totalItems={state.total}
+        pageSize={pageSize}
+        onPageSizeChange={(size) =>
+          onSearchChange(
+            mergeAuditEventsSearch(search, {
+              pageSize: size === 10 ? undefined : size,
+              page: undefined,
+            }),
+          )
+        }
+        busy={isRefreshing}
+        label="감사 이벤트 페이지 탐색"
+        onPageChange={(page) =>
+          onSearchChange(mergeAuditEventsSearch(search, { page }))
+        }
+        totalPages={totalPages}
+      />
+    ) : null;
 
   return (
     <Main id="main-content" tabIndex={-1}>
@@ -195,6 +200,10 @@ export function AuditEventsPage({ search, onSearchChange }: AuditEventsPageProps
       />
 
       <FilterBar
+        onSearch={submit}
+        onReset={reset}
+        busy={state.phase === "loading" || isRefreshing}
+        hasPendingChanges={hasPendingChanges}
         resultLabel={
           state.phase === "success"
             ? `총 ${state.total.toLocaleString("ko-KR")}건 중 ${state.items.length.toLocaleString("ko-KR")}건 표시 (최근 순서)`
@@ -203,39 +212,46 @@ export function AuditEventsPage({ search, onSearchChange }: AuditEventsPageProps
       >
         <Input
           aria-label="감사 이벤트 검색"
-          defaultValue={search.q}
+          value={draft.q ?? ""}
+          onChange={(event) => setDraft({ ...draft, q: event.target.value })}
           id="audit-q"
+          data-tour="audit-search"
           label="검색"
           name="q"
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              const value = event.currentTarget.value.trim();
-              onSearchChange(mergeAuditEventsSearch(search, {q: value === "" ? undefined : value,
-                page: undefined,}));
-            }
-          }}
           placeholder="내용·대상·행위자·요청 ID"
         />
         <Select
           label="행위자 역할"
+          tourAnchor="audit-role"
           options={[
             { label: "전체 역할", value: "all" },
-            ...Object.entries(AUDIT_ACTOR_ROLE_OPTIONS).map(([value, label]) => ({
-              label,
-              value,
-            })),
+            ...Object.entries(AUDIT_ACTOR_ROLE_OPTIONS).map(
+              ([value, label]) => ({
+                label,
+                value,
+              }),
+            ),
           ]}
-          value={search.actorRole?.length === 1 ? (search.actorRole[0] ?? "all") : "all"}
+          value={
+            draft.actorRole?.length === 1
+              ? (draft.actorRole[0] ?? "all")
+              : "all"
+          }
           onValueChange={(value) =>
-            onSearchChange(mergeAuditEventsSearch(search, {actorRole:
-                value === "all"
-                  ? undefined
-                  : [value as keyof typeof AUDIT_ACTOR_ROLE_OPTIONS],
-              page: undefined,}))
+            setDraft(
+              mergeAuditEventsSearch(draft, {
+                actorRole:
+                  value === "all"
+                    ? undefined
+                    : [value as keyof typeof AUDIT_ACTOR_ROLE_OPTIONS],
+                page: undefined,
+              }),
+            )
           }
         />
         <Select
           label="행동"
+          tourAnchor="audit-action"
           options={[
             { label: "전체 행동", value: "all" },
             ...Object.entries(AUDIT_ACTION_LABELS).map(([value, label]) => ({
@@ -243,33 +259,29 @@ export function AuditEventsPage({ search, onSearchChange }: AuditEventsPageProps
               value,
             })),
           ]}
-          value={search.action?.length === 1 ? (search.action[0] ?? "all") : "all"}
+          value={
+            draft.action?.length === 1 ? (draft.action[0] ?? "all") : "all"
+          }
           onValueChange={(value) =>
-            onSearchChange(mergeAuditEventsSearch(search, {action: value === "all" ? undefined : [value as keyof typeof AUDIT_ACTION_LABELS],
-              page: undefined,}))
+            setDraft(
+              mergeAuditEventsSearch(draft, {
+                action:
+                  value === "all"
+                    ? undefined
+                    : [value as keyof typeof AUDIT_ACTION_LABELS],
+                page: undefined,
+              }),
+            )
           }
         />
-        {hasActiveFilter ? (
-          <Button variant="ghost" onClick={() => onSearchChange({})}>
-            조건 초기화
-          </Button>
-        ) : null}
       </FilterBar>
 
       {state.phase === "loading" ? (
-        <div className="space-y-2" aria-label="감사 이벤트 조회 중" role="status">
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
-        </div>
+        <TableSkeleton label="감사 이벤트 조회 중" rows={pageSize} />
       ) : state.phase === "error" ? (
         <ErrorState
           description={state.message}
-          action={
-            <Button onClick={() => setReloadCount((count) => count + 1)}>
-              다시 시도
-            </Button>
-          }
+          action={<Button onClick={() => reload()}>다시 시도</Button>}
         />
       ) : state.items.length === 0 ? (
         <EmptyState
@@ -277,7 +289,7 @@ export function AuditEventsPage({ search, onSearchChange }: AuditEventsPageProps
           description="조회 조건을 초기화하거나 다른 조건으로 확인해 주세요."
           action={
             hasActiveFilter ? (
-              <Button variant="secondary" onClick={() => onSearchChange({})}>
+              <Button variant="secondary" onClick={reset}>
                 조건 초기화
               </Button>
             ) : undefined
@@ -286,36 +298,24 @@ export function AuditEventsPage({ search, onSearchChange }: AuditEventsPageProps
       ) : (
         <>
           <DataTable
+            footer={pagination}
+            rowNumberStart={state.total - (currentPage - 1) * pageSize}
+            busy={isRefreshing}
             caption="감사 이벤트 목록"
             columns={columns}
             emptyMessage="조건에 맞는 감사 이벤트가 없습니다."
             getRowKey={(row) => row.id}
+            tourRecord="audit"
+
             rows={state.items}
           />
-          <nav
-            aria-label="감사 이벤트 페이지 탐색"
-            className="flex items-center justify-end gap-2"
-          >
-            <Button
-              disabled={currentPage <= 1}
-              variant="secondary"
-              onClick={() => onSearchChange(mergeAuditEventsSearch(search, {page: currentPage - 1 }))}
-            >
-              이전
-            </Button>
-            <span className="text-xs tabular-nums text-text-muted">
-              {currentPage} / {totalPages} 페이지
-            </span>
-            <Button
-              disabled={currentPage >= totalPages}
-              variant="secondary"
-              onClick={() => onSearchChange(mergeAuditEventsSearch(search, {page: currentPage + 1 }))}
-            >
-              다음
-            </Button>
-          </nav>
         </>
       )}
+      {state.phase === "success" && state.items.length === 0 ? (
+        <div className="rounded-panel border border-border bg-surface">
+          {pagination}
+        </div>
+      ) : null}
     </Main>
   );
 }

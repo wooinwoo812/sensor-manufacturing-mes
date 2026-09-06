@@ -17,7 +17,7 @@ export const Route = createFileRoute("/_authenticated/materials/lots")({
   component: MaterialLotsRoute,
 });
 
-function MaterialLotsRoute() {
+export function MaterialLotsRoute() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const { session } = Route.useRouteContext();
@@ -37,7 +37,8 @@ function MaterialLotsRoute() {
         void navigate({
           to: "/materials/lots",
           search: next,
-          replace: true,
+          replace: false,
+          resetScroll: false,
         });
       }}
     />

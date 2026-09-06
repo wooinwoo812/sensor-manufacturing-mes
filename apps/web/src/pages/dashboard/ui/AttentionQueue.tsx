@@ -1,4 +1,5 @@
 import {
+  ChevronRight,
   ClipboardList,
   PackageSearch,
   ScanSearch,
@@ -9,39 +10,36 @@ import { Badge, type BadgeTone } from "@/shared/ui";
 
 interface AttentionQueueProps {
   items: DashboardAttentionItem[];
+  /** 항목을 누르면 해당 대상이 있는 목록으로 이동한다. 대시보드가 막다른 화면이면 안 된다. */
+  onOpen?: ((item: DashboardAttentionItem) => void) | undefined;
 }
 
 interface ItemVisual {
   icon: LucideIcon;
   iconClassName: string;
-  railClassName: string;
 }
 
 const visualByStatus: Record<string, ItemVisual> = {
   차단: {
     icon: PackageSearch,
     iconClassName: "bg-danger-soft text-danger-strong",
-    railClassName: "border-danger",
   },
   "검사 대기": {
     icon: ScanSearch,
     iconClassName: "bg-warning-soft text-warning-strong",
-    railClassName: "border-warning",
   },
   "납기 임박": {
     icon: ClipboardList,
     iconClassName: "bg-warning-soft text-warning-strong",
-    railClassName: "border-warning",
   },
 };
 
 const fallbackVisual: ItemVisual = {
   icon: ClipboardList,
   iconClassName: "bg-surface-subtle text-text-muted",
-  railClassName: "border-border",
 };
 
-export function AttentionQueue({ items }: AttentionQueueProps) {
+export function AttentionQueue({ items, onOpen }: AttentionQueueProps) {
   if (items.length === 0) {
     return (
       <p
@@ -54,14 +52,34 @@ export function AttentionQueue({ items }: AttentionQueueProps) {
   }
 
   return (
-    <div className="grid h-full" style={{ gridTemplateRows: `repeat(${items.length}, minmax(0, 1fr))` }}>
+    <div
+      className="grid h-full divide-y divide-border"
+      style={{ gridTemplateRows: `repeat(${items.length}, minmax(0, 1fr))` }}
+    >
       {items.map(({ code, context, reason, status, tone }) => {
         const visual = visualByStatus[status] ?? fallbackVisual;
         const Icon = visual.icon;
         return (
           <article
-            className={`flex h-full gap-3 border-s-2 py-4 ps-3 ${visual.railClassName}`}
+            className={`group flex h-full items-start gap-3 py-4 ${onOpen ? "cursor-pointer rounded-control transition-colors hover:bg-accent-soft/40 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-focus/40 motion-reduce:transition-none" : ""}`}
             key={`${status}-${code}`}
+            onClick={
+              onOpen
+                ? () => onOpen({ code, context, reason, status, tone })
+                : undefined
+            }
+            onKeyDown={
+              onOpen
+                ? (event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      onOpen({ code, context, reason, status, tone });
+                    }
+                  }
+                : undefined
+            }
+            role={onOpen ? "link" : undefined}
+            tabIndex={onOpen ? 0 : undefined}
           >
             <span
               className={`grid size-8 shrink-0 place-items-center rounded-md ${visual.iconClassName}`}
@@ -70,7 +88,7 @@ export function AttentionQueue({ items }: AttentionQueueProps) {
             </span>
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-start justify-between gap-2">
-                <p className="font-mono text-xs font-semibold text-text-strong">
+                <p className="text-sm font-semibold tabular-nums text-text-strong">
                   {code}
                 </p>
                 <Badge tone={tone satisfies BadgeTone}>{status}</Badge>
@@ -78,6 +96,12 @@ export function AttentionQueue({ items }: AttentionQueueProps) {
               <p className="mt-1 text-xs leading-5 text-text">{reason}</p>
               <p className="mt-1 text-xs text-text-muted">{context}</p>
             </div>
+            {onOpen ? (
+              <ChevronRight
+                className="mt-2 size-4 shrink-0 text-text-subtle"
+                aria-hidden="true"
+              />
+            ) : null}
           </article>
         );
       })}

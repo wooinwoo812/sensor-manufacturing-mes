@@ -78,7 +78,7 @@ Web과 API는 같은 origin으로 배포한다. 개발 환경도 Vite의 `/api` 
 
 - 역할별 permission matrix는 API code가 소유하고 `/auth/me`가 현재 session에 허용된 permission만 반환한다. Web은 이 응답으로 route와 action UX를 제어한다.
 - API의 session guard와 permission guard가 같은 matrix를 최종 강제한다. 제조 command는 필요한 permission을 metadata로 선언해야 한다.
-- `SYSTEM_ADMIN`은 전체 업무 조회와 사용자·감사 관리는 가능하지만 생산, 자재, 검사와 품질 command permission을 자동으로 얻지 않는다.
+- 2026-09-06 사용자 승인 변경: 초기의 조회·감사 중심 SYSTEM_ADMIN을 최고관리자로 확장한다. 기존 역할 코드와 계정을 유지하고 대시보드에서 시작하며 생산·자재·공정·검사·품질·사용자 관리 permission을 명시적으로 부여한다. 공통 permission guard·CSRF·Origin·세션 검사와 제조 상태 전이·감사 기록을 우회하지 않는다. 신규 권한은 코드 목록과 회귀 테스트에서 함께 검토한다.
 - 역할 전환은 이전 session을 logout한 뒤 다른 데모 계정으로 새 로그인한다. 이전 역할의 session과 client cache를 재사용하지 않는다.
 
 ## Consequences

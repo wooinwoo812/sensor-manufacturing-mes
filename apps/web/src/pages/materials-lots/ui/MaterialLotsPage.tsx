@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { getPageSize } from "@/shared/lib";
+import { useMemo, useState } from "react";
 import {
   daysUntil,
   fetchMaterialLots,
@@ -12,21 +13,23 @@ import {
   MaterialLotDispositionPanel,
   type MaterialLotDispositionTarget,
 } from "@/features/material-lot-disposition";
-import { ApiRequestError } from "@/shared/api";
 import {
+  ActionSheet,
   Badge,
-  type BadgeTone,
   Button,
   DataTable,
-  type DataTableColumn,
   EmptyState,
   ErrorState,
   FilterBar,
   Input,
   PageHeading,
+  Pagination,
   Select,
-  Skeleton,
+  TableSkeleton,
+  type BadgeTone,
+  type DataTableColumn,
 } from "@/shared/ui";
+import { useLoadState, useQueryDraft } from "@/shared/lib";
 import { Main } from "@/widgets/app-shell";
 import {
   mergeMaterialLotsSearch,
@@ -41,18 +44,6 @@ const DISPOSITION_TONES: Record<string, BadgeTone> = {
   QUARANTINED: "danger",
   REJECTED: "neutral",
 };
-
-const PAGE_SIZE = 20;
-
-type LoadState =
-  | { phase: "loading" }
-  | { phase: "error"; message: string }
-  | {
-      phase: "success";
-      items: MaterialLotListItem[];
-      total: number;
-      page: number;
-    };
 
 interface MaterialLotsPageProps {
   search: MaterialLotsListSearch;
@@ -92,70 +83,45 @@ export function MaterialLotsPage({
   canDecideQuality,
 }: MaterialLotsPageProps) {
   const searchKey = JSON.stringify(search);
-  const [reloadCount, setReloadCount] = useState(0);
   const [dispositionTarget, setDispositionTarget] =
     useState<MaterialLotDispositionTarget | null>(null);
-  const [result, setResult] = useState<{
-    key: string;
-    reload: number;
-    state: Exclude<LoadState, { phase: "loading" }>;
-  } | null>(null);
+  const { state, isRefreshing, reload } = useLoadState<{
+    items: MaterialLotListItem[];
+    total: number;
+    page: number;
+    pageSize: number;
+  }>(
+    searchKey,
+    (signal) => {
+      const searchValue = JSON.parse(searchKey) as MaterialLotsListSearch;
+      return fetchMaterialLots(
+        toMaterialLotsSearchParams(searchValue),
+        signal,
+      ).then((response) => ({
+        items: response.items,
+        total: response.total,
+        page: response.page,
+        pageSize: response.pageSize,
+      }));
+    },
+    "자재 LOT 목록을 불러오지 못했습니다.",
+  );
 
-  useEffect(() => {
-    const searchValue = JSON.parse(searchKey) as MaterialLotsListSearch;
-    const controller = new AbortController();
-    let active = true;
-    fetchMaterialLots(toMaterialLotsSearchParams(searchValue), controller.signal)
-      .then((response) => {
-        if (!active) {
-          return;
-        }
-        setResult({
-          key: searchKey,
-          reload: reloadCount,
-          state: {
-            phase: "success",
-            items: response.items,
-            total: response.total,
-            page: response.page,
-          },
-        });
-      })
-      .catch((error: unknown) => {
-        if (!active) {
-          return;
-        }
-        setResult({
-          key: searchKey,
-          reload: reloadCount,
-          state: {
-            phase: "error",
-            message:
-              error instanceof ApiRequestError
-                ? error.message
-                : "자재 LOT 목록을 불러오지 못했습니다.",
-          },
-        });
-      });
-    return () => {
-      active = false;
-      controller.abort();
-    };
-  }, [searchKey, reloadCount]);
-
-  const state: LoadState =
-    result !== null && result.key === searchKey && result.reload === reloadCount
-      ? result.state
-      : { phase: "loading" };
+  const { draft, setDraft, submit, reset, hasPendingChanges } = useQueryDraft(
+    search,
+    onSearchChange,
+    reload,
+  );
 
   const columns = useMemo<DataTableColumn<MaterialLotListItem>[]>(
     () => [
       {
         key: "lotNumber",
+        align: "left",
         header: "자재 LOT",
         cell: (row) => (
           <button
-            className="font-mono text-xs font-bold text-accent-strong underline-offset-4 hover:underline"
+            className="text-sm font-semibold tabular-nums text-accent-strong underline-offset-4 hover:underline"
             onClick={() => onOpenDetail(row.id)}
             type="button"
           >
@@ -165,11 +131,15 @@ export function MaterialLotsPage({
       },
       {
         key: "material",
+        align: "left",
+        wrap: true,
         header: "자재",
         cell: (row) => (
           <span className="block min-w-32">
-            <span className="block text-sm text-text-strong">{row.materialName}</span>
-            <span className="block font-mono text-xs text-text-muted">
+            <span className="block text-sm text-text-strong">
+              {row.materialName}
+            </span>
+            <span className="block text-xs tabular-nums text-text-muted">
               {row.materialCode}
             </span>
           </span>
@@ -177,8 +147,9 @@ export function MaterialLotsPage({
       },
       {
         key: "receivedQuantity",
+        align: "center",
         header: "입고량",
-        align: "right",
+
         cell: (row) => (
           <span className="tabular-nums">
             {row.receivedQuantity.toLocaleString("ko-KR")} {row.unit}
@@ -187,16 +158,20 @@ export function MaterialLotsPage({
       },
       {
         key: "onHand",
+        align: "center",
         header: "재고",
-        align: "right",
+
         cell: (row) => (
-          <span className="tabular-nums">{row.onHand.toLocaleString("ko-KR")}</span>
+          <span className="tabular-nums">
+            {row.onHand.toLocaleString("ko-KR")}
+          </span>
         ),
       },
       {
         key: "reservedQuantity",
+        align: "center",
         header: "예약",
-        align: "right",
+
         cell: (row) => (
           <span className="tabular-nums">
             {row.reservedQuantity.toLocaleString("ko-KR")}
@@ -205,8 +180,9 @@ export function MaterialLotsPage({
       },
       {
         key: "availableQuantity",
+        align: "center",
         header: "가용",
-        align: "right",
+
         cell: (row) =>
           row.availableQuantity === 0 ? (
             <Badge tone="danger">0</Badge>
@@ -218,6 +194,7 @@ export function MaterialLotsPage({
       },
       {
         key: "qualityDisposition",
+        align: "center",
         header: "품질 상태",
         cell: (row) => (
           <Badge tone={DISPOSITION_TONES[row.qualityDisposition] ?? "neutral"}>
@@ -227,6 +204,7 @@ export function MaterialLotsPage({
       },
       {
         key: "expiresAt",
+        align: "center",
         header: "유효기간",
         cell: (row) => <ExpiryCell expiresAt={row.expiresAt} />,
       },
@@ -234,6 +212,7 @@ export function MaterialLotsPage({
         ? [
             {
               key: "actions",
+              align: "center",
               header: "행동",
               cell: (row: MaterialLotListItem) =>
                 row.qualityDisposition === "PENDING" ||
@@ -269,11 +248,37 @@ export function MaterialLotsPage({
     search.disposition !== undefined ||
     search.availability !== undefined;
 
-  const currentPage = state.phase === "success" ? state.page : search.page ?? 1;
+  const pageSize =
+    state.phase === "success" ? state.pageSize : getPageSize(search.pageSize);
+  const currentPage =
+    state.phase === "success" ? state.page : (search.page ?? 1);
   const totalPages =
     state.phase === "success"
-      ? Math.max(1, Math.ceil(state.total / PAGE_SIZE))
+      ? Math.max(1, Math.ceil(state.total / pageSize))
       : 1;
+
+  const pagination =
+    state.phase === "success" ? (
+      <Pagination
+        currentPage={currentPage}
+        totalItems={state.total}
+        pageSize={pageSize}
+        onPageSizeChange={(size) =>
+          onSearchChange(
+            mergeMaterialLotsSearch(search, {
+              pageSize: size === 10 ? undefined : size,
+              page: undefined,
+            }),
+          )
+        }
+        busy={isRefreshing}
+        label="자재 LOT 페이지 탐색"
+        onPageChange={(page) =>
+          onSearchChange(mergeMaterialLotsSearch(search, { page }))
+        }
+        totalPages={totalPages}
+      />
+    ) : null;
 
   return (
     <Main id="main-content" tabIndex={-1}>
@@ -284,6 +289,10 @@ export function MaterialLotsPage({
       />
 
       <FilterBar
+        onSearch={submit}
+        onReset={reset}
+        busy={state.phase === "loading" || isRefreshing}
+        hasPendingChanges={hasPendingChanges}
         resultLabel={
           state.phase === "success"
             ? `총 ${state.total.toLocaleString("ko-KR")}건 중 ${state.items.length.toLocaleString("ko-KR")}건 표시 (최근 입고 순서)`
@@ -291,18 +300,13 @@ export function MaterialLotsPage({
         }
       >
         <Input
+          data-tour="list-search"
           aria-label="자재 LOT 검색"
-          defaultValue={search.q}
+          value={draft.q ?? ""}
+          onChange={(event) => setDraft({ ...draft, q: event.target.value })}
           id="material-lot-q"
           label="검색"
           name="q"
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              const value = event.currentTarget.value.trim();
-              onSearchChange(mergeMaterialLotsSearch(search, {q: value === "" ? undefined : value,
-                page: undefined,}));
-            }
-          }}
           placeholder="LOT 번호·자재"
         />
         <Select
@@ -315,18 +319,20 @@ export function MaterialLotsPage({
             })),
           ]}
           value={
-            search.disposition?.length === 1
-              ? (search.disposition[0] ?? "all")
+            draft.disposition?.length === 1
+              ? (draft.disposition[0] ?? "all")
               : "all"
           }
           onValueChange={(value) =>
-            onSearchChange(mergeMaterialLotsSearch(search, {disposition:
-                value === "all"
-                  ? undefined
-                  : [
-                      value as (typeof MATERIAL_LOT_DISPOSITIONS)[number],
-                    ],
-              page: undefined,}))
+            setDraft(
+              mergeMaterialLotsSearch(draft, {
+                disposition:
+                  value === "all"
+                    ? undefined
+                    : [value as (typeof MATERIAL_LOT_DISPOSITIONS)[number]],
+                page: undefined,
+              }),
+            )
           }
         />
         <Select
@@ -334,36 +340,27 @@ export function MaterialLotsPage({
           options={Object.entries(MATERIAL_LOT_AVAILABILITY_OPTIONS).map(
             ([value, label]) => ({ label, value }),
           )}
-          value={search.availability ?? "all"}
+          value={draft.availability ?? "all"}
           onValueChange={(value) =>
-            onSearchChange(mergeMaterialLotsSearch(search, {availability:
-                value === "all"
-                  ? undefined
-                  : (value as keyof typeof MATERIAL_LOT_AVAILABILITY_OPTIONS),
-              page: undefined,}))
+            setDraft(
+              mergeMaterialLotsSearch(draft, {
+                availability:
+                  value === "all"
+                    ? undefined
+                    : (value as keyof typeof MATERIAL_LOT_AVAILABILITY_OPTIONS),
+                page: undefined,
+              }),
+            )
           }
         />
-        {hasActiveFilter ? (
-          <Button variant="ghost" onClick={() => onSearchChange({})}>
-            조건 초기화
-          </Button>
-        ) : null}
       </FilterBar>
 
       {state.phase === "loading" ? (
-        <div className="space-y-2" aria-label="자재 LOT 조회 중" role="status">
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
-        </div>
+        <TableSkeleton label="자재 LOT 조회 중" rows={pageSize} />
       ) : state.phase === "error" ? (
         <ErrorState
           description={state.message}
-          action={
-            <Button onClick={() => setReloadCount((count) => count + 1)}>
-              다시 시도
-            </Button>
-          }
+          action={<Button onClick={() => reload()}>다시 시도</Button>}
         />
       ) : state.items.length === 0 ? (
         <EmptyState
@@ -371,7 +368,7 @@ export function MaterialLotsPage({
           description="조회 조건을 초기화하거나 다른 조건으로 확인해 주세요."
           action={
             hasActiveFilter ? (
-              <Button variant="secondary" onClick={() => onSearchChange({})}>
+              <Button variant="secondary" onClick={reset}>
                 조건 초기화
               </Button>
             ) : undefined
@@ -379,51 +376,45 @@ export function MaterialLotsPage({
         />
       ) : (
         <>
-          {dispositionTarget !== null ? (
-            <MaterialLotDispositionPanel
-              csrfToken={csrfToken}
-              onDone={() => {
-                setDispositionTarget(null);
-                setReloadCount((count) => count + 1);
-              }}
-              target={dispositionTarget}
-            />
-          ) : null}
+          <ActionSheet
+            open={dispositionTarget !== null}
+            onOpenChange={(open) => {
+              if (!open) setDispositionTarget(null);
+            }}
+            title="자재 LOT 품질 처분"
+            description="선택한 자재의 품질 상태와 처분 영향을 확인하세요."
+          >
+            {dispositionTarget !== null ? (
+              <MaterialLotDispositionPanel
+                csrfToken={csrfToken}
+                onDone={() => {
+                  setDispositionTarget(null);
+                  reload();
+                }}
+                target={dispositionTarget}
+              />
+            ) : null}
+          </ActionSheet>
           <DataTable
+            footer={pagination}
+            rowNumberStart={state.total - (currentPage - 1) * pageSize}
+            onRowClick={(row) => onOpenDetail(row.id)}
+            busy={isRefreshing}
             caption="자재 LOT 목록"
             columns={columns}
             emptyMessage="조건에 맞는 자재 LOT가 없습니다."
             getRowKey={(row) => row.id}
+            tourRecord="material-lot"
+
             rows={state.items}
           />
-          <nav
-            aria-label="자재 LOT 페이지 탐색"
-            className="flex items-center justify-end gap-2"
-          >
-            <Button
-              disabled={currentPage <= 1}
-              variant="secondary"
-              onClick={() =>
-                onSearchChange(mergeMaterialLotsSearch(search, {page: currentPage - 1 }))
-              }
-            >
-              이전
-            </Button>
-            <span className="text-xs tabular-nums text-text-muted">
-              {currentPage} / {totalPages} 페이지
-            </span>
-            <Button
-              disabled={currentPage >= totalPages}
-              variant="secondary"
-              onClick={() =>
-                onSearchChange(mergeMaterialLotsSearch(search, {page: currentPage + 1 }))
-              }
-            >
-              다음
-            </Button>
-          </nav>
         </>
       )}
+      {state.phase === "success" && state.items.length === 0 ? (
+        <div className="rounded-panel border border-border bg-surface">
+          {pagination}
+        </div>
+      ) : null}
     </Main>
   );
 }

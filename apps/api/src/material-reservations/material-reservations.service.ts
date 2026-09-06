@@ -7,6 +7,7 @@ import {
 import { PrismaService } from "../database/prisma.service.js";
 import type { CommandActor } from "../work-orders/work-orders.service.js";
 import { computeAvailableQuantity } from "../material-lots/material-lots.service.js";
+import { productionTransaction, refreshMaterialReadiness, refreshProductionFlow } from "../process-executions/production-flow.js";
 
 export interface MaterialReservationView {
   id: string;
@@ -79,7 +80,7 @@ export class MaterialReservationsService {
       throw badRequest("예약 수량은 1 이상 정수여야 합니다.");
     }
 
-    const created = await this.prisma.$transaction(async (transaction) => {
+    await productionTransaction(this.prisma, async (transaction) => {
       const order = await transaction.workOrder.findUnique({
         where: { id: workOrderId },
         select: { id: true, orderNumber: true, status: true },
@@ -136,19 +137,29 @@ export class MaterialReservationsService {
         });
       }
 
+      const requirements = await transaction.workOrderMaterialRequirement.findMany({ where: { workOrderId } });
+      if (requirements.length > 0) {
+        const requirement = requirements.find((row) => row.materialId === lot.materialId);
+        const allocations = await transaction.materialAllocation.findMany({ where: { workOrderId, status: "ACTIVE" }, include: { materialLot: true } });
+        const reserved = allocations.filter((row) => row.materialLot.materialId === lot.materialId).reduce((sum, row) => sum + row.quantity, 0);
+        if (!requirement || reserved + quantity > Math.ceil(Number(requirement.requiredQuantity))) {
+          throw new ConflictException({ code: "MATERIAL_REQUIREMENT_EXCEEDED", message: "이 작업지시의 BOM 자재와 남은 필요 수량 안에서 예약해 주세요." });
+        }
+      }
+
       await transaction.materialLot.update({
         where: { id: lot.id },
         data: { reservedQuantity: { increment: quantity } },
       });
-      return transaction.materialAllocation.create({
+      await transaction.materialAllocation.create({
         data: {
           workOrderId,
           materialLotId: lot.id,
           quantity,
           status: "ACTIVE",
         },
-      }).then(() =>
-        transaction.auditEvent.create({
+      });
+      await transaction.auditEvent.create({
           data: {
             occurredAt: new Date(),
             actorId: actor.userId,
@@ -162,11 +173,11 @@ export class MaterialReservationsService {
               .toString(36)
               .slice(2, 8)}`,
           },
-        }),
-      );
+        });
+      await refreshMaterialReadiness(transaction, workOrderId);
+      await refreshProductionFlow(transaction, workOrderId);
     });
 
-    void created;
     return this.list(workOrderId);
   }
 
@@ -174,7 +185,7 @@ export class MaterialReservationsService {
     allocationId: string,
     actor: CommandActor,
   ): Promise<MaterialReservationView[]> {
-    const released = await this.prisma.$transaction(async (transaction) => {
+    const released = await productionTransaction(this.prisma, async (transaction) => {
       const allocation = await transaction.materialAllocation.findUnique({
         where: { id: allocationId },
       });
@@ -226,6 +237,8 @@ export class MaterialReservationsService {
             .slice(2, 8)}`,
         },
       });
+      await refreshMaterialReadiness(transaction, allocation.workOrderId);
+      await refreshProductionFlow(transaction, allocation.workOrderId);
       return allocation.workOrderId;
     });
 

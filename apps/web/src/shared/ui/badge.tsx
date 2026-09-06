@@ -1,10 +1,13 @@
 import {
+  ArrowDown,
+  ChevronUp,
+  ChevronsUp,
+  Minus,
   AlertTriangle,
   Check,
   Circle,
   Clock3,
   Info,
-  ShieldAlert,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/shared/lib";
@@ -19,11 +22,11 @@ interface BadgeProps {
 }
 
 const toneClasses: Record<BadgeTone, string> = {
-  neutral: "border-border bg-surface-subtle text-text-muted",
-  info: "border-accent/30 bg-accent-soft text-accent-strong",
-  success: "border-success-border bg-success-soft text-success-strong",
-  warning: "border-warning-border bg-warning-soft text-warning-strong",
-  danger: "border-danger-border bg-danger-soft text-danger-strong",
+  neutral: "border-transparent bg-surface-subtle text-text-muted",
+  info: "border-transparent bg-accent-soft text-accent-strong",
+  success: "border-transparent bg-success-soft text-success-strong",
+  warning: "border-transparent bg-warning-soft text-warning-strong",
+  danger: "border-transparent bg-danger-soft text-danger-strong",
 };
 
 const defaultIcon: Record<BadgeTone, LucideIcon> = {
@@ -34,31 +37,60 @@ const defaultIcon: Record<BadgeTone, LucideIcon> = {
   danger: AlertTriangle,
 };
 
-export function Badge({ children, className, icon, tone = "neutral" }: BadgeProps) {
+export function Badge({
+  children,
+  className,
+  icon,
+  tone = "neutral",
+}: BadgeProps) {
   const Icon = icon ?? defaultIcon[tone];
 
   return (
-    <span className={cn("inline-flex min-h-6 items-center gap-1 rounded-md border px-2 text-xs font-semibold", toneClasses[tone], className)}>
-      <Icon className="size-4" aria-hidden="true" />
+    <span
+      className={cn(
+        "inline-flex h-6 items-center gap-1 whitespace-nowrap rounded-full border px-2 text-xs font-medium leading-none",
+        toneClasses[tone],
+        className,
+      )}
+    >
+      <Icon className="size-3.5" aria-hidden="true" />
       {children}
     </span>
   );
 }
 
-export function PriorityBadge({ priority }: { priority: "low" | "normal" | "high" | "critical" }) {
+export function PriorityBadge({
+  priority,
+}: {
+  priority: "low" | "normal" | "high" | "critical";
+}) {
   const config = {
     low: { label: "낮음", tone: "neutral" },
-    normal: { label: "보통", tone: "info" },
+    normal: { label: "보통", tone: "neutral" },
     high: { label: "높음", tone: "warning" },
     critical: { label: "긴급", tone: "danger" },
   } as const;
 
+  const priorityColors = {
+    neutral: "text-text-muted",
+    warning: "text-warning-strong",
+    danger: "text-danger-strong",
+  };
+  const Icon = {
+    low: ArrowDown,
+    normal: Minus,
+    high: ChevronUp,
+    critical: ChevronsUp,
+  }[priority];
   return (
-    <Badge
-      {...(priority === "critical" ? { icon: ShieldAlert } : {})}
-      tone={config[priority].tone}
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 whitespace-nowrap text-sm font-medium leading-5",
+        priorityColors[config[priority].tone],
+      )}
     >
+      <Icon className="size-4 shrink-0" aria-hidden="true" />
       {config[priority].label}
-    </Badge>
+    </span>
   );
 }

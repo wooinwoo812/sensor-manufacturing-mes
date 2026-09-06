@@ -16,6 +16,17 @@ test("loading 버튼은 중복 실행을 차단하고 진행 상태를 읽어준
   expect(button).toBeDisabled();
 });
 
+test("로딩 표시가 버튼 내용의 자리를 없애거나 폭을 추가하지 않는다", () => {
+  const view = render(<Button>현황 새로고침</Button>);
+  const label = screen.getByText("현황 새로고침");
+  const button = screen.getByRole("button");
+  view.rerender(<Button loading>현황 새로고침</Button>);
+  expect(screen.getByRole("button", { name: "처리 중" })).toBe(button);
+  expect(label).toBeInTheDocument();
+  expect(label).toHaveClass("invisible");
+  expect(button.querySelector("svg")).toHaveClass("absolute");
+  expect(button).toHaveAttribute("aria-busy", "true");
+});
 test("asChild 버튼은 단일 링크 요소에 동작과 스타일을 위임한다", () => {
   render(
     <Button asChild>
@@ -57,7 +68,9 @@ test("위험 대화상자는 제목과 설명을 읽고 Escape로 닫힌다", as
 
   await user.click(screen.getByRole("button", { name: "위험 행동" }));
 
-  expect(screen.getByRole("dialog", { name: "생산 LOT를 폐기할까요?" })).toBeInTheDocument();
+  expect(
+    screen.getByRole("dialog", { name: "생산 LOT를 폐기할까요?" }),
+  ).toBeInTheDocument();
   await user.keyboard("{Escape}");
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 });
@@ -68,7 +81,7 @@ test("빈 업무 표는 caption과 복구 문맥을 유지한다", () => {
   }
 
   const columns: DataTableColumn<Row>[] = [
-    { key: "id", header: "번호", cell: (row) => row.id },
+    { key: "id", align: "left", header: "번호", cell: (row) => row.id },
   ];
 
   render(
@@ -81,8 +94,12 @@ test("빈 업무 표는 caption과 복구 문맥을 유지한다", () => {
     />,
   );
 
-  expect(screen.getByRole("table", { name: "작업지시 목록" })).toBeInTheDocument();
-  expect(screen.getByText("조건에 맞는 작업지시가 없습니다.")).toBeInTheDocument();
+  expect(
+    screen.getByRole("table", { name: "작업지시 목록" }),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText("조건에 맞는 작업지시가 없습니다."),
+  ).toBeInTheDocument();
 });
 
 test("확정 대화상자의 callback은 명시적 확인에서만 실행된다", async () => {

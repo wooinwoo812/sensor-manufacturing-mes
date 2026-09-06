@@ -41,6 +41,7 @@ class FakePrismaService {
     isActive: true,
     isDemo: true,
     createdAt: new Date("2026-08-01T00:00:00Z"),
+    updatedAt: new Date("2026-08-01T00:00:00Z"),
     roles: [
       {
         roleCode: account.role,
@@ -59,7 +60,9 @@ class FakePrismaService {
   readonly processSteps = DEMO_PROCESS_STEPS.map((step, index) => ({
     id: `step-${index + 1}`,
     workOrderId: `work-order-${
-      DEMO_WORK_ORDERS.findIndex((o) => o.orderNumber === step.workOrderNumber) + 1
+      DEMO_WORK_ORDERS.findIndex(
+        (o) => o.orderNumber === step.workOrderNumber,
+      ) + 1
     }`,
     sequence: step.sequence,
     processStepName: step.processStepName,
@@ -123,8 +126,16 @@ class FakePrismaService {
   };
 
   readonly session = {
-    create: async ({ data }: { data: Omit<FakeSessionRow, "id" | "revokedAt"> }) => {
-      const session = { ...data, id: `session-${++this.sequence}`, revokedAt: null };
+    create: async ({
+      data,
+    }: {
+      data: Omit<FakeSessionRow, "id" | "revokedAt">;
+    }) => {
+      const session = {
+        ...data,
+        id: `session-${++this.sequence}`,
+        revokedAt: null,
+      };
       this.sessions.push(session);
       return session;
     },
@@ -135,7 +146,9 @@ class FakePrismaService {
       if (session === undefined) {
         return null;
       }
-      const user = this.users.find((candidate) => candidate.id === session.userId);
+      const user = this.users.find(
+        (candidate) => candidate.id === session.userId,
+      );
       if (user === undefined) {
         return null;
       }
@@ -153,7 +166,7 @@ class FakePrismaService {
       const workOrder = this.workOrders.find(
         (order) => order.id === step.workOrderId,
       );
-      return { ...step, workOrder };
+      return { ...step, workOrder: { ...workOrder, processSteps: this.processSteps.filter((row) => row.workOrderId === step.workOrderId) } };
     },
   };
 
@@ -191,7 +204,8 @@ class FakePrismaService {
     }) =>
       this.auditEvents.filter(
         (row) =>
-          (where?.entityType === undefined || row.entityType === where.entityType) &&
+          (where?.entityType === undefined ||
+            row.entityType === where.entityType) &&
           (where?.entityId === undefined || row.entityId === where.entityId),
       ),
   };
@@ -243,7 +257,9 @@ describe("detail route APIs", () => {
   });
 
   async function loginAs(roleCode: string) {
-    const account = DEMO_ACCOUNTS.find((candidate) => candidate.role === roleCode);
+    const account = DEMO_ACCOUNTS.find(
+      (candidate) => candidate.role === roleCode,
+    );
     expect(account).toBeDefined();
     const agent = request.agent(app.getHttpServer());
     const login = await agent

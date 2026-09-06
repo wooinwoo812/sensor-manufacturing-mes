@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import type { Prisma } from "../generated/prisma/client.js";
 import { PrismaService } from "../database/prisma.service.js";
+import { outputQuantityLimit } from "./production-flow.js";
 import type { ProcessReadiness } from "../generated/prisma/enums.js";
 import {
   PROCESS_EXECUTION_SORT_FIELDS,
@@ -91,7 +92,7 @@ export class ProcessExecutionsService {
       const rows = await transaction.processStepExecution.findMany({
         where,
         orderBy: this.buildOrderBy(query),
-        include: { workOrder: true },
+        include: { workOrder: { include: { processSteps: true } } },
         skip: (query.page - 1) * query.pageSize,
         take: query.pageSize,
       });
@@ -106,6 +107,7 @@ export class ProcessExecutionsService {
         productCode: row.workOrder.productCode,
         productName: row.workOrder.productName,
         plannedQuantity: row.workOrder.plannedQuantity,
+        outputQuantityLimit: outputQuantityLimit(row, row.workOrder.processSteps, row.workOrder.plannedQuantity),
         unit: row.workOrder.unit,
         dueDate: row.workOrder.dueDate.toISOString(),
         sequence: row.sequence,
@@ -123,7 +125,7 @@ export class ProcessExecutionsService {
   async detail(stepId: string): Promise<ProcessExecutionDetail> {
     const step = await this.prisma.processStepExecution.findUnique({
       where: { id: stepId },
-      include: { workOrder: true },
+      include: { workOrder: { include: { processSteps: true } } },
     });
     if (step === null) {
       throw new NotFoundException({
@@ -134,6 +136,7 @@ export class ProcessExecutionsService {
     const inspections = await this.prisma.inspection.findMany({
       where: {
         workOrderId: step.workOrderId,
+        productionLotNumber: step.productionLotNumber,
         processStepName: step.processStepName,
         executionStatus: { not: "CANCELLED" },
       },
@@ -146,6 +149,7 @@ export class ProcessExecutionsService {
       productCode: step.workOrder.productCode,
       productName: step.workOrder.productName,
       plannedQuantity: step.workOrder.plannedQuantity,
+      outputQuantityLimit: outputQuantityLimit(step, step.workOrder.processSteps, step.workOrder.plannedQuantity),
       unit: step.workOrder.unit,
       dueDate: step.workOrder.dueDate.toISOString(),
       sequence: step.sequence,

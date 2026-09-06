@@ -23,7 +23,9 @@ const fetchMock = vi.mocked(fetchWorkOrderDetail);
 const releaseMock = vi.mocked(releaseWorkOrder);
 const cancelMock = vi.mocked(cancelWorkOrder);
 
-function sampleDetail(overrides: Partial<WorkOrderDetail> = {}): WorkOrderDetail {
+function sampleDetail(
+  overrides: Partial<WorkOrderDetail> = {},
+): WorkOrderDetail {
   return {
     id: "wo-1",
     orderNumber: "WO-2026-093",
@@ -50,6 +52,7 @@ function sampleDetail(overrides: Partial<WorkOrderDetail> = {}): WorkOrderDetail
       },
     ],
     inspections: [],
+    materialRequirements: [],
     recentAudits: [
       {
         id: "audit-1",
@@ -80,11 +83,68 @@ function renderPage(
       canCancel={overrides.canCancel ?? true}
       canReserve={overrides.canReserve ?? false}
       canReleaseAllocation={overrides.canReleaseAllocation ?? false}
+      onBack={() => {}}
     />,
   );
 }
 
 describe("WorkOrderDetailPage", () => {
+  it("권한이 허용한 공정과 검사 상세로 이동한다", async () => {
+    const onOpenProcess = vi.fn();
+    const onOpenInspection = vi.fn();
+    fetchMock.mockResolvedValue(sampleDetail({ inspections: [{ id: "inspection-1", inspectionNumber: "IN-001", processStepName: "절단 1공정", gate: "ROUTE_ADVANCE", specName: "치수 검사", executionStatus: "PENDING", verdict: null }] }));
+    render(<WorkOrderDetailPage workOrderId="wo-1" csrfToken="csrf" canRelease={false} canCancel={false} canReserve={false} canReleaseAllocation={false} onBack={() => {}} onOpenProcess={onOpenProcess} onOpenInspection={onOpenInspection} />);
+    await userEvent.click(await screen.findByRole("button", { name: "절단 1공정" }));
+    expect(onOpenProcess).toHaveBeenCalledWith("step-1", "PL-2026-093A");
+    await userEvent.click(screen.getByRole("button", { name: "IN-001" }));
+    expect(onOpenInspection).toHaveBeenCalledWith("inspection-1");
+  });
+
+  it("이동 권한이 없으면 공정 이름을 조회용 텍스트로 표시한다", async () => {
+    fetchMock.mockResolvedValue(sampleDetail());
+    renderPage();
+    expect(await screen.findByText("절단 1공정")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "절단 1공정" })).not.toBeInTheDocument();
+  });
+  it("첫 조회가 끝나도 제목 DOM과 돌아가기 위치를 유지한다", async () => {
+    let resolveDetail!: (detail: WorkOrderDetail) => void;
+    fetchMock.mockReturnValue(
+      new Promise((resolve) => {
+        resolveDetail = resolve;
+      }),
+    );
+    renderPage();
+    const heading = screen.getByRole("heading", { level: 1, name: "작업지시" });
+    const back = screen.getByRole("button", { name: "작업지시 목록" });
+    resolveDetail(sampleDetail());
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "WO-2026-093" }),
+    ).toBe(heading);
+    expect(screen.getByRole("button", { name: "작업지시 목록" })).toBe(back);
+  });
+  it("자재 예약 조회 권한이 없으면 예약 패널과 진입 버튼을 표시하지 않는다", async () => {
+    fetchMock.mockResolvedValue(sampleDetail());
+    render(
+      <WorkOrderDetailPage
+        workOrderId="wo-1"
+        csrfToken="test"
+        canRelease={false}
+        canCancel={false}
+        canReserve={false}
+        canReleaseAllocation={false}
+        canReadReservations={false}
+        onBack={() => {}}
+        onOpenReservations={() => {}}
+      />,
+    );
+    await screen.findByRole("heading", { name: "요약" });
+    expect(
+      screen.queryByRole("button", { name: "자재 예약" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "자재 예약" }),
+    ).not.toBeInTheDocument();
+  });
   it("요약·공정·변경 이력을 함께 표시한다", async () => {
     fetchMock.mockResolvedValue(sampleDetail());
     renderPage();
@@ -103,8 +163,12 @@ describe("WorkOrderDetailPage", () => {
     renderPage();
 
     await screen.findByText("WO-2026-093");
-    await userEvent.click(screen.getByRole("button", { name: "작업지시 발행" }));
-    await userEvent.click(await screen.findByRole("button", { name: "발행 확정" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "작업지시 발행" }),
+    );
+    await userEvent.click(
+      await screen.findByRole("button", { name: "발행 확정" }),
+    );
 
     await waitFor(() => {
       expect(releaseMock).toHaveBeenCalledWith("wo-1", "test-csrf");
@@ -117,6 +181,10 @@ describe("WorkOrderDetailPage", () => {
     renderPage();
 
     await screen.findByText("WO-2026-093");
+    // 취소 폼은 제목 오른쪽 "작업지시 취소" 버튼으로 연다.
+    await userEvent.click(
+      screen.getByRole("button", { name: "작업지시 취소" }),
+    );
     const reasonInput = screen.getByLabelText("취소 사유");
     await userEvent.type(reasonInput, "계획 변경");
     await userEvent.click(screen.getByRole("button", { name: "취소 확정" }));
@@ -135,7 +203,9 @@ describe("WorkOrderDetailPage", () => {
       screen.queryByRole("button", { name: "작업지시 발행" }),
     ).not.toBeInTheDocument();
     expect(
-      screen.getByText(/발행은 생산계획 담당자 권한\(work-order:release\)이 필요합니다/),
+      screen.getByText(
+        /발행은 생산계획 담당자가 처리합니다/,
+      ),
     ).toBeInTheDocument();
   });
 });

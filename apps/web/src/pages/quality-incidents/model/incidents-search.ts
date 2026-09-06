@@ -1,3 +1,4 @@
+import { getPageSize, readPageSize } from "@/shared/lib";
 import {
   QUALITY_INCIDENT_SOURCE_TYPE_LABELS,
   QUALITY_INCIDENT_STATUS_LABELS,
@@ -10,6 +11,7 @@ export interface IncidentsSearch {
   status?: readonly QualityIncidentStatus[];
   sourceType?: readonly QualityIncidentSourceType[];
   page?: number;
+  pageSize?: number;
 }
 
 function parseList<T extends string>(
@@ -23,11 +25,15 @@ function parseList<T extends string>(
     .split(",")
     .map((value) => value.trim())
     .filter((value) => value !== "");
-  const valid = values.filter((value): value is T => allowed.includes(value as T));
+  const valid = values.filter((value): value is T =>
+    allowed.includes(value as T),
+  );
   return valid.length > 0 ? valid : undefined;
 }
 
-export function readIncidentsSearch(raw: Record<string, unknown>): IncidentsSearch {
+export function readIncidentsSearch(
+  raw: Record<string, unknown>,
+): IncidentsSearch {
   let page: number | undefined;
   if (
     typeof raw.page === "string" &&
@@ -53,6 +59,7 @@ export function readIncidentsSearch(raw: Record<string, unknown>): IncidentsSear
       ) as QualityIncidentSourceType[],
     ),
     page,
+    pageSize: readPageSize(raw.pageSize),
   });
 }
 
@@ -60,7 +67,9 @@ type IncidentsSearchPatch = {
   [K in keyof IncidentsSearch]?: IncidentsSearch[K] | undefined;
 };
 
-export function stripUndefinedSearch(value: IncidentsSearchPatch): IncidentsSearch {
+export function stripUndefinedSearch(
+  value: IncidentsSearchPatch,
+): IncidentsSearch {
   const result: Record<string, unknown> = {};
   for (const [key, entry] of Object.entries(value)) {
     if (entry !== undefined) {
@@ -91,5 +100,6 @@ export function toIncidentsParams(search: IncidentsSearch): URLSearchParams {
   if (search.page !== undefined && search.page > 1) {
     params.set("page", String(search.page));
   }
+  params.set("pageSize", String(getPageSize(search.pageSize)));
   return params;
 }

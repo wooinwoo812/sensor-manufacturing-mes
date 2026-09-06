@@ -5,7 +5,13 @@ export interface DemoProcessStep {
   productionLotNumber: string;
   readiness: "WAITING" | "READY" | "IN_PROGRESS" | "COMPLETED" | "BLOCKED";
   blockedReasonCodes: string[];
+  startedAt?: Date | null;
+  completedAt?: Date | null;
+  goodQuantity?: number | null;
+  defectQuantity?: number | null;
 }
+
+const hoursAgo = (hours: number) => new Date(Date.now() - hours * 3_600_000);
 
 export const DEMO_PROCESS_STEPS: DemoProcessStep[] = [
   {
@@ -15,6 +21,7 @@ export const DEMO_PROCESS_STEPS: DemoProcessStep[] = [
     productionLotNumber: "PL-2026-091A",
     readiness: "IN_PROGRESS",
     blockedReasonCodes: [],
+    startedAt: hoursAgo(120),
   },
   {
     workOrderNumber: "WO-2026-091",
@@ -47,14 +54,18 @@ export const DEMO_PROCESS_STEPS: DemoProcessStep[] = [
     productionLotNumber: "PL-2026-094A",
     readiness: "COMPLETED",
     blockedReasonCodes: [],
+    startedAt: hoursAgo(30),
+    completedAt: hoursAgo(26),
+    goodQuantity: 78,
+    defectQuantity: 2,
   },
   {
     workOrderNumber: "WO-2026-094",
     sequence: 40,
     processStepName: "최종 검사",
     productionLotNumber: "PL-2026-094A",
-    readiness: "READY",
-    blockedReasonCodes: [],
+    readiness: "BLOCKED",
+    blockedReasonCodes: ["INSPECTION_FAILED"],
   },
   {
     workOrderNumber: "WO-2026-097",
@@ -79,6 +90,7 @@ export const DEMO_PROCESS_STEPS: DemoProcessStep[] = [
     productionLotNumber: "PL-2026-098A",
     readiness: "IN_PROGRESS",
     blockedReasonCodes: [],
+    startedAt: hoursAgo(50),
   },
   {
     workOrderNumber: "WO-2026-098",
@@ -95,5 +107,9 @@ export const DEMO_PROCESS_STEPS: DemoProcessStep[] = [
     productionLotNumber: "PL-2026-095A",
     readiness: "COMPLETED",
     blockedReasonCodes: [],
+    startedAt: hoursAgo(30),
+    completedAt: hoursAgo(26),
+    goodQuantity: 60,
+    defectQuantity: 0,
   },
 ];

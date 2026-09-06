@@ -43,6 +43,7 @@ export interface ProcessExecutionListItem {
   productCode: string;
   productName: string;
   plannedQuantity: number;
+  outputQuantityLimit: number | null;
   unit: string;
   dueDate: string;
   sequence: number;
@@ -73,6 +74,7 @@ export interface ProcessExecutionDetail {
   productCode: string;
   productName: string;
   plannedQuantity: number;
+  outputQuantityLimit: number | null;
   unit: string;
   dueDate: string;
   sequence: number;

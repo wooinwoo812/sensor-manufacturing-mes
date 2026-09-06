@@ -1,503 +1,264 @@
 # Frontend 디자인 시스템 계약
 
-> Issue #9의 token, 공통 component, 상태축과 AppShell 구현을 이후 기능 PR이 재사용하기 위한 source 계약
+> 2026-09-05 전체 화면 리디자인 기준. 제품 코드·토큰·공용 컴포넌트가 최종 기준이다.
 
-| 항목 | 내용 |
-|---|---|
-| 상태 | 구현 v1.0 |
-| 관련 Issue | [#9](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/9) |
-| 결정 | [ADR-0005](../adr/0005-code-owned-design-system.md) |
-| 화면 기준 | [UI 레이아웃·상태 계약](../product/ui-layout-contracts.md) |
-| 구조 기준 | [Frontend 구조 계약](frontend-architecture.md) |
+| 항목      | 내용                                                                |
+| --------- | ------------------------------------------------------------------- |
+| 상태      | 구현 v2.0, 사용자 화면 검토 전                                      |
+| 구조      | [Frontend 구조 계약](frontend-architecture.md)                      |
+| 화면·권한 | [Route 계약](../product/route-contract.md)                          |
+| ADR       | [ADR-0005](../adr/0005-code-owned-design-system.md), 승인 상태 유지 |
+| 이전 결정 | [v1 디자인·검증 이력](frontend-design-history.md)                   |
 
-## 1. Source of truth
+목록의 상세 규칙은 [목록 화면·테이블 디자인 규칙](frontend-table-rules.md)을 따른다. No 역순·열 정렬·페이지네이션·강조 기준을 한곳에서 관리한다.
 
-| 계약 | Source |
-|---|---|
-| color·font·spacing·radius·shadow·z-index | `apps/web/src/app/styles/tokens.css` |
-| global reset·focus·reduced motion | `apps/web/src/app/styles/globals.css` |
-| generic component | `apps/web/src/shared/ui` |
-| 제조 상태축 | `apps/web/src/entities/manufacturing-status` |
-| shell·navigation rendering | `apps/web/src/widgets/app-shell` |
-| route·menu·breadcrumb 입력 | `apps/web/src/app` |
-| 실제 상태 조합 fixture | `/dev/ui-kit` |
+## 1. 기준과 시각 방향
 
-Figma나 외부 template는 진실 공급원이 아니다. 실제 token, component public API와 test가 제품 계약이다.
+FabriScope는 생산·자재·품질 담당자가 같은 제조 흐름을 확인하는 업무 도구다.
+짙은 청록색 탐색 영역과 중립적인 본문을 분리하고, 청록색은 이동·대표 행동·진행량에 사용한다.
+합격·보류·격리 상태는 독립적인 녹색·앰버·적색 언어로 표현한다.
 
-## 2. Token
+| 책임                     | Source                                |
+| ------------------------ | ------------------------------------- |
+| 색상·서체·모서리·그림자  | `apps/web/src/app/styles/tokens.css`  |
+| 전역 reset·줄바꿈·접근성 | `apps/web/src/app/styles/globals.css` |
+| 범용 UI·레이아웃         | `apps/web/src/shared/ui`              |
+| 상태 라벨·업무 표현      | `apps/web/src/entities`               |
+| 사이드바·헤더·본문       | `apps/web/src/widgets/app-shell`      |
+| 라우트·권한·메뉴 입력    | `apps/web/src/app`                    |
+| 실제 UI 점검             | 개발 환경의 `/dev/ui-kit`             |
 
-### 2.1 Typography와 spacing
+기능 화면에 색상 값을 직접 쓰지 않는다. 브랜드 영역도 `brand` token을 사용한다.
+새 화면은 실제 데이터와 행동을 연결하고, 동작하지 않는 검색·알림·버튼을 만들지 않는다.
 
-| Token | 값 | 용도 |
-|---|---:|---|
-| `--mes-font-sans` | OS system UI + 한국어 system fallback | 모든 사용자 문구와 표 |
-| `--mes-font-mono` | Cascadia Mono·SFMono·Consolas fallback | LOT·작업지시 번호, 수량 지표 |
-| `--mes-space-unit` | `0.25rem` | Tailwind spacing scale의 기준 |
-| `--mes-leading-body` | `1.5` | 설명·복구 안내 본문 |
+## 2. Token과 레이아웃
 
-제조 현장의 폐쇄망·느린 초기 연결에서도 글꼴 때문에 화면이 흔들리지 않도록 외부
-Google Fonts 요청을 사용하지 않는다. 설치돼 있으면 Pretendard를 우선하고,
-Windows는 Segoe UI와 Malgun Gothic, Apple 환경은 system UI와 Apple SD Gothic
-Neo로 이어진다. 특정 OS에서 서체가 달라지는 비용보다 offline 가용성과 첫 렌더링
-안정성을 우선한 결정이다. `font-synthesis: none`으로 설치되지 않은 굵기를 브라우저가
-임의 생성하지 않으며, mobile form control은 iOS 자동 확대를 막기 위해 16px을
-유지한다. 전역 scrollbar 모양은 강제하지 않아 OS 접근성 설정을 보존한다.
+### 2.1 서체
 
-| 단계 | 크기·굵기 | 용도 | 이유 |
-|---|---|---|---|
-| page title | 24px·700 | 현재 업무영역의 최상위 제목 | 내부 업무 화면에서 30px 이상 marketing heading이 data보다 앞서는 것을 막는다 |
-| section title | 16px·600~700 | panel·table heading | 14px body와 구분하면서 한 화면에 여러 section을 유지한다 |
-| body·control | 14px·400~600 | 설명·cell·button·input | 정보 밀도와 1024px 가독성의 기본값이다 |
-| metadata·badge | 12px·500~600 | timestamp·단위·상태 보조정보 | 12px 미만 한국어를 실제 업무 화면에 사용하지 않는다 |
-| numeric emphasis | 24px·700 mono | KPI 수량 | 자릿수 비교만 강조하고 label보다 시각 면적이 과도해지지 않게 한다 |
+Pretendard Variable dynamic subset을 번들로 제공한다. 외부 글꼴 요청은 사용하지 않는다.
+본문·식별자·수량 모두 sans를 사용하고, 수량·날짜·식별자는 `tabular-nums`로 정렬한다.
+한국어는 `keep-all`, 긴 식별자는 필요한 위치에서만 줄바꿈한다. 업무 화면의 최소 글자 크기는 14px이며, 보조 문구·필터·표 제목·배지·차트도 예외를 두지 않는다. `text-xs` 호환 토큰도 14px로 제공한다.
 
-업무 식별자와 수량만 mono를 사용한다. 제목·button·badge 전체를 mono로 만들지
-않는다. 기능 code는 `13px`, `17px`, `margin: 11px` 같은 임의 값을 추가하지
-않고 아래 4px 간격 체계를 사용한다.
+| 역할                 | 크기·굵기    |
+| -------------------- | ------------ |
+| 페이지 제목          | 24px·700     |
+| 패널 제목            | 16px·600     |
+| 본문·입력·메뉴       | 14px·400~600 |
+| 라벨·설명·배지       | 14px·400~600 |
+| 일반 요약 수치       | 18~30px·600  |
+| 대시보드 주간 달성률 | 36px·600     |
+| 로그인 소개 제목     | 36~48px·600  |
 
-| 간격 | 용도 | 금지 |
-|---:|---|---|
-| 4px | label과 보조정보, 밀접한 text 관계 | 서로 다른 업무 group 분리 |
-| 8px | icon과 label, 같은 control 내부 | page section 분리 |
-| 12px | row 내부 대상·상태 group | 독립 panel 사이 간격 |
-| 16px | grid gap, mobile page gutter, row padding | 관련 없는 section을 한 덩어리로 표현 |
-| 20px | compact KPI·filter panel 내부 | dialog·긴 form 기본 padding |
-| 24px | desktop page gutter, 일반 panel·dialog 내부 | icon과 label처럼 밀접한 관계 |
-| 32px | 큰 section 전환이 꼭 필요할 때 | 반복 card 사이 기본 간격 |
+로그인 소개와 주간 달성률은 역할이 분명한 예외다. 업무 화면의 글자는 14px 미만으로 만들지 않는다.
+모바일 로그인은 소개를 간결하게 줄여 역할 선택이 먼저 보이도록 한다.
+모바일 입력은 16px 이상을 유지한다. 번들 subset의 라이선스·unicode-range·자산은 유지하고 `font-display: optional`을 사용한다. 느린 첫 접속에서는 시스템 대체 글꼴을 유지해 뒤늦은 글꼴 교체로 글자·버튼 폭이 변하지 않게 한다. 전체 글꼴 선다운로드는 하지 않는다.
 
-다음 고정 치수도 같은 밀도 원칙을 따른다.
+### 2.2 색상과 면
 
-| 치수 | 적용 | 선정 이유 |
-|---:|---|---|
-| 32px | sidebar의 대상·역할 icon 면 | 16px icon 주위에 8px 여백을 보장한다 |
-| 36px | 보조·compact control | 주 작업이 아닌 filter 보조 행동에만 사용한다 |
-| 40px | 기본 button·input·icon button | 마우스 업무 밀도와 터치 가능 영역을 함께 확보한다 |
-| 48px | 접힌 sidebar 폭 | 32px menu target과 양쪽 8px 여백을 유지한다 |
-| 64px | global header 높이 | 화면 제목과 40px control을 안정적으로 수직 중앙에 놓는다 |
-| 256px | desktop sidebar 폭 | 긴 한국어 업무명과 `예정` 상태를 줄임 없이 읽게 한다 |
-| 288px | mobile overlay sidebar 폭 | 좁은 화면에서도 44px 이상 menu 행과 긴 label을 보존한다 |
+| 영역      | 라이트                          | 다크                   |
+| --------- | ------------------------------- | ---------------------- |
+| 본문 바탕 | 밝은 중립색                     | 짙은 저채도 청록 회색  |
+| 패널·표   | 흰색                            | 본문보다 밝은 중립 면  |
+| 사이드바  | 짙은 청록색                     | 더 짙은 청록색         |
+| 대표 행동 | 짙은 청록색·밝은 글자           | 민트색·어두운 글자     |
+| 활성 메뉴 | 사이드바보다 밝은 면·밝은 글자  | 같은 구조              |
+| 상태      | 녹색·앰버·적색 soft/strong 조합 | 별도 soft/strong token |
 
-2px 현재 위치 marker, 1px border, 3px focus ring은 요소 사이의 여백이 아니라
-경계·상태를 표현하는 stroke이므로 spacing 단계에 포함하지 않는다. 기능 code의
-margin·padding·gap에는 2px·6px 같은 중간값을 사용하지 않는다. Radix primitive의
-arrow·indicator처럼 요소 크기에서 계산되는 absolute offset은 optical alignment로
-분리하며 일반 layout spacing으로 재사용하지 않는다.
+주 수치는 중립색으로 읽고, 예외 설명에만 상태색을 사용한다.
+로그인 소개는 `brand`, `brand-text`, `brand-muted`, `brand-line`, `brand-highlight`로 구성한다.
 
-### 2.2 Surface와 text
+### 2.3 모서리와 그림자
 
-| Token 계열 | 의도 | 허용 위치 |
-|---|---|---|
-| `canvas` | 애플리케이션 바탕 | body·workspace |
-| `surface` | 읽고 행동하는 기본 면 | panel·form·table |
-| `surface-subtle` | hover·thead·disabled 구분 | surface 안의 보조 면 |
-| `border` | 구조 구분 | panel·row·control |
-| `text-strong` | 제목·업무 식별자 | heading·핵심값 |
-| `text` | 일반 업무 내용 | label·cell |
-| `text-muted` | 설명·metadata | helper·timestamp |
-| `text-subtle` | placeholder·비활성 보조정보 | placeholder·pending menu |
+패널 기본 모서리는 8px, 입력·버튼은 6px이다. 상태 배지는 pill 형태다.
+패널은 테두리와 바탕 명도 차이로 구분하고 그림자를 쌓지 않는다.
+입력·버튼에는 작은 control shadow, 떠 있는 Select·Dialog·Sheet에는 overlay shadow를 사용한다.
 
-surface를 여러 단계 shadow로 쌓지 않는다. 업무 구조는 border, spacing과 heading으로 먼저 구분한다.
+### 2.4 아이콘
 
-### 2.3 Semantic color
+Lucide를 사용한다. 메뉴·버튼은 16px, 역할 선택은 20px이다.
+업무 대상에는 Factory·Clipboard·Package·GitBranch처럼 대상 의미가 있는 아이콘을 사용한다.
+상태는 텍스트와 아이콘을 함께 표시하고, 아이콘만 있는 버튼에는 접근 가능한 이름이 필요하다.
 
-| 계열 | 의미 | 금지 |
-|---|---|---|
-| `accent` | 현재 위치·대표 행동·link·focus | 성공 상태 대체 |
-| `success` | 완료·합격·정상 | 단순 선택 상태 |
-| `warning` | 대기·보류·충돌·확인 필요 | 영구 오류 |
-| `danger` | 불합격·격리·파괴 행동·오류 | 우선순위 없는 강조 |
-| `sidebar` | 전역 navigation | 제품 상태 표시 |
+### 2.5 표와 조회 조건
 
-semantic color는 text와 icon을 보조한다. 색만 보고 상태나 위험 행동을 판단하게 만들지 않는다.
+`FilterBar`는 입력 영역과 결과 설명을 한 패널에 담는다. 입력은 모바일 1열, 작은 화면 2열,
+데스크톱에서는 가용 폭에 맞춰 자동 배치한다. 조회 건수와 정렬 설명은 아래에 둔다.
 
-### 2.4 Shape·shadow·z-index
+`DataTable`에는 보이는 표 제목·현재 표시 건수, 옅은 표 헤더, 행 hover가 있다.
+전체 건수는 `FilterBar`, 현재 페이지의 행 수는 표 제목 영역에서 구분한다. 표 하단 페이지네이션에 전체 건수·표시 구간·현재 페이지를 함께 표시한다. 페이지 이동은 중앙, 건수는 왼쪽, 표시 건수 선택과 현재 페이지는 오른쪽이다. 기본 10건이며 10·20·50·100건 선택과 URL 보존을 지원한다.
+상세 진입 행은 클릭·Enter·Space를 지원하며, 행 내부 버튼은 별도 행동을 수행한다.
+첫 열은 표 내부 가로 스크롤 중 고정한다. 스크롤 영역은 키보드로 접근할 수 있다.
+화면 낭독기용 숨김 문구도 스크롤 컨테이너 안에 배치해 문서 가로 넘침을 방지한다.
 
-| Token | 의도 |
-|---|---|
-| `radius-control` | button·input·menu item |
-| `radius-panel` | 업무 panel·table·dialog |
-| `shadow-control` | 눌러야 하는 control의 최소 깊이 |
-| `shadow-panel` | dialog·toast·popover 같은 overlay 구분 |
-| `z-header` (`30`) | sticky global header |
-| `z-overlay` (`40`) | modal backdrop·dropdown |
-| `z-sidebar` (`50`) | mobile navigation·dialog content |
-| `z-skip` (`60`) | keyboard skip link·toast viewport |
+상태 배지는 한 줄을 유지한다. 긴 차단 사유·설명은 `wrap` 열 안에서만 줄바꿈을 허용한다.
+수량·날짜는 줄바꿈하지 않는다. 1440px에서는 업무 표가 본문 안에 들어오며,
+더 좁은 폭에서는 표 컨테이너의 가로 스크롤을 허용한다.
 
-호출부에서 임의 `z-[9999]`, 과도한 radius 또는 장식 shadow를 추가하지 않는다.
-고정된 업무 panel과 table은 border와 canvas 명도차로 구분하고 shadow를 사용하지
-않는다. 사용자가 떠 있는 계층으로 인식해야 하는 overlay만 shadow를 갖는다.
+### 2.6 상세·입력 화면
 
-### 2.5 Icon
+상세는 돌아가기 → 상세 종류 → 식별자 제목 → 상태 문맥 → 요약과 업무 패널 순서다.
+대표 행동은 `PageHeading.actions`에 둔다. 입력 폼의 제출은 폼 안의 `FormActions`가 담당한다.
+목록의 공정 완료·검사 판정·자재 처분·사건 등록은 공용 `ActionSheet`로 열어 원래 목록을 유지한다.
+닫으면 열었던 버튼으로 초점을 돌린다.
+변경 이력은 날짜·행동·행위자를 `Timeline`으로 표현한다.
 
-| 크기 | 용도 |
-|---:|---|
-| 16px | navigation·button·table row·badge의 기본 icon |
-| 20px | 화면 상태·중요 feedback icon |
-| 24px 이상 | empty/error illustration처럼 별도 영역이 있는 경우만 허용 |
+작업지시 생성은 입력 패널과 입력 내용 확인 패널을 나란히 둔다. 좁은 화면에서는 세로로 쌓인다.
+예약·공정 완료·검사 판정·사건 등록·처분도 같은 Panel·Input·Select·Button 언어를 사용한다.
+사용자에게 내부 enum이나 인증 구현 용어를 설명하지 않는다.
 
-- Lucide 한 종류만 사용해 stroke 굵기와 optical size를 통일한다.
-- icon은 `대상 종류` 또는 `상태` 중 하나만 설명한다. 같은 행에서 두 icon이 같은
-  상태를 반복하지 않는다.
-- 작업지시는 clipboard, 자재는 package, 검사는 scan처럼 실제 명사에 연결한다.
-- 완료·대기·격리는 text badge와 semantic icon을 함께 사용한다.
-- 익숙한 menu·close·theme control을 제외한 icon-only button은 보이는 label 또는
-  tooltip과 `aria-label`이 필요하다.
-- 사람 avatar를 LOT·작업지시·자재 같은 업무 대상의 장식으로 사용하지 않는다.
+### 2.7 2026-09-05 결정과 근거
 
-제품 shell과 dashboard의 icon vocabulary는 다음으로 고정한다.
+| 변경                               | 이유                                                            |
+| ---------------------------------- | --------------------------------------------------------------- |
+| 짙은 청록 탐색 영역 + 중립 본문    | 메뉴와 데이터 영역을 즉시 구분하고 긴 표의 시선을 본문에 유지   |
+| 청록 대표 행동 + 민트 다크 모드    | 브랜드 일관성을 만들면서 상태색을 구분                          |
+| 명시적인 패널·표 제목과 결과 영역  | 사용자가 현재 읽는 정보의 범위와 조회 결과를 파악               |
+| 공용 20px 페이지 간격              | 목록·상세·입력 화면의 배치를 일정하게 유지                      |
+| 입력 화면의 확인 패널              | 저장 전 제품·수량·납기·우선순위를 한 번 더 확인                 |
+| 공용 상태 행과 시간순 변경 이력    | 현재 상태와 과거 변경 기록을 시각적으로 구분                    |
+| 대시보드 새로고침과 단계별 집계    | 조회 시점을 명확히 하고 계획→실행 흐름을 함께 확인              |
+| 차트 animation 제거·텍스트 표 제공 | 모션 감소 환경과 화면 낭독기에서도 동일한 수량을 확인           |
+| 검색어를 URL 조건 변경에 맞춰 갱신 | 조건 초기화·뒤로가기 후 입력창과 실제 조회가 어긋나는 문제 방지 |
+| 제품 조회도 `useLoadState` 사용    | 실패·빈 목록을 구분하고 안전한 재시도 제공                      |
+| 내부 코드와 잘못된 만료 문구 정리  | 제조 담당자의 언어로 차단 사유와 유효기간을 전달                |
 
-| Icon | 업무 의미 | 선정 이유 |
-|---|---|---|
-| `Factory` | 제품 정체성·공정 실행 | 일반 회사가 아니라 제조 실행 시스템임을 즉시 드러낸다 |
-| `LayoutDashboard` | 운영 대시보드 | 여러 업무영역의 요약 화면이라는 관습적 의미가 분명하다 |
-| `ClipboardList` | 작업지시 | 지시 번호와 수행 항목을 가진 문서형 대상을 표현한다 |
-| `Boxes` | BOM 구성·생산 LOT 집계 | 여러 구성품 또는 LOT 묶음을 뜻하며 단일 자재와 구분된다 |
-| `PackageSearch` | 자재 LOT | 물리 자재 단위의 식별·조회라는 두 의미를 함께 전달한다 |
-| `ClipboardCheck`·`ScanSearch` | 검사 영역·개별 검사 대기 | 전자는 판정 업무영역, 후자는 특정 LOT 조회·검사 사건에 한정한다 |
-| `ShieldAlert` | 부적합·격리 | 사용 차단과 위험 상태를 함께 알린다 |
-| `GitBranch` | LOT 계보 | 부모·자식 분할·합류 관계를 방향성 있는 branch로 표현한다 |
-| `History` | 감사이력 | 변경 사건의 시간 순서를 표현한다 |
-| `Users` | 사용자 관리 | 사람 대상 관리에만 사용하며 제조 객체에는 사용하지 않는다 |
-| `ShieldCheck` | 현재 역할 | 로그인 인물 사진이 아니라 권한 문맥임을 명시한다 |
-| `PanelsTopLeft` | UI 시스템 점검 | 도움말이 아니라 실제 layout·component 검증 route임을 나타낸다 |
-| `Sun`·`Moon` | 테마 전환 | 색상 모드를 바꾸는 보편적 utility 의미가 분명하다 |
+기존 v1의 상충하는 수치와 후보 결정은 [이력 문서](frontend-design-history.md)에 보존한다.
+현재 구현에는 이 문서와 코드 값을 적용한다.
 
-`FlaskConical`처럼 검사 업무를 막연히 실험실 이미지로 꾸미는 icon은 사용하지
-않는다. 제조 검사는 규격 확인과 판정 행위이므로 clipboard·scan 계열을 쓴다.
+### 2.8 간격 소유 규칙
 
-dashboard chart는 완료 수량만 cobalt로 강조하고 계획 수량은 muted text 색의 30%
-명도로 뒤에 둔다. plot 높이 288px는 7개 요일 label과 tooltip을 1024px의 단일 열
-폭에서 스크롤 없이 유지하기 위한 값이고, 막대 최대 폭 20px는 수량 차이를 읽되 장식
-면적이 커지는 것을 막는다. 4px top radius와 grid dash는 전역 shape 단위에 맞춘다.
+| 위치        | 소유                       | 기준                                            |
+| ----------- | -------------------------- | ----------------------------------------------- |
+| 페이지 블록 | `Main`                     | 20px gap, 모바일 좌우 16px, md 이상 28px        |
+| 제목 영역   | `PageHeading`              | 추가 하단 여백·구분선 없음, 설명 위 4px         |
+| 필터        | `FilterBar`                | 입력 padding 16px·gap 12px, 결과 padding 16/8px |
+| 표          | `DataTable`                | 제목 16/10px, 셀 12/8px·끝 열 16px              |
+| 패널        | `Panel`                    | 헤더 20/16px, 본문 20px                         |
+| 요약        | `KeyValueGrid`, `KeyValue` | 가로 24px·세로 20px, 라벨→값 8px                |
+| 상태 문맥   | `StatusStrip`              | padding 20/12px, gap 12px                       |
+| 관련 패널   | `ContentGrid`              | gap 24px, 동일 2열 또는 2:1                     |
+| 입력 필드   | `FormFields`               | gap 20px, sm 이상 2열                           |
+| 폼 행동     | `FormActions`              | 위 24px, 구분선 아래 20px, gap 12px             |
+| 시간순 이력 | `Timeline`                 | 항목 아래 20px                                  |
+| 배지        | `Badge`                    | 기본 높이 24px, 좌우 8px                        |
+| 페이지 탐색 | `Pagination`               | 표 안 하단 12px padding, 한 페이지도 표시       |
 
-neutral surface만 반복해 정보 계층이 평평해지는 것도 피한다. 장식 면적을 늘리는
-대신 다음 네 지점에만 색과 굵기 차이를 준다.
+페이지의 최상위 간격을 임의 margin으로 덧붙이지 않는다. 새 배치가 필요하면 실제 재사용 목적을
+확인한 뒤 공용 컴포넌트 API에 반영한다. 1~3px stroke·focus·아이콘 위치 보정은 간격과 구분한다.
 
-| 강조 | 표현 | 이유 |
-|---|---|---|
-| 현재 화면 문맥 | 24px 제목 높이에 맞춘 왼쪽 2px cobalt rail과 하단 구조선 | hero banner 없이 현재 업무영역을 표시하고 sidebar 위치 marker와 같은 굵기를 쓴다 |
-| 운영 현황 | 중립 cell 위의 semantic icon 면과 수치 색 | 넓은 pastel 면을 없애고 작업지시·검사 대기·격리처럼 의미가 있는 값만 구분한다 |
-| 주간 달성률 | 24px mono 수치와 8px progress bar | chart를 해석하기 전 계획 170 EA 대비 완료 140 EA를 읽게 한다 |
-| 조치 목록 | 행 왼쪽 2px severity rail과 같은 tone의 icon 면 | 카드 전체를 붉게 칠하지 않고 긴급도와 대상 종류를 동시에 찾게 한다 |
+## 3. 컴포넌트 경계
 
-이 rail은 장식용 brand stripe가 아니다. page rail은 현재 문맥, queue rail은 위험도를
-각각 중복 없이 표현한다. gradient, glow, 고채도 배경과 새 shadow는 추가하지 않는다.
-
-### 2.6 시각 방향 검토 후보 v1.1
-
-이 절은 PR #30의 브라우저 검토를 위한 후보이며 Owner 확인 전 ADR-0005의
-승인 상태를 대신하지 않는다. 시각 완성도보다 업무 식별자, 대표 행동과 차단
-사유가 먼저 읽혀야 한다는 상위 계약은 유지한다.
-
-| 결정 대상 | 선택 | 선정 이유 | 기각·재검토 조건 |
-|---|---|---|---|
-| 기본 골격 | `shadcn-admin`의 inset shell과 중립 surface 유지 | 반응형·접기 동작을 보존하고 외부 template와 우리 변경 범위를 구분할 수 있다 | 1024px 현장 검증에서 본문 폭이 부족하면 standard sidebar를 재검토한다 |
-| canvas와 panel | 옅은 cool-neutral canvas 위에 흰 panel | border와 간격만으로 정보 묶음을 구분해 장시간 업무 화면의 시각 피로를 줄인다 | panel 경계가 실제 모니터에서 구분되지 않으면 명도차를 우선 조정한다 |
-| 대표 accent | 저채도 cobalt blue | 대표 행동·현재 위치·link·focus를 하나의 언어로 묶고 success·warning·danger와 충돌하지 않는다 | 기업 brand guide가 확정되면 hue를 바꾸되 semantic color와의 구분을 다시 검사한다 |
-| accent 면적 | 전체 화면의 약 10%, interaction과 핵심 data series에 제한 | 넓은 고채도 면이 업무 data보다 먼저 보이는 것을 막는다 | dark sidebar나 gradient hero는 별도 비교 시안과 근거 없이는 사용하지 않는다 |
-| sidebar | canvas보다 한 단계 어두운 cool-neutral 면 + 옅은 cobalt 선택면 + 2px 위치 marker | 전역 탐색을 구분하면서도 본문보다 먼저 보이지 않고 현재 위치만 색·형태로 표시한다 | 실제 모니터에서 경계가 약하면 고채도 면 대신 neutral 명도차만 조정한다 |
-| 상태색 | 완료 green, 대기·보류 amber, 오류·격리 red | 브랜드 선택과 제조 상태 판단을 분리하고 세 상태축을 동시에 읽게 한다 | 색만으로 의미를 전달하지 않으며 text·icon·badge 형태를 항상 함께 둔다 |
-| 숫자·식별자 | 수량과 LOT·작업지시 번호만 mono | 빠른 자릿수 비교와 식별자 탐색을 돕되 한글 본문의 가독성은 유지한다 | 제목·button 전체 mono 사용은 금지한다 |
-| dashboard 구성 | 통합 운영 현황 → 계획/완료 비교 → 조치 필요 | 5초 안에 이상 수량을 찾고 차단 근거 대상까지 내려가는 업무 순서를 따른다 | 동일 KPI card 4개와 일반 recent activity 조합은 업무 근거 없이 사용하지 않는다 |
-| dark mode | light token의 단순 반전이 아닌 별도 surface·semantic soft token | 밝은 상태 배경이 dark canvas에서 번쩍이거나 badge 대비를 깨는 것을 막는다 | light·dark 상태 조합의 대비 검증 전에는 완료로 판정하지 않는다 |
-
-브라우저 chrome의 `theme-color`도 canvas와 분리하지 않는다. light는 `#f8fafc`,
-dark는 `#020617`로 각 `background` token의 sRGB 표현을 사용하고 테마 전환 시 함께
-갱신한다.
-
-light sidebar는 별도 브랜드 면이 아니라 canvas와 같은 cool-neutral 계열의 한 단계
-낮은 명도만 사용한다. active row의 soft cobalt 면과 2px marker 외에는 고채도 색을
-넓게 쓰지 않는다. dark mode에서는 navigation과 업무 surface의 경계를 유지하기 위해
-deep slate 면을 사용하되 warning·danger 상태색은 여전히 본문에서만 사용한다.
-
-```text
-새 시각 요소가 업무 의미를 전달하는가?
-├─ 아니오 → 제거
-└─ 예
-   └─ interaction인가, 제조 상태인가?
-      ├─ interaction → cobalt accent
-      └─ 제조 상태 → success / warning / danger semantic token
-
-넓은 색 면적이 필요한가?
-├─ 아니오 → icon·marker·soft background로 제한
-└─ 예 → data보다 먼저 보이지 않는다는 viewport 비교 근거가 있을 때만 허용
-```
-
-## 3. Component ownership
-
-| Component | Layer | 책임 | 모르는 것 |
-|---|---|---|---|
-| `Button` | `shared/ui` | variant·loading·disabled·focus·link 위임 | 업무 command |
-| `Input`·`NumberInput`·`DateInput` | `shared/ui` | label·hint·error 연결 | domain validation |
-| `Select` | `shared/ui` | keyboard·option·error | filter 의미 |
-| `ConfirmDialog` | `shared/ui` | focus trap·Escape·확인 구조 | transaction 실행 |
-| `Toast` | `shared/ui` | 비차단 결과 알림 | command 성공 판단 |
-| `Badge`·`PriorityBadge` | `shared/ui` | tone·text·icon | 제조 상태 전이 |
-| `MetricCard` | `shared/ui` | 단일 지표와 근거 문구 | 지표 계산 |
-| `FilterBar` | `shared/ui` | 조회 control과 결과 문맥 | URL search schema |
-| `DataTable` | `shared/ui` | semantic table·empty row | server sort·pagination |
-| `PageHeading` | `shared/ui` | h1·설명·기준정보와 현재 문맥 rail | 화면별 command·data source |
-| 화면 상태 | `shared/ui` | loading·empty·error·forbidden·conflict 복구 틀 | API 오류 mapping |
-| `ManufacturingStatusSummary` | `entities` | 세 상태축의 독립 표현 | 상태 변경 command |
-| `AppShell` | `widgets` | sidebar·header·breadcrumb·content slot | session API·permission 판단 |
-
-기능은 public API인 `@/shared/ui`, `@/entities/manufacturing-status`, `@/widgets/app-shell`만 import한다. 내부 파일 deep import는 FSD 검사에서 실패한다.
+`shared/ui`는 도메인 enum·권한·API를 모른다. 상태 라벨은 entities,
+사용자 행동은 features, 화면 조합은 pages, 라우트와 권한 입력은 app이 담당한다.
+외부에서는 public API만 import한다. 미래 용도의 빈 추상화는 만들지 않는다.
 
 ## 4. 세 상태축
 
-다음 세 값은 동시에 존재하며 하나로 합치지 않는다.
+생산 진행·검사 판정·현재 품질 처분은 서로 독립적이다.
+완료와 합격이더라도 사후 격리는 별도로 보인다. 종합 정상 배지로 합치지 않는다.
+검사 HOLD는 앰버, FAIL은 적색이다. 상태색만으로 의미를 전달하지 않는다.
 
-```text
-생산 진행 [완료 ✓]   최근 검사 [합격 ✓]   현재 품질 [QUARANTINED !]
-```
+## 5. AppShell과 화면 폭
 
-- 생산 완료는 제조 공정이 끝났다는 뜻이다.
-- 검사 합격은 마지막 유효 검사 결과다.
-- `QUARANTINED`는 사후 사건 때문에 현재 사용·출하할 수 없다는 뜻이다.
+사이드바는 표준 variant와 icon collapse를 사용한다. 전체 메뉴 폭은 256px,
+접힌 폭은 48px, 모바일 overlay 폭은 288px이다. 활성 상세는 부모 메뉴를 유지한다.
+공정 상세처럼 대기열 URL의 자식이 아닌 경로도 공정 실행 메뉴에 연결한다.
 
-따라서 `완료·합격`을 근거로 품질 격리를 숨기거나 종합 `정상` badge로 바꾸면 안 된다.
+본문은 사이드바를 제외한 영역에서 최대 1400px로 가운데 정렬하며, 메뉴 접힘 상태에서도 좌우 여백을 같게 유지한다. 전역 헤더는 최대 폭을 제한하지 않는다. 메뉴 토글은 사이드바 경계에서 28px(작은 화면 16px) 간격을 유지한다. 1024px 미만에서는 모바일 메뉴를 사용한다.
+대시보드 비교·조치 패널과 상세 2열은 1280px 이상에서 병렬 배치한다.
+1440·1280·1024px 및 모바일 390px에서 본문 가로 넘침을 확인한다.
+모바일 메뉴·사용 안내·테마 전환은 44px 이상 터치 영역을 유지한다. 모바일 경로는 현재 화면명만 보여 주고, 메뉴에는 명시적인 닫기 버튼과 토글 초점 복귀를 제공한다. 로고는 해당 역할의 허용된 첫 메뉴로 연결한다.
 
-## 5. AppShell
+### 5.1 사이드바 업무 가이드
 
-### 5.1 정보 우선순위
+사이드바 안내 영역의 업무 가이드 링크는 `/guide`로 이동한다. 시작하기·화면 규칙·디자인 시스템·전체 문서 네 탭을 제공한다. 탭은 한 줄로 배치하고 44px 터치 영역과 키보드 탭 탐색을 제공한다. 넓은 화면의 탭은 최소 128px 폭으로 구분한다. 문서 목차는 넓은 화면에서 오른쪽, 작은 화면에서 접기/펼치기로 표시한다. 문서 표의 가로 넘침은 표 안에서만 스크롤한다.
 
-1. 현재 업무영역과 page title
-2. 현재 역할
-3. 대표 행동과 조회 조건
-4. 업무 대상 식별자와 차단 사유
-5. 보조 metadata
+[업무 안내](../product/operations-guide.md)는 기록 대조 업무와 용어를 설명한다. 시작하기는 현재 역할, 화면 안내 시작, 허용된 첫 업무로 이동, 업무 담당자·개발 검토자의 읽는 순서를 먼저 보여 준다. 문서 본문이나 전체 기술 목록부터 강제로 읽게 하지 않는다. 전체 문서는 제목·설명·경로를 검색하고 분류·문서 상태로 좁히며, 설계와 과거 기록은 현재 구현과 구분한다. 가이드는 기존 Markdown 원문을 읽어 문서와 웹의 기준을 하나로 유지한다. 전체 역할은 문서를 읽을 수 있고 실제 업무 바로가기는 현재 권한을 따른다. 화면 둘러보기인 사용 안내와 읽기용 업무 가이드를 구분한다.
 
-sidebar는 전체 예정 메뉴를 보여주되 아직 구현되지 않은 기능은 가짜 route로 이동시키지 않고 `예정`으로 설명한다. 실제 route가 생기면 `app/shell-config.ts`의 typed navigation을 활성화한다.
+### 5.2 사이드바 구성과 크기
 
-전역 검색, 알림, profile menu와 workspace switcher는 실제 command·data source가
-연결된 뒤 노출한다. 한 항목뿐인 switcher, 클릭해도 아무 일도 일어나지 않는 검색과
-알림은 완성도를 높이는 장식이 아니라 신뢰를 낮추는 가짜 affordance로 판정한다.
-내부 문서용 screen ID는 사용자 업무 판단에 필요하지 않으므로 shell에 표시하지
-않는다.
+- 업무 메뉴는 생산 운영 / 자재·품질 / 추적·관리 세 묶음이다. 기존 경로 순서와 권한을 유지하고 허용 메뉴가 없는 묶음은 숨긴다.
+- 사이드바 하단은 업무 가이드 한 줄과 현재 역할·역할 전환 한 줄로 제한한다. 별도의 안내 제목·역할 카드·중복 설명을 쌓지 않는다. 개발용 UI 시스템 점검은 업무 가이드의 개발 문서 영역에서만 연결하며 프로덕션에서는 제공하지 않는다. 업무 메뉴·역할 권한은 이 단순화로 바꾸지 않는다.
+- 상단의 중복 업무 가이드 링크는 제거한다. 실제 화면 투어인 사용 안내·테마 전환과 메뉴 토글은 헤더에 유지한다.
+- 로고 영역은 헤더와 같은 64px 높이다. 일반 메뉴는 PC 40px, 모바일 44px, 접힌 아이콘 버튼은 40px로 맞춘다. 최소 글자 크기 14px와 기존 256px/48px 사이드바 폭은 유지한다.
+- 접힌 메뉴도 세로 스크롤할 수 있어야 하며 짧은 화면에서 마지막 메뉴를 잃지 않는다. 이름은 아이콘 옆에 잘린 글자로 남기지 않고 접근성 이름과 툴팁으로 제공한다.
+- 본문 메뉴와 가이드·개발 도구의 선택 상태를 같은 규칙으로 표시한다. 상세 경로는 소속 메뉴를 유지하고 비슷한 접두어의 다른 경로를 잘못 선택하지 않는다. 모바일에서는 링크 선택·닫기·Escape 후 메뉴 토글로 초점을 복원한다.
 
-`마지막 갱신`은 서버 응답의 실제 timestamp가 있을 때 해당 data panel에 표시한다.
-정적 shell 값인 `방금 전`을 사용하지 않으며 dashboard fixture는 기준 날짜와 가상
-데이터임을 본문에서 직접 밝힌다.
+### 5.3 첫 업무의 확인 순서
 
-원본 template에서 유지하는 것은 검증된 responsive sidebar·mobile sheet·keyboard
-interaction이다. shell 형태를 사용자가 인셋·플로팅·기본으로 바꾸는 customizer는
-업무 위치 기억을 흔들고 제품 기능이 아니므로 제거한다. sidebar는 inset과 icon
-collapse로 고정하고 테마만 light·dark·system 중 선택해 저장한다. glass header,
-scroll shadow, avatar 장식, generic recent activity, 같은 모양 KPI card 반복도 제품
-근거가 없어 제거한다. dashboard는 `현황 파악 → 계획 대비 → 차단 원인 조치`
-순서로만 구성한다.
+첫 업무의 확인 순서는 업무 가이드와 동의 후 실행하는 역할별 화면 안내에서 제공한다. 생산계획은 납기·차단, 자재는 가용 수량, 현장 작업자는 실행 준비, 품질은 검사 상태·판정, 관리자는 변경 이력을 먼저 확인한다. 제목 위에 상시 안내 패널을 반복하지 않는다. 기존 동의·건너뛰기 기록과 미저장·저장 중 보호를 유지한다.
 
-### 5.2 Viewport
+### 5.4 문서 탐색과 읽기
 
-| 폭 | 계약 |
-|---:|---|
-| 1440px 이상 | 256px sidebar, 전체 label, 넓은 업무 표 |
-| 1280px | 256px sidebar와 label을 유지하고 dashboard 비교·조치 영역을 4:3으로 병렬 배치 |
-| 1024px | 256px sidebar와 24px gutter를 유지하고 dashboard 비교·조치 영역은 단일 열로 배치 |
-| 1024px 미만 | menu button과 overlay sidebar 제공 |
+- 문서 입구는 [문서 길잡이](../README.md), 개발자의 영역별 입구는 [개발 문서 지도](README.md)다. 현재 기준과 날짜별 변경 기록을 분리한다.
+- 가이드는 업무 화면과 같은 바탕·최대 1400px·좌우 여백을 사용한다. 목록과 문서 본문은 각각 한 개 패널에 담고 중첩 박스는 만들지 않는다. 탭은 한 줄 밑줄형이며 문서를 읽을 때 상단의 “업무 가이드” 제목을 반복하지 않는다. 문서 제목 H1은 한 번만 표시한다.
+- 시작하기의 첫 영역은 업무 안내·개발 문서 두 묶음이다. 추천 문서는 각 세 개부터 보여주고 추가 문서는 펼쳐 읽는다. 문서 지도는 해당 묶음에서 연결한다. 큰 소개 영역은 두지 않고 화면 둘러보기는 문서 아래 짧은 안내로 제공한다. 동의 절차·역할별 실제 업무 권한과 접어서 볼 수 있는 업무 바로가기는 유지한다.
+- 전체 문서는 주제별 목록으로 묶고 제목·짧은 설명·문서 상태를 보여준다. 긴 파일 경로는 읽기 화면 하단과 목록의 보조 정보로 옮기되 경로 검색은 유지한다. 분류 옆 숫자는 전체 목록의 문서 수이며 검색 영역에는 적용된 조건의 결과 수를 표시한다.
+- 문서 상태는 전체가 기본이다. 현재 기준·설계·결정·기록·과거·참고·양식을 구분하며 검색어·분류·상태를 함께 초기화한다. 문서를 읽고 같은 가이드 목록으로 돌아오면 조건을 유지한다.
+- 긴 문서 본문은 16px·28px 줄 간격으로 읽고 문단·목록 폭은 72ch 이하로 제한한다. 문서 제목은 업무 화면과 같은 24px, 본문 섹션 제목은 20px로 구분한다. 목록의 문서 제목은 16px, 설명·상태·경로·목차·표·코드는 최소 14px다. 일반 업무 화면의 표 밀도는 바꾸지 않는다.
+- 모바일 목차는 한 줄로 접고, 항목 선택 시 다시 접어 본문으로 초점을 옮긴다. 넓은 화면의 목차는 본문 오른쪽에 두며 제목·목차·본문을 각각 박스로 감싸지 않는다. 표·코드의 가로 스크롤을 페이지 전체 넘침으로 만들지 않는다. 원문의 파일명·등록 ID는 안정적으로 유지한다.
 
-1280px 미만에서 dashboard의 chart와 조치 목록을 나란히 두지 않는다. 1024px에서는
-sidebar를 제외한 실사용 폭이 약 752px이므로 두 panel을 분할하면 chart label과 LOT
-식별자가 동시에 압축된다. 요약 수치는 2열을 유지하되 상세 비교와 조치는 전체 폭으로
-쌓는다.
+### 5.5 로그인 진입과 소개 영역
 
-sidebar의 JavaScript media query와 Tailwind 표시 breakpoint는 모두 `64rem`으로
-고정한다. JavaScript도 `(width < 64rem)` 범위 문법을 사용해 fractional viewport에서
-1px 공백이 생기지 않게 한다. 둘 중 하나만 768px 원본값을 유지하면 800~1023px에서
-desktop sidebar와 mobile sheet 상태가 서로 달라지므로 같은 회귀 테스트 대상으로
-관리한다.
+- 최고관리자는 전체 화면 둘러보기 한 개의 대표 카드로, 일반 네 역할은 담당 업무로 시작하기 묶음으로 구분한다. 대표 카드도 실제 로그인 버튼이며 읽기 전용 미리보기로 오인시키지 않도록 업무 실행·사용자 권한 관리 범위를 함께 표시한다. 역할·권한·시작 경로의 기준은 기존 인증 계약이다.
+- 업무 역할은 640px 이상에서 2열, 그 미만에서는 1열이다. 같은 묶음의 카드 높이를 맞추고 역할명은 16px, 설명·시작 화면·보조 문구는 최소 14px로 표시한다. 전체 체험 카드와 업무 카드의 높이를 억지로 동일하게 맞추지 않는다.
+- 1024px 이상에서 소개와 역할 선택을 0.85:1.15로 나눈다. 소개 문구와 제조 흐름 목록은 최대 384px의 한 묶음으로 왼쪽 패널 가운데에 배치한다. 글자 자체는 왼쪽 정렬을 유지한다. 로고와 하단 고지는 패널 기본 여백을 따르며 1024px 미만에서는 소개를 짧게 표시하고 테마 전환을 로고 오른쪽에 둔다.
+- 역할 전환 안내는 중립적인 짧은 문구, 실제 세션 만료만 경고로 구분한다. hover는 색상만 바꾸며 로그인 중에도 원래 시작 문구의 공간과 아이콘 크기를 유지한다. 새 역할을 누르기 전에는 로딩 카드나 스켈레톤을 추가하지 않는다. 요청 중 전체 역할의 중복 선택을 막고 실패하면 같은 화면에서 다시 선택할 수 있다.
 
-## 6. 상태와 복구
+로그인에는 센서 제조 흐름을 구현한 포트폴리오와 가상 데이터임을 먼저 설명한다. 이미지는 필수가 아니며 현재는 코드 기반 제조 흐름과 실제 역할 선택으로 체험 내용을 전달한다. 운영 기업·현장 사용 실적을 암시하는 사진이나 가짜 업무 화면을 추가하지 않는다.
 
-| 상태 | 보존 | 필수 행동 |
-|---|---|---|
-| loading | title·filter·기존 data | 중복 command 차단 |
-| empty | filter·permission | 첫 생성 또는 filter 초기화 |
-| error | 입력·request 문맥 | 안전한 재시도 |
-| forbidden | 대상·필요 권한 | 역할 전환 또는 허용 route 이동 |
-| conflict | 내 입력·최신 version | 최신값 조회 후 명시적 재시도 |
+- 로그인은 역할 선택 한 번으로 해당 업무 화면에 진입한다. 로그인 전 안내 선택 버튼이나 역할 재선택 상태 문구를 두지 않는다. 세션 만료와 실제 로그인 오류만 원인에 맞게 표시한다.
+- 로그인 요청 중에는 모든 역할 버튼을 잠그고 선택한 버튼에 진행 상태를 표시한다. 실패하면 역할 선택을 다시 허용한다.
+- 화면 안내는 접속 후 제공한다. 기존 최초 초대·완료·건너뛰기 기록과 수동 안내 시작은 유지한다.
 
-공통 상태 component는 API 오류를 추측하지 않는다. page·feature가 오류를 분류하고 적절한 복구 action을 주입한다.
+## 6. 조회·오류·복구
+
+목록·상세·대시보드·제품 선택 조회는 `useLoadState`를 사용한다.
+첫 조회만 스켈레톤을 보이고, 재조회 중에는 이전 성공 데이터를 유지하며 `aria-busy`로 알린다. 상세 화면의 제목·상세 표식·돌아가기는 로딩·오류 중에도 유지한다. 응답 전에는 화면 종류를 제목으로 쓰고 업무 식별자를 추측하지 않는다. 응답 전후에도 제목·돌아가기 요소 자체를 유지해 로딩 완료 순간의 클릭·초점을 잃지 않는다.
+JavaScript 준비 전 HTML과 최초 세션 확인 중에는 현재 경로의 공개 화면 제목과 공통 배치를 먼저 표시한다. “접속 상태를 확인합니다” 같은 별도 전면 안내는 표시하지 않고 준비 상태는 스크린리더에만 알린다. 인증 GET은 앱 코드 로딩과 동시에 시작하되 서버의 실제 검증 전에는 조작 가능한 보호 메뉴·업무 데이터를 표시하지 않는다. 같은 탭 새로고침의 마지막 공개 역할 코드는 표시 전용 힌트로만 사용해 코드 소유 메뉴의 위치·글꼴·색을 유지한다. 미리보기는 inert·aria-hidden이며 권한을 허용하지 않는다. 인증 완료 후 실제 메뉴로 교체하고 첫 방문에는 브랜드만 표시한다. 초기 HTML부터 저장한 테마·메뉴 폭과 공통 스크롤바 공간을 적용한다. 인증 후에는 실제 사이드바·헤더를 즉시 표시하며 본문 API를 기다린다는 이유로 숨기지 않는다. 임의로 추정한 메뉴나 화면 전체의 회색 줄을 만들지 않는다. 보여주기용 최소 지연은 넣지 않는다.
+
+로그인 새로고침에서는 단독으로 뜨는 FabriScope MES 임시 제목을 사용하지 않는다. JavaScript 준비 전 기존 바탕색을 유지하고 준비 후 실제 로그인 화면을 표시한다. 로그인 화면의 정식 로고·소개를 삭제하는 규칙은 아니다. 공개 로그인은 세션 확인 응답으로 화면 표시를 막지 않으며, 실제 역할 선택 후 요청 중인 버튼에만 로그인 상태를 표시한다.
+
+로딩 범위는 **데이터 조회 결과 영역만**이다. 페이지 제목·돌아가기·검색조건·조회 버튼·정적 안내·탭은 실제 요소를 유지한다. 표, 대시보드 지표, 상세 조회 결과만 지역 로딩 상태를 가진다. 표 준비 영역은 긴 회색 행을 반복하지 않고 짧은 조회 문구와 공간만 유지한다. 가이드 시작·목록·탭·제목은 정적으로 즉시 표시한다. 선택한 원문이 처음 필요한 때만 본문에 준비 문구를 표시하고, 같은 접속 중 이미 읽은 문서는 즉시 표시한다. 정적 문서에 업무 API 스켈레톤을 적용하지 않는다.
+
+새로고침 때는 같은 탭·경로·화면 크기·메뉴 폭에서 직전에 측정한 데이터 영역 높이를 예약한다. 제목·필터를 스켈레톤으로 덮어 높이를 맞추지 않는다. 저장 값은 데이터 영역 이름·높이·경로·뷰포트·스크롤 위치뿐이며 업무 응답·본문·HTML은 저장하지 않는다. 첫 방문이나 일치하는 측정값이 없는 경우에는 페이지당 표시 건수 등을 이용한 추정 높이를 쓴다. 다른 경로·크기·메뉴 폭의 측정값은 버린다. 데이터가 실제로 바뀌거나 오류가 발생한 경우의 높이 변화까지 숨기지는 않는다.
+
+재조회 중 기존 표의 투명도를 낮추지 않으며, 버튼의 로딩 아이콘은 원래 버튼 폭 안에 표시한다. 자동 온보딩 질문은 첫 본문 준비 뒤 열되 사용 안내 버튼 자체는 헤더에서 유지한다.
+검색·선택 조건은 편집 상태로 유지하고 `조회` 또는 Enter로 한 번에 적용한다. `조건 초기화`는 미적용 검색 입력까지 모두 비우고 선택한 표시 건수는 유지한 채 첫 페이지 전체 목록을 조회한다. 두 버튼은 항상 같은 자리에 표시하며 조회 중 중복 실행을 막는다. 같은 조건의 조회는 재조회하고, 새 조건은 첫 페이지로 이동한다. URL·뒤로가기·앞으로가기와 입력을 동기화하며 조회 시 스크롤 위치를 유지한다.
+조회 실패·빈 결과·권한 없음·충돌은 공통 상태 컴포넌트와 유효한 복구 행동을 제공한다.
+명령 실패 시 입력을 보존하고 서버가 거절한 결과를 성공처럼 표시하지 않는다.
+진행 중 동일 GET만 공유하고 완료 응답은 캐시하지 않는다. 취소·업무 명령·로그인 경계는 [API 요청 규칙](frontend-api-request-rules.md)을 따른다.
 
 ## 7. 접근성
 
-- 모든 form control은 보이는 label 또는 명시적인 accessible name을 가진다.
-- error는 `aria-invalid`와 `aria-describedby`로 입력에 연결한다.
-- dialog는 title·description을 제공하고 Escape와 focus return을 유지한다.
-- 1024px 미만 overlay sidebar는 trigger와 menu 행에 44px 실제 영역을 확보하고,
-  Enter로 열고 Escape로 닫은 뒤 직전 trigger로 focus를 돌려준다.
-- loading button은 disabled 상태와 `처리 중` accessible name을 제공한다.
-- `Button asChild`는 link를 감싸는 새 요소를 만들지 않고 단일 link에 style과 상태를
-  위임한다.
-- 모든 authenticated route는 `main-content`를 제공해 skip link로 sidebar·header를
-  건너뛴다. 404와 application error도 같은 id와 h1 구조를 사용한다.
-- focus indicator는 background와 분리된 3px ring을 사용한다.
-- icon-only button은 `aria-label`을 가진다.
-- animation은 `prefers-reduced-motion`에서 사실상 제거한다.
-- color contrast는 browser viewport 검증에서 별도 확인한다.
-
-2026-09-02 token 값의 WCAG 상대 명도 계산은 다음과 같다. 12~14px 일반 text에
-적용하는 조합은 최소 `4.5:1`을 넘기며, 색상은 항상 text·icon과 함께 사용한다.
-
-| 조합 | Light | Dark |
-|---|---:|---:|
-| 본문 text / canvas | 17.10:1 | 18.93:1 |
-| muted text / canvas | 4.57:1 | 7.54:1 |
-| accent strong / soft | 7.39:1 | 8.68:1 |
-| success strong / soft | 6.45:1 | 8.79:1 |
-| warning strong / soft | 4.88:1 | 8.99:1 |
-| danger strong / soft | 4.97:1 | 8.34:1 |
+모든 화면은 `main-content`와 h1을 제공한다. label·입력·오류 문구를 연결한다.
+Dialog·Sheet는 제목, Escape, 초점 복귀를 제공한다. 메뉴와 표는 키보드로 조작할 수 있다.
+차트에는 동일 데이터의 화면 낭독기용 표가 있다. 정의 목록은 dt/dd 구조를 지킨다.
+라이트·다크의 텍스트 대비와 `prefers-reduced-motion`을 함께 검증한다.
 
 ## 8. 검증
 
 ```bash
-corepack pnpm lint
-corepack pnpm typecheck
-corepack pnpm test
-corepack pnpm build
+corepack pnpm check
 ```
 
-자동 검증은 다음을 포함한다.
+lint → typecheck → test → build → docs:check 순서로 검사한다.
+브라우저에서는 다섯 역할의 메뉴·목록·상세·입력 화면, 테마 전환, 반응형 메뉴와
+표 스크롤, 검색 초기화, 로딩·빈 결과·오류 상태를 확인한다. 표의 No는 조회 결과 전체 건수부터 역순으로 이어지고 첫 식별 열과 함께 고정한다. 수량·비율·날짜·상태는 헤더와 셀 모두 가운데, 식별자·제품·설명은 왼쪽 정렬한다. 제품명은 14px·500, 코드는 별도 행 14px·400으로 표시한다. 우선순위는 큰 배경 상자 없이 14px 문자·방향 아이콘으로 구분하며 보통·낮음은 중립색으로 유지한다.
+과거 검증 수치를 현재 검증 결과로 사용하지 않는다.
 
-- FSD 역방향·same-layer cross-slice·deep import 차단
-- loading button, label·error와 dialog keyboard test
-- semantic table empty state test
-- 세 제조 상태축 분리 test
-- `/dev/ui-kit` axe-core 검사
-- Web·API 전체 기존 test
+### 8.11 이전 리프레시 검증 이력
 
-브라우저 근거는 `/dev/ui-kit`과 대표 product route를 1440·1280·1024px로 확인하고 keyboard-only walkthrough를 남긴다. `/dev/ui-kit`은 development에서만 접근 가능하며 production route에서는 not-found다.
+2026-09-04 측정·결정은 [v1 이력의 8.11절](frontend-design-history.md#811-2026-09-04-간격색상-리프레시-검증-이력)에 보존한다.
+현재 변경 사항은 [전체 화면 리디자인 인수인계](handoff-design-overhaul-2026-09-05.md)를 참조한다.
 
-### 8.1 2026-09-02 반응형 재검증 이력
+## 9. 역할별 온보딩
 
-| 검증 | 관찰 | 결정과 근거 |
-|---|---|---|
-| `/dashboard` 1440·1280·1024·900px, light·dark | 전체 폭 가로 overflow와 계산 text 대비 실패 없음 | 기존 surface·token·breakpoint 유지 |
-| `/dev/ui-kit` 업무 표 1024·900px, light·dark | 1024px에서 `653/653px`, 900px에서 `793/793px`로 scroll width와 client width가 같음 | 현재 열 구성은 내부 가로 scroll 없이 유지 |
-| 900px overlay sidebar | 이식 직후 trigger `35px`, menu 행 `32px`로 44px 계약 미달 | mobile trigger와 menu 행만 `44px`로 확대하고 desktop의 `28px` trigger·`32px` 행 밀도는 유지 |
-| keyboard walkthrough | Enter open, dialog 내부 focus, Escape close와 trigger focus return, desktop Ctrl+B state 전환 통과 | 기존 Radix Sheet와 keyboard state 소유권 유지 |
-
-### 8.2 2026-09-03 로그인 surface 검증 이력
-
-| 검증 | 관찰 | 결정과 근거 |
-|---|---|---|
-| `/login` 1440·1280·1024·900px, light·dark | 전체 폭 가로 overflow, 계산 text 대비 실패 없음 | 데모 인증 surface도 기존 token·breakpoint 계약 그대로 적용 |
-| `/login` keyboard walkthrough | 첫 Tab이 skip link에 도달하고 Enter로 `#main-content`로 이동, 역할 button Tab 도달, focus ring 표시, Enter로 역할 로그인과 랜딩까지 완결 | role list button이 native button이라 별도 keyboard 처리 없이 표준 동작 유지 |
-| 900px theme toggle | 기본 `size-9`(실측 40px)로 44px 계약 미달 | mobile에서만 `size-11`(44px)로 확대하고 desktop은 `size-9` 업무 밀도 유지. sidebar 44px 보정과 같은 방식 |
-| skip link 터치 영역 | 실측 `132x36px`로 44px 미달이나 비포커스 시 화면 밖에 있고 keyboard 전용 경로 | pointer 조작 대상이 아니므로 44px 계약에서 제외. 첫 Tab 도달과 Enter 동작으로 대신 검증 |
-| 로그인 실서버 E2E | 실DB seed 계정으로 로그인→역할 랜딩→허용 경로 접근→미허용 경로 `/forbidden` 차단→역할 전환→세션 무효 8/8 통과 | HttpOnly 세션과 route guard 계약이 실브라우저에서 동일하게 강제됨 |
-
-skip link는 키보드 사용자의 반복 탐색 비용을 줄이는 보조 경로이므로 터치 영역
-기준 대신 첫 포커스 도달성과 대상 이동만으로 검증한다. theme toggle은 로그인
-surface와 업무 shell 양쪽 header에 모두 노출되는 지속적 컨트롤이므로 mobile 44px
-계약을 공통으로 적용한다.
-
-### 8.3 2026-09-03 실행 대기열·자재 LOT surface 설계 근거와 검증 이력
-
-| 결정 | 근거 | 검증 |
-|---|---|---|
-| 준비 상태 배지 5종(`대기` neutral, `실행 가능` info, `진행 중` warning, `완료` success, `차단` danger) | `ManufacturingStatusSummary`가 이미 확정한 생산 진행 상태 언어(planned·ready·in-progress·completed)를 그대로 확장하고 차단만 danger로 추가했다. 새로운 색 체계를 만들지 않는다 | 실브라우저 E2E에서 라벨·톤 렌더 확인, 대비는 8.1과 동일 계산식으로 0 실패 |
-| 대기열 열 구성: 작업지시·생산 LOT·공정(순서)·제품·계획수량·준비 상태·차단 사유 | `ui-layout-contracts` 3.3이 SCR-04A의 대상 식별자·현재 공정·핵심 수량 우선을 요구한다. 생산 LOT를 작업지시 다음에 두어 작업자가 LOT 단위로 공정을 찾는 흐름과 일치시켰다 | 헤더 7열 실측 일치, 900px 가로 overflow 0 |
-| 차단 사유는 기계 판독 `reasonCodes`를 사람 라벨로 변환해 표시 | 도메인 계약이 `reasonCodes[]`를 기계 판독 계약으로 유지하고, 화면은 업무 언어로 설명해야 한다 | `MATERIAL_SHORTAGE`→자재 부족, `INSPECTION_HELD`→검사 보류 매핑이 e2e와 브라우저에서 동일 확인 |
-| 자재 LOT 가용 0은 danger 배지, 만료·D-7 임박은 배지 구분 | 가용 부족이 자재 담당자의 조치 트리거라는 SCR-03 목적과 일치한다 | availability=expired 1행·QUARANTINED 1행 실측 |
-| 목록 필터 상태는 전부 URL search가 소유 | route-contract 일반 규칙(공유 가능한 보기 상태는 search parameter) | 필터 적용 후 URL query와 표 행 수가 일치함을 E2E로 확인, 조건 초기화가 잔여 조건 없이 `''`로 돌아감 |
-
-실행 대기열의 `READY`는 저장 상태가 아니라 계산 projection이라는 도메인 계약을
-그대로 따르며, 이 surface는 읽기 전용이다. 공정 시작·완료 command는 SCR-04B에서
-별도 확인 절차와 함께 추가된다.
-
-### 8.4 2026-09-03 품질 검사 대기 surface 설계 근거와 검증 이력
-
-| 결정 | 근거 | 검증 |
-|---|---|---|
-| 판정 배지 4종(`합격` success, `불합격` danger, `보류` warning, `미판정` neutral) | route-contract가 미판정을 verdict key 부재로 구분하므로 null 판정도 하나의 상태로 보여야 하고, 톤은 자재 LOT·대기열과 같은 위험 언어를 따른다 | PENDING 3건·PASS 3건·FAIL/HOLD 필터 결과가 e2e와 브라우저에서 일치 |
-| 게이트 배지(`공정 진행` neutral, `LOT 완료` info) | LOT 완료 게이트가 작업지시 종결의 관문이라는 도메인 역할 차이를 색으로만 구분한다 | gate=LOT_COMPLETE 3행 실측 |
-| 열 구성: 검사·생산 LOT·공정·게이트·검사 규격·작업지시·실행 상태·판정 | SCR-05A가 검사 대상을 우선순위대로 판정하는 화면임을 규정한다. 검사 식별자와 대상 LOT를 앞에 두고 규격명은 판정 근거로 함께 보여준다 | 헤더 8열 실측, 900px 가로 overflow 0 |
-| 검사 규격명에 revision 명시(v3 등) | InspectionRequirement가 release snapshot이라는 도메인 계약에 따라 어떤 규격 version으로 판정했는지가 근거가 된다 | seed 규격명 렌더 확인 |
-
-품질 검사 surface의 해상도 감사(1440·1024·900px, light·dark)에서 가로 overflow와
-계산 텍스트 대비 실패는 0이었다. 44px 미만으로 측정된 요소는 모두 문서화된
-기준에 속한다: skip link는 8.2의 면제 사유, 32px sidebar 행·28px desktop trigger는
-8.1의 desktop 밀도 계약, 40px 입력·버튼은 token 표의 기본 밀도(터치 가능 영역을
-함께 확보한다고 명시), 16px resize rail은 desktop 마우스 전용이며 1024px 미만에서는
-렌더되지 않는다. 44px 터치 계약은 8.1·8.2에서 확정한 대로 1024px 미만의 지속적
-탐색 컨트롤(sidebar 행, theme toggle)에 적용한다.
-
-### 8.5 2026-09-03 감사 이벤트 surface 설계 근거와 검증 이력
-
-| 결정 | 근거 | 검증 |
-|---|---|---|
-| 기본 정렬 `occurredAt desc` | 감사 이력은 최근 사건 확인이 기본 사용이고, 제품 계획 문서가 관리자의 질문을 "권한과 상태 변경이 정책대로 수행됐는가"로 정의한다 | 최근순 첫 행(검사 판정)이 e2e·브라우저에서 동일 |
-| 열 구성: 시각·행위자(이름+역할)·행동·대상(유형+식별자)·내용·요청 ID | 감사 가능성 계약이 행위자·시각·사유 보존을 요구하고, route-contract가 requestId로 한 transaction 추적을 규정한다 | 헤더 6열 실측, 900px 가로 overflow 0 |
-| 행동 라벨은 텍스트로 표시하고 색 배지를 쓰지 않는다 | 감사 행동은 위험도가 아니라 사실 기록이므로 생산·품질 상태와 같은 위험 언어를 빌려 오해를 만들지 않는다 | 8종 행동 라벨 렌더 확인 |
-| 시각은 Asia/Seoul로 표시하고 `dateTime` 속성에 ISO 값을 유지 | route-contract의 일자 경계 규칙과 동일하게 사람에게는 서울 시각, 기계에는 ISO를 제공한다 | `<time dateTime>` 속성 실측 |
-| 감사 행동 enum 8종을 MVP 세트로 정의 | 계약은 audit action enum을 요구하지만 범위를 명시하지 않았다. 현재 구현된 읽기 세로축(작업지시·자재·검사·세션)에서 발생 가능한 행동만 포함하고 command 확장 시 함께 확장한다 | seed 10건이 전 행동을 커버 |
-
-### 8.6 2026-09-03 운영 대시보드 실데이터 전환 근거와 검증 이력
-
-| 결정 | 근거 | 검증 |
-|---|---|---|
-| 지표 카드 4종을 서버 집계로 교체 (진행 중 작업지시·생산 LOT·검사 대기·격리·부족 자재) | 기존 하드코딩 값은 조회 결과와 무관해 신뢰 근거가 없었다. 각 값은 seed 전체에서 실제 count로 계산된다 | e2e에서 seed 기댓값(inProgress 3·blocked 2·검사 대기 3 등)과 일치 확인 |
-| 주간 차트를 "납기 계획 대비 진행"으로 재정의 | 완료 실적 원장이 아직 없어 종래의 계획 대비 완료 차트는 조작될 수밖에 없었다. 납기일 기준 계획 수량과 진행률 반영 수량은 현재 데이터로 정직하게 계산된다 | weekly 합계와 progressbar 값의 일치를 e2e로 검증 |
-| 조치 큐를 차단 작업지시→LOT 완료 게이트 검사 대기→납기 임박 순서로 구성 | SCR-01A가 "오늘 지연·차단된 작업"을 관리자 질문으로 규정한다. 위험도 순서로 정렬하고 최대 5건 | 차단 2건(WO-2026-092·098)이 큐 상단에 실측 |
-| 데이터 갱신 시각을 응답 수신 시각으로 표시 | ui-layout-contracts가 "실제 timestamp를 받은 화면의 data panel"에만 갱신 시각 표시를 허용한다 | `<time>` 요소 렌더 확인 |
-| `due=overdue` 필터에서 완료·취소 작업지시 제외 | 납기 지연은 미완료 상태의 위험이다. 완료된 작업의 과거 납기는 지연이 아니다. 대시보드 overdue 집계와 목록 필터 정의를 일치시켰다 | 목록 e2e 기댓값 갱신(2→1)으로 양쪽 정의 일치 확인 |
-
-### 8.7 2026-09-03 작업지시 command surface 설계 근거와 검증 이력
-
-| 결정 | 근거 | 검증 |
-|---|---|---|
-| 발행은 ConfirmDialog, 취소는 사유 입력 폼으로 분리 | route-contract가 위험 행동의 대상·영향·사유 재확인을 요구한다. 발행은 대상·영향 고지로 충분하지만 취소는 사유가 감사 계약의 필수 값이다 | e2e에서 사유 2자 미만 400, 브라우저에서 사유 없으면 버튼 비활성 |
-| command 버튼은 상태·권한 조건을 모두 충족할 때만 노출 | route-contract 3.2: 권한이 없으면 숨기기만 하지 않고 필요한 권한과 현재 상태를 설명한다. 발행 권한이 없는 관찰자에게는 안내문을 보여준다 | 현장 작업자의 생성 라우트 차단, 발행 권한 없는 역할 안내문 렌더 |
-| 감사 이력을 모든 command와 같은 transaction 흐름에 기록 | 감사 가능성 계약(행위자·시각·사유)이 상태 변경의 전후 값 보존을 요구한다. 생성·발행·취소 각각 WORK_ORDER_* 감사를 남긴다 | 상세 변경 이력과 /audit-events에서 command 흔적 실측 |
-| 오류는 계약 code로 구분해 복구 상태를 다르게 한다 | route-contract 392: 403·404·409·5xx가 서로 다른 복구 상태를 보인다. NOT_DRAFT·NOT_CANCELLABLE·HAS_EXECUTION를 409 code로 분리 | e2e에서 상태머신 거부 3종 409 code 검증 |
-| MVP 발행 검증은 현재 도메인 모델이 지원하는 범위로 한정 | BOM·공정 route revision 원장이 아직 없어 release snapshot 계약 전체를 검증할 수 없다. 초안 상태·계획수량·납기 유효성을 검증하고 revision 원장은 BOM 화면군과 함께 확장한다 | 납기 과거 400·비초안 409 검증, 한계를 이 표에 명시 |
-
-### 8.8 2026-09-03 자재 예약 surface 설계 근거와 검증 이력
-
-| 결정 | 근거 | 검증 |
-|---|---|---|
-| 예약 패널을 작업지시 상세에 배치 | route-contract가 예약 화면을 `/work-orders/$id/material-reservations`로 두지만 MVP는 상태 맥락(발행 여부)과 같은 화면에서 판단하는 것이 오조작을 줄인다. 별도 라우트는 요구사항 강조 기능이 필요할 때 분리한다 | 자재 담당자가 발행 지시 상세에서 즉시 예약·해제를 완료 |
-| 예약 가능 LOT은 가용 필터 결과만 노출 | 도메인 계약이 ACCEPTED·미만료·가용 잔량 예약만 허용한다. 품질 통제·만료 LOT는 선택 단계에서 제외하고 서버가 다시 검증한다 | QUARANTINED 409·가용 초과 409 e2e, 브라우저에서 가용 LOT만 옵션 표시 |
-| 서버는 예약 시점에 가용량을 transaction 안에서 재검증 | 동시 command로 조건이 달라지면 명시적 거부가 계약이다. LOT 잔량 증감과 allocation 생성을 같은 transaction으로 실행한다 | e2e에서 reservedQuantity 실측 증감, 해제 후 감소 |
-| 예약·해제 권한이 없으면 현황 조회와 권한 설명만 제공 | route-contract 3.2의 권한 안내 규칙을 예약에도 동일 적용한다 | planner에게 안내문 표시, 예약 폼 미노출 실측 |
-| fetch abort 경쟁 방지 가드를 모든 panel effect에 적용 | 생성 페이지에서 발견한 동일 결함 클래스(StrictMode 이중 effect에서 첫 fetch의 abort가 상태를 덮어씀)를 재발 방지 | 기본 LOT 선택이 안정적으로 설정됨을 브라우저 E2E로 확인 |
-
-### 8.9 2026-09-03 공정 실행 command surface 설계 근거와 검증 이력
-
-| 결정 | 근거 | 검증 |
-|---|---|---|
-| 시작 버튼은 행 안에, 완료 실적은 표 아래 확장 폼으로 분리 | 시작은 한 번의 확인으로 충분하지만 완료는 양품·불량·메모 입력이 계약상 필수다. 대기열 행 밀도를 유지하면서 입력 오류를 방지한다 | 브라우저에서 시작→행 상태 전환→완료 폼 제출→목록 갱신까지 실측 |
-| 시작 시 활성 예약을 출고·소비로 전환 | 도메인 계약이 "실제 투입과 공정 시작이 같은 transaction에서 성공할 때만 진행"을 요구한다. MVP는 예약 전체를 출고로 전환해 원장 카운터에 반영한다 | e2e에서 onHand·예약·소비 수량 증감 실측, allocation CLOSED(FULFILLED) |
-| 완료 시 다음 대기 공정을 실행 가능으로 승격하고 작업지시 진행률을 재계산 | 후속 공정의 READY는 선행 완료에서 유도된다는 계약의 projection이다. 차단 사유가 있는 공정은 승격하지 않는다 | 완료 후 다음 공정 READY·progressPercent 갱신 실측, blockedReasonCodes 보존 |
-| 실행 권한이 없으면 행동 열 자체를 제외 | 관찰자에게 실행 UI는 혼란만 더한다. route-contract의 권한 안내 규칙은 버튼이 존재해야 설명하는 화면에만 적용한다 | 품질 담당자에게 행동 열 미표시 실측 |
-
-### 8.10 2026-09-03 검사 판정 command surface 설계 근거와 검증 이력
-
-| 결정 | 근거 | 검증 |
-|---|---|---|
-| 판정 선택지를 PASS·FAIL·HOLD로 한정하고 완료 상태와 판정을 함께 기록 | 도메인 계약이 COMPLETED 검사는 반드시 판정을 가진다고 규정한다. 실행 상태와 판정을 한 enum에 섞지 않는다 | 미판정→판정 후 COMPLETED+verdict 실측, 재판정 409 |
-| FAIL·HOLD 선택 시 품질 처분·재측정 경고를 판정 확정 전에 표시 | FAIL은 자동 처분이 아니라 품질 담당자의 후속 처분 대상이라는 계약을 UI 언어로 미리 알린다 | jsdom userEvent로 FAIL·HOLD 경고 렌더 검증 |
-| 공정 완료의 다음 공정 승격을 ROUTE_ADVANCE 검사 게이트로 연결 | 유효 판정이 FAIL·HOLD이면 다음 공정을 거부한다는 계약의 첫 구현. 미판정·불합격·보류를 INSPECTION_PENDING·FAILED·HELD reasonCodes로 기록하고 취소 검사는 제외한다 | e2e에서 미판정 검사가 승격을 BLOCKED로 차단 실측 |
-| 이미 판정된 검사는 정정 흐름으로 유도 | 원 검사를 수정하지 않고 정정 chain으로 계약. 정정 UI는 후속 슬라이스 | 409 INSPECTION_ALREADY_VERDICTED 코드 유지 |
-| 브라우저 E2E는 기본 PASS 종단 흐름, 선택 UI는 jsdom 검증으로 분리 | headless CDP×Radix Select 선택 경합은 검증 도구 한계로 실제 결함이 아니다. 위험 경로(FAIL 경고·전송 값)는 userEvent가 신뢰되는 jsdom에서 증명한다 | 브라우저 8/8 + jsdom 3/3 |
-
-모바일 rail은 좁은 edge target을 추가하므로 overlay에서는 숨긴다. 외부 영역 클릭,
-Escape와 메뉴 선택 닫기가 이미 같은 복구 경로를 제공하므로 기능 손실 없이 오조작
-가능성만 줄인다.
-
-## 9. 금지 규칙
-
-- 기능 slice에서 hex·rgb·raw CSS color 추가
-- domain enum을 `shared/ui`에 추가
-- badge 하나로 생산·검사·품질 상태 통합
-- 위험 command를 confirmation 없이 icon-only button으로 제공
-- AppShell 안에 session API·permission 정책 구현
-- 외부 template component를 provenance 없이 복사
-- 제품 component와 다른 일회성 mock showcase 제작
-- 실제 command나 data source가 없는 검색·알림·profile button 노출
-- 한 항목뿐인 workspace·site switcher 노출
-- 사용자 설명 없이 내부 screen ID·영문 all-caps eyebrow 노출
-- 업무 근거 없이 같은 크기 KPI card 4개와 generic recent activity를 조합
-- LOT·작업지시·자재를 사람 avatar나 임의 이니셜로 표현
-- 12px 미만 한국어 text와 4px 체계 밖의 임의 spacing 사용
+- 업무 화면 제목 위에 “처음이라면 이렇게 확인하세요” 상시 패널을 반복하지 않는다. 사용 안내와 업무 가이드에서 설명을 제공한다. 시작 여부를 먼저 묻고 현재 역할과 안내할 화면·단계 수를 보여 준다. 메뉴 소개에 그치지 않고 실제 상세·입력 위치·업무 확인 순서까지 안내한다.
+- 생산계획 24단계, 현장 20단계, 자재 21단계, 품질 23단계, 최고관리자 28단계를 기본으로 하며 현재 권한에 없는 단계는 제외한다. 각 역할의 주요 목록에서 No·정렬·페이지당 건수·페이지 이동을 안내하고, LOT 대조·예약과 실적 구분·판정 근거·감사 요청 연결 등 해당 역할의 확인 업무를 보강한다.
+- 내용 확대 때문에 기존 완료·건너뛰기 선택을 초기화하지 않는다. 상단 사용 안내에서 다시 동의하고 전체 안내를 재실행할 수 있다. 페이지 이동 안내는 표 하단 탐색 영역 전체를 강조하며, 실제 페이지·표시 건수·업무 데이터는 투어가 변경하지 않는다.
+- 실제 업무 배경이 보이는 반투명 강조를 유지한다. 전체 배경을 불투명하게 덮거나 가짜 업무 화면으로 대체하지 않는다.
+- 스크롤은 320ms 감속, 안내 카드 이동은 200ms를 사용한다. 스크롤 완료 후 실제 대상에 초점을 주며, 모바일 카드는 하단의 일정한 크기·위치를 유지한다. 동작 줄이기 설정을 존중한다.
+- 단계 수와 진행률을 제공한다. 카드 높이는 320px로 고정한다. 안내 제목과 이전·다음 버튼은 스크롤 영역 밖에 유지하고 설명 본문만 스크롤한다. 단계 제목·본문을 재마운트하거나 투명도 애니메이션으로 숨기지 않는다. 설명은 16px·26px 줄 간격과 본문 색으로 읽으며 스크롤바 공간을 항상 확보한다. 넓은 섹션 아래/위 카드는 섹션 중앙에 맞춘다. 카드 내부 스크롤은 허용하지만 배경 휠·터치·키보드 스크롤과 업무 입력·실행은 차단한다.
+- 입력칸 하나만 밝히지 않고 관련 섹션의 제목·설명·값을 함께 강조한다. 초점은 실제 입력칸에 유지하고, 큰 섹션의 강조는 카드 위 가시 영역까지 보여 준다. 표의 다른 열을 안내할 때는 고정 첫 열의 겹침을 일시 해제하고 종료 시 복원한다.
+- 데이터가 없거나 입력 조건이 맞지 않으면 그 사실을 알린다. 안내를 위해 업무 데이터를 생성·예약·판정·완료하지 않는다.

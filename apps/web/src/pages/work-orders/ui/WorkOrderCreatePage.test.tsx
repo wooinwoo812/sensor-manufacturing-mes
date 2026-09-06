@@ -38,6 +38,7 @@ function createdDetail(): WorkOrderDetail {
     createdAt: "2026-09-03T02:00:00.000Z",
     steps: [],
     inspections: [],
+    materialRequirements: [],
     recentAudits: [],
   };
 }
@@ -50,21 +51,36 @@ describe("WorkOrderCreatePage", () => {
         { code: "SEN-XR-1280", name: "X선 검출기 패널 1280px", unit: "EA" },
       ],
     });
-    render(<WorkOrderCreatePage csrfToken="csrf" onCreated={() => undefined} />);
+    render(
+      <WorkOrderCreatePage
+        csrfToken="csrf"
+        onCreated={() => undefined}
+        onCancel={() => undefined}
+      />,
+    );
 
     expect(
-      (await screen.findAllByText("적외선 센서 모듈 640px (SEN-IR-640)")).length,
+      (await screen.findAllByText("적외선 센서 모듈 640px (SEN-IR-640)"))
+        .length,
     ).toBeGreaterThan(0);
     expect(screen.getByText("작업지시 생성")).toBeInTheDocument();
   });
 
   it("제출하면 생성 값을 서버로 전달하고 상세로 이동한다", async () => {
     productsMock.mockResolvedValue({
-      items: [{ code: "SEN-IR-640", name: "적외선 센서 모듈 640px", unit: "EA" }],
+      items: [
+        { code: "SEN-IR-640", name: "적외선 센서 모듈 640px", unit: "EA" },
+      ],
     });
     createMock.mockResolvedValue(createdDetail());
     const onCreated = vi.fn();
-    render(<WorkOrderCreatePage csrfToken="csrf" onCreated={onCreated} />);
+    render(
+      <WorkOrderCreatePage
+        csrfToken="csrf"
+        onCreated={onCreated}
+        onCancel={() => {}}
+      />,
+    );
 
     const quantity = await screen.findByRole("spinbutton");
     await userEvent.clear(quantity);
@@ -86,7 +102,9 @@ describe("WorkOrderCreatePage", () => {
 
   it("생성 실패 시 오류 메시지를 표시한다", async () => {
     productsMock.mockResolvedValue({
-      items: [{ code: "SEN-IR-640", name: "적외선 센서 모듈 640px", unit: "EA" }],
+      items: [
+        { code: "SEN-IR-640", name: "적외선 센서 모듈 640px", unit: "EA" },
+      ],
     });
     createMock.mockRejectedValue(
       Object.assign(new Error("납기는 오늘 이후여야 합니다."), {
@@ -94,11 +112,56 @@ describe("WorkOrderCreatePage", () => {
         code: "INVALID_WORK_ORDER_INPUT",
       }),
     );
-    render(<WorkOrderCreatePage csrfToken="csrf" onCreated={() => undefined} />);
+    render(
+      <WorkOrderCreatePage
+        csrfToken="csrf"
+        onCreated={() => undefined}
+        onCancel={() => undefined}
+      />,
+    );
 
     await screen.findByRole("spinbutton");
     await userEvent.click(screen.getByRole("button", { name: "초안 생성" }));
 
     expect(await screen.findByText(/생성하지 못했습니다/)).toBeInTheDocument();
+  });
+
+  it("제품 조회 실패 후 재시도하면 양식을 표시한다", async () => {
+    productsMock.mockRejectedValueOnce(new Error("network"));
+    productsMock.mockResolvedValueOnce({
+      items: [{ code: "SEN-IR-640", name: "적외선 센서", unit: "EA" }],
+    });
+    render(
+      <WorkOrderCreatePage
+        csrfToken="csrf"
+        onCreated={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+    await screen.findByRole("button", { name: "다시 시도" });
+    expect(
+      screen.queryByRole("button", { name: "초안 생성" }),
+    ).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "다시 시도" }));
+    expect(
+      await screen.findByRole("button", { name: "초안 생성" }),
+    ).toBeEnabled();
+  });
+
+  it("제품이 없으면 제출할 빈 양식을 노출하지 않는다", async () => {
+    productsMock.mockResolvedValue({ items: [] });
+    render(
+      <WorkOrderCreatePage
+        csrfToken="csrf"
+        onCreated={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+    expect(
+      await screen.findByText("등록된 제품이 없습니다"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "초안 생성" }),
+    ).not.toBeInTheDocument();
   });
 });

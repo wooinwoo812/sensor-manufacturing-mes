@@ -1,12 +1,12 @@
 import { Module } from "@nestjs/common";
 import { AuthModule } from "../auth/auth.module.js";
-import { PrismaService } from "../database/prisma.service.js";
+import { DatabaseModule } from "../database/database.module.js";
 import { AuditEventsController } from "./audit-events.controller.js";
 import { AuditEventsService } from "./audit-events.service.js";
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, DatabaseModule],
   controllers: [AuditEventsController],
-  providers: [PrismaService, AuditEventsService],
+  providers: [AuditEventsService],
 })
 export class AuditEventsModule {}

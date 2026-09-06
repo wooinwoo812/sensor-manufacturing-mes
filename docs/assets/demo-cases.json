@@ -1,0 +1,821 @@
+{
+  "generatedAt": "2026-09-06T10:18:44.153Z",
+  "cases": [
+    {
+      "key": "NORMAL",
+      "label": "정상 완료",
+      "workOrderId": "cmtpnsps80000wkvvusv8dfp7",
+      "orderNumber": "WO-2026-101",
+      "detail": {
+        "id": "cmtpnsps80000wkvvusv8dfp7",
+        "orderNumber": "WO-2026-101",
+        "productCode": "SEN-IR-640",
+        "productName": "적외선 센서 모듈 640px",
+        "plannedQuantity": 12,
+        "unit": "EA",
+        "dueDate": "2026-09-09T08:00:00.000Z",
+        "status": "COMPLETED",
+        "priority": "NORMAL",
+        "progressPercent": 100,
+        "currentStepName": null,
+        "blockedReason": null,
+        "memo": "[PORTFOLIO-V1:NORMAL] 정상 완료",
+        "createdAt": "2026-09-06T10:18:43.208Z",
+        "materialRequirements": [
+          {
+            "materialCode": "SEN-MAT-014",
+            "materialName": "적외선 감지 다이오드 어레이",
+            "requiredQuantity": 24,
+            "unit": "EA"
+          },
+          {
+            "materialCode": "SEN-MAT-032",
+            "materialName": "TE 쿨링 모듈",
+            "requiredQuantity": 12,
+            "unit": "EA"
+          },
+          {
+            "materialCode": "SEN-MAT-045",
+            "materialName": "신호 커넥터",
+            "requiredQuantity": 48,
+            "unit": "EA"
+          }
+        ],
+        "steps": [
+          {
+            "id": "cmtpnspu80007wkvvd7536cy9",
+            "sequence": 10,
+            "processStepName": "절단 1공정",
+            "productionLotNumber": "PL-2026-101A",
+            "readiness": "COMPLETED",
+            "blockedReasonCodes": []
+          },
+          {
+            "id": "cmtpnspu80008wkvv3pnkgu28",
+            "sequence": 20,
+            "processStepName": "조립 1공정",
+            "productionLotNumber": "PL-2026-101A",
+            "readiness": "COMPLETED",
+            "blockedReasonCodes": []
+          },
+          {
+            "id": "cmtpnspu80009wkvvxliqew8e",
+            "sequence": 30,
+            "processStepName": "조립 2공정",
+            "productionLotNumber": "PL-2026-101A",
+            "readiness": "COMPLETED",
+            "blockedReasonCodes": []
+          },
+          {
+            "id": "cmtpnspu8000awkvvjel48d3q",
+            "sequence": 40,
+            "processStepName": "최종 검사",
+            "productionLotNumber": "PL-2026-101A",
+            "readiness": "COMPLETED",
+            "blockedReasonCodes": []
+          },
+          {
+            "id": "cmtpnspu8000bwkvvdw7mk2mv",
+            "sequence": 50,
+            "processStepName": "포장",
+            "productionLotNumber": "PL-2026-101A",
+            "readiness": "COMPLETED",
+            "blockedReasonCodes": []
+          }
+        ],
+        "inspections": [
+          {
+            "id": "cmtpnspug000dwkvvreghg14z",
+            "inspectionNumber": "IN-2026-101-01",
+            "processStepName": "조립 2공정",
+            "gate": "ROUTE_ADVANCE",
+            "specName": "조립 정밀도 검사 규격 v2",
+            "executionStatus": "COMPLETED",
+            "verdict": "PASS"
+          },
+          {
+            "id": "cmtpnspug000ewkvvfhlymx90",
+            "inspectionNumber": "IN-2026-101-02",
+            "processStepName": "최종 검사",
+            "gate": "LOT_COMPLETE",
+            "specName": "적외선 모듈 최종검사 규격 v3",
+            "executionStatus": "COMPLETED",
+            "verdict": "PASS"
+          }
+        ],
+        "inspectionRequirements": [
+          {
+            "id": "cmtpnsptp0003wkvvkn9or0w8",
+            "inspectionSpecRevisionId": "cmtmx7nt40022z0vvsm2uy9yb",
+            "specName": "적외선 모듈 최종검사 규격 v3",
+            "gate": "LOT_COMPLETE",
+            "processStepName": null
+          },
+          {
+            "id": "cmtpnsptl0002wkvv7pkbv0vs",
+            "inspectionSpecRevisionId": "cmtmx7nt10021z0vvpyq4akr9",
+            "specName": "조립 정밀도 검사 규격 v2",
+            "gate": "ROUTE_ADVANCE",
+            "processStepName": "조립 2공정"
+          }
+        ],
+        "recentAudits": [
+          {
+            "id": "cmtpnsq0y0016wkvv2s0z37nz",
+            "occurredAt": "2026-09-06T10:18:43.522Z",
+            "actorName": "현장 데모",
+            "actorRole": "SHOP_FLOOR_OPERATOR",
+            "action": "PROCESS_COMPLETED",
+            "summary": "포장 공정 완료 — 양품 11·불량 0 (PL-2026-101A)"
+          },
+          {
+            "id": "cmtpnsq0s0015wkvvw18pmxij",
+            "occurredAt": "2026-09-06T10:18:43.516Z",
+            "actorName": "현장 데모",
+            "actorRole": "SHOP_FLOOR_OPERATOR",
+            "action": "PROCESS_STARTED",
+            "summary": "포장 공정 시작 (PL-2026-101A)"
+          },
+          {
+            "id": "cmtpnsq0i0014wkvve7oggpmd",
+            "occurredAt": "2026-09-06T10:18:43.506Z",
+            "actorName": "현장 데모",
+            "actorRole": "SHOP_FLOOR_OPERATOR",
+            "action": "PROCESS_COMPLETED",
+            "summary": "최종 검사 공정 완료 — 양품 11·불량 0 (PL-2026-101A)"
+          },
+          {
+            "id": "cmtpnsq0b0013wkvv4iuedzhh",
+            "occurredAt": "2026-09-06T10:18:43.499Z",
+            "actorName": "현장 데모",
+            "actorRole": "SHOP_FLOOR_OPERATOR",
+            "action": "PROCESS_STARTED",
+            "summary": "최종 검사 공정 시작 (PL-2026-101A)"
+          },
+          {
+            "id": "cmtpnspzk0010wkvv65j9mgs9",
+            "occurredAt": "2026-09-06T10:18:43.472Z",
+            "actorName": "현장 데모",
+            "actorRole": "SHOP_FLOOR_OPERATOR",
+            "action": "PROCESS_COMPLETED",
+            "summary": "조립 2공정 공정 완료 — 양품 11·불량 0 (PL-2026-101A)"
+          },
+          {
+            "id": "cmtpnspzd000zwkvvctvhph1o",
+            "occurredAt": "2026-09-06T10:18:43.465Z",
+            "actorName": "현장 데모",
+            "actorRole": "SHOP_FLOOR_OPERATOR",
+            "action": "PROCESS_STARTED",
+            "summary": "조립 2공정 공정 시작 (PL-2026-101A)"
+          },
+          {
+            "id": "cmtpnspz1000ywkvv712601nk",
+            "occurredAt": "2026-09-06T10:18:43.453Z",
+            "actorName": "현장 데모",
+            "actorRole": "SHOP_FLOOR_OPERATOR",
+            "action": "PROCESS_COMPLETED",
+            "summary": "조립 1공정 공정 완료 — 양품 11·불량 0 (PL-2026-101A)"
+          },
+          {
+            "id": "cmtpnspyu000xwkvvcgh99xhn",
+            "occurredAt": "2026-09-06T10:18:43.446Z",
+            "actorName": "현장 데모",
+            "actorRole": "SHOP_FLOOR_OPERATOR",
+            "action": "PROCESS_STARTED",
+            "summary": "조립 1공정 공정 시작 (PL-2026-101A)"
+          },
+          {
+            "id": "cmtpnspye000wwkvvjc05vu69",
+            "occurredAt": "2026-09-06T10:18:43.430Z",
+            "actorName": "현장 데모",
+            "actorRole": "SHOP_FLOOR_OPERATOR",
+            "action": "PROCESS_COMPLETED",
+            "summary": "절단 1공정 공정 완료 — 양품 11·불량 1 (PL-2026-101A)"
+          },
+          {
+            "id": "cmtpnspy1000vwkvvzikddsue",
+            "occurredAt": "2026-09-06T10:18:43.417Z",
+            "actorName": "현장 데모",
+            "actorRole": "SHOP_FLOOR_OPERATOR",
+            "action": "PROCESS_STARTED",
+            "summary": "절단 1공정 공정 시작 (PL-2026-101A)"
+          }
+        ]
+      }
+    },
+    {
+      "key": "HOLD",
+      "label": "검사 보류",
+      "workOrderId": "cmtpnsq3a0019wkvviysaygm2",
+      "orderNumber": "WO-2026-102",
+      "detail": {
+        "id": "cmtpnsq3a0019wkvviysaygm2",
+        "orderNumber": "WO-2026-102",
+        "productCode": "SEN-IR-640",
+        "productName": "적외선 센서 모듈 640px",
+        "plannedQuantity": 12,
+        "unit": "EA",
+        "dueDate": "2026-09-09T08:00:00.000Z",
+        "status": "IN_PROGRESS",
+        "priority": "NORMAL",
+        "progressPercent": 60,
+        "currentStepName": "최종 검사",
+        "blockedReason": "최종 검사: 검사 보류",
+        "memo": "[PORTFOLIO-V1:HOLD] 검사 보류",
+        "createdAt": "2026-09-06T10:18:43.606Z",
+        "materialRequirements": [
+          {
+            "materialCode": "SEN-MAT-014",
+            "materialName": "적외선 감지 다이오드 어레이",
+            "requiredQuantity": 24,
+            "unit": "EA"
+          },
+          {
+            "materialCode": "SEN-MAT-032",
+            "materialName": "TE 쿨링 모듈",
+            "requiredQuantity": 12,
+            "unit": "EA"
+          },
+          {
+            "materialCode": "SEN-MAT-045",
+            "materialName": "신호 커넥터",
+            "requiredQuantity": 48,
+            "unit": "EA"
+          }
+        ],
+        "steps": [
+          {
+            "id": "cmtpnsq40001gwkvvv92indei",
+            "sequence": 10,
+            "processStepName": "절단 1공정",
+            "productionLotNumber": "PL-2026-102A",
+            "readiness": "COMPLETED",
+            "blockedReasonCodes": []
+          },
+          {
+            "id": "cmtpnsq40001hwkvvjqmfbgqc",
+            "sequence": 20,
+            "processStepName": "조립 1공정",
+            "productionLotNumber": "PL-2026-102A",
+            "readiness": "COMPLETED",
+            "blockedReasonCodes": []
+          },
+          {
+            "id": "cmtpnsq40001iwkvvrjluo4m8",
+            "sequence": 30,
+            "processStepName": "조립 2공정",
+            "productionLotNumber": "PL-2026-102A",
+            "readiness": "COMPLETED",
+            "blockedReasonCodes": []
+          },
+          {
+            "id": "cmtpnsq40001jwkvvhk183yqt",
+            "sequence": 40,
+            "processStepName": "최종 검사",
+            "productionLotNumber": "PL-2026-102A",
+            "readiness": "BLOCKED",
+            "blockedReasonCodes": [
+              "INSPECTION_HELD"
+            ]
+          },
+          {
+            "id": "cmtpnsq40001kwkvvrjutpxx3",
+            "sequence": 50,
+            "processStepName": "포장",
+            "productionLotNumber": "PL-2026-102A",
+            "readiness": "BLOCKED",
+            "blockedReasonCodes": [
+              "INSPECTION_HELD"
+            ]
+          }
+        ],
+        "inspections": [
+          {
+            "id": "cmtpnsq45001mwkvvh7emood9",
+            "inspectionNumber": "IN-2026-102-01",
+            "processStepName": "조립 2공정",
+            "gate": "ROUTE_ADVANCE",
+            "specName": "조립 정밀도 검사 규격 v2",
+            "executionStatus": "COMPLETED",
+            "verdict": "HOLD"
+          },
+          {
+            "id": "cmtpnsq45001nwkvvzwrp4nd7",
+            "inspectionNumber": "IN-2026-102-02",
+            "processStepName": "최종 검사",
+            "gate": "LOT_COMPLETE",
+            "specName": "적외선 모듈 최종검사 규격 v3",
+            "executionStatus": "PENDING",
+            "verdict": null
+          }
+        ],
+        "inspectionRequirements": [
+          {
+            "id": "cmtpnsq3p001cwkvvom3b9o8v",
+            "inspectionSpecRevisionId": "cmtmx7nt40022z0vvsm2uy9yb",
+            "specName": "적외선 모듈 최종검사 규격 v3",
+            "gate": "LOT_COMPLETE",
+            "processStepName": null
+          },
+          {
+            "id": "cmtpnsq3o001bwkvvqxbxymd9",
+            "inspectionSpecRevisionId": "cmtmx7nt10021z0vvpyq4akr9",
+            "specName": "조립 정밀도 검사 규격 v2",
+            "gate": "ROUTE_ADVANCE",
+            "processStepName": "조립 2공정"
+          }
+        ],
+        "recentAudits": [
+          {
+            "id": "cmtpnsq7l0029wkvvhohndo3z",
+            "occurredAt": "2026-09-06T10:18:43.761Z",
+            "actorName": "현장 데모",
+            "actorRole": "SHOP_FLOOR_OPERATOR",
+            "action": "PROCESS_COMPLETED",
+            "summary": "조립 2공정 공정 완료 — 양품 11·불량 0 (PL-2026-102A)"
+          },
+          {
+            "id": "cmtpnsq7e0028wkvvsbzgyu3x",
+            "occurredAt": "2026-09-06T10:18:43.754Z",
+            "actorName": "현장 데모",
+            "actorRole": "SHOP_FLOOR_OPERATOR",
+            "action": "PROCESS_STARTED",
+            "summary": "조립 2공정 공정 시작 (PL-2026-102A)"
+          },
+          {
+            "id": "cmtpnsq740027wkvv31vglief",
+            "occurredAt": "2026-09-06T10:18:43.744Z",
+            "actorName": "현장 데모",
+            "actorRole": "SHOP_FLOOR_OPERATOR",
+            "action": "PROCESS_COMPLETED",
+            "summary": "조립 1공정 공정 완료 — 양품 11·불량 0 (PL-2026-102A)"
+          },
+          {
+            "id": "cmtpnsq6w0026wkvv25h307ls",
+            "occurredAt": "2026-09-06T10:18:43.736Z",
+            "actorName": "현장 데모",
+            "actorRole": "SHOP_FLOOR_OPERATOR",
+            "action": "PROCESS_STARTED",
+            "summary": "조립 1공정 공정 시작 (PL-2026-102A)"
+          },
+          {
+            "id": "cmtpnsq6k0025wkvvysa2s3gr",
+            "occurredAt": "2026-09-06T10:18:43.724Z",
+            "actorName": "현장 데모",
+            "actorRole": "SHOP_FLOOR_OPERATOR",
+            "action": "PROCESS_COMPLETED",
+            "summary": "절단 1공정 공정 완료 — 양품 11·불량 1 (PL-2026-102A)"
+          },
+          {
+            "id": "cmtpnsq6d0024wkvvxigqwzo3",
+            "occurredAt": "2026-09-06T10:18:43.717Z",
+            "actorName": "현장 데모",
+            "actorRole": "SHOP_FLOOR_OPERATOR",
+            "action": "PROCESS_STARTED",
+            "summary": "절단 1공정 공정 시작 (PL-2026-102A)"
+          },
+          {
+            "id": "cmtpnsq5c001xwkvv0qo7kp5p",
+            "occurredAt": "2026-09-06T10:18:43.679Z",
+            "actorName": "자재 데모",
+            "actorRole": "MATERIAL_MANAGER",
+            "action": "MATERIAL_RESERVED",
+            "summary": "신호 커넥터 PF-HOLD-2026-102-3 48EA 예약"
+          },
+          {
+            "id": "cmtpnsq4x001uwkvvlej8hrgy",
+            "occurredAt": "2026-09-06T10:18:43.665Z",
+            "actorName": "자재 데모",
+            "actorRole": "MATERIAL_MANAGER",
+            "action": "MATERIAL_RESERVED",
+            "summary": "TE 쿨링 모듈 PF-HOLD-2026-102-2 12EA 예약"
+          },
+          {
+            "id": "cmtpnsq4h001rwkvvl3sswocj",
+            "occurredAt": "2026-09-06T10:18:43.649Z",
+            "actorName": "자재 데모",
+            "actorRole": "MATERIAL_MANAGER",
+            "action": "MATERIAL_RESERVED",
+            "summary": "적외선 감지 다이오드 어레이 PF-HOLD-2026-102-1 24EA 예약"
+          },
+          {
+            "id": "cmtpnsq46001owkvv7m7kikpw",
+            "occurredAt": "2026-09-06T10:18:43.638Z",
+            "actorName": "생산계획 데모",
+            "actorRole": "PRODUCTION_PLANNER",
+            "action": "WORK_ORDER_RELEASED",
+            "summary": "적외선 센서 모듈 640px 12EA 작업지시 발행 (BOM 스냅샷 3항목) (검사규격 스냅샷 2항목)"
+          }
+        ]
+      }
+    },
+    {
+      "key": "FAIL",
+      "label": "불합격 차단",
+      "workOrderId": "cmtpnsq89002cwkvvv85n6tta",
+      "orderNumber": "WO-2026-103",
+      "detail": {
+        "id": "cmtpnsq89002cwkvvv85n6tta",
+        "orderNumber": "WO-2026-103",
+        "productCode": "SEN-IR-640",
+        "productName": "적외선 센서 모듈 640px",
+        "plannedQuantity": 12,
+        "unit": "EA",
+        "dueDate": "2026-09-09T08:00:00.000Z",
+        "status": "IN_PROGRESS",
+        "priority": "NORMAL",
+        "progressPercent": 60,
+        "currentStepName": "최종 검사",
+        "blockedReason": "최종 검사: 검사 불합격",
+        "memo": "[PORTFOLIO-V1:FAIL] 불합격 차단",
+        "createdAt": "2026-09-06T10:18:43.785Z",
+        "materialRequirements": [
+          {
+            "materialCode": "SEN-MAT-014",
+            "materialName": "적외선 감지 다이오드 어레이",
+            "requiredQuantity": 24,
+            "unit": "EA"
+          },
+          {
+            "materialCode": "SEN-MAT-032",
+            "materialName": "TE 쿨링 모듈",
+            "requiredQuantity": 12,
+            "unit": "EA"
+          },
+          {
+            "materialCode": "SEN-MAT-045",
+            "materialName": "신호 커넥터",
+            "requiredQuantity": 48,
+            "unit": "EA"
+          }
+        ],
+        "steps": [
+          {
+            "id": "cmtpnsq8u002jwkvv9bracvy9",
+            "sequence": 10,
+            "processStepName": "절단 1공정",
+            "productionLotNumber": "PL-2026-103A",
+            "readiness": "COMPLETED",
+            "blockedReasonCodes": []
+          },
+          {
+            "id": "cmtpnsq8u002kwkvv23lnigx8",
+            "sequence": 20,
+            "processStepName": "조립 1공정",
+            "productionLotNumber": "PL-2026-103A",
+            "readiness": "COMPLETED",
+            "blockedReasonCodes": []
+          },
+          {
+            "id": "cmtpnsq8u002lwkvvetga6e8l",
+            "sequence": 30,
+            "processStepName": "조립 2공정",
+            "productionLotNumber": "PL-2026-103A",
+            "readiness": "COMPLETED",
+            "blockedReasonCodes": []
+          },
+          {
+            "id": "cmtpnsq8u002mwkvvax0xm51z",
+            "sequence": 40,
+            "processStepName": "최종 검사",
+            "productionLotNumber": "PL-2026-103A",
+            "readiness": "BLOCKED",
+            "blockedReasonCodes": [
+              "INSPECTION_FAILED"
+            ]
+          },
+          {
+            "id": "cmtpnsq8u002nwkvvazcpo6qx",
+            "sequence": 50,
+            "processStepName": "포장",
+            "productionLotNumber": "PL-2026-103A",
+            "readiness": "BLOCKED",
+            "blockedReasonCodes": [
+              "INSPECTION_FAILED"
+            ]
+          }
+        ],
+        "inspections": [
+          {
+            "id": "cmtpnsq8z002pwkvvyv8lbse7",
+            "inspectionNumber": "IN-2026-103-01",
+            "processStepName": "조립 2공정",
+            "gate": "ROUTE_ADVANCE",
+            "specName": "조립 정밀도 검사 규격 v2",
+            "executionStatus": "COMPLETED",
+            "verdict": "FAIL"
+          },
+          {
+            "id": "cmtpnsq8z002qwkvvoqol5rtx",
+            "inspectionNumber": "IN-2026-103-02",
+            "processStepName": "최종 검사",
+            "gate": "LOT_COMPLETE",
+            "specName": "적외선 모듈 최종검사 규격 v3",
+            "executionStatus": "PENDING",
+            "verdict": null
+          }
+        ],
+        "inspectionRequirements": [
+          {
+            "id": "cmtpnsq8n002fwkvvlh65apqt",
+            "inspectionSpecRevisionId": "cmtmx7nt40022z0vvsm2uy9yb",
+            "specName": "적외선 모듈 최종검사 규격 v3",
+            "gate": "LOT_COMPLETE",
+            "processStepName": null
+          },
+          {
+            "id": "cmtpnsq8l002ewkvvznwlgbyl",
+            "inspectionSpecRevisionId": "cmtmx7nt10021z0vvpyq4akr9",
+            "specName": "조립 정밀도 검사 규격 v2",
+            "gate": "ROUTE_ADVANCE",
+            "processStepName": "조립 2공정"
+          }
+        ],
+        "recentAudits": [
+          {
+            "id": "cmtpnsqcm003cwkvv9dnnaqkr",
+            "occurredAt": "2026-09-06T10:18:43.942Z",
+            "actorName": "현장 데모",
+            "actorRole": "SHOP_FLOOR_OPERATOR",
+            "action": "PROCESS_COMPLETED",
+            "summary": "조립 2공정 공정 완료 — 양품 11·불량 0 (PL-2026-103A)"
+          },
+          {
+            "id": "cmtpnsqce003bwkvvaz7b1rby",
+            "occurredAt": "2026-09-06T10:18:43.933Z",
+            "actorName": "현장 데모",
+            "actorRole": "SHOP_FLOOR_OPERATOR",
+            "action": "PROCESS_STARTED",
+            "summary": "조립 2공정 공정 시작 (PL-2026-103A)"
+          },
+          {
+            "id": "cmtpnsqc1003awkvv5boynlfu",
+            "occurredAt": "2026-09-06T10:18:43.921Z",
+            "actorName": "현장 데모",
+            "actorRole": "SHOP_FLOOR_OPERATOR",
+            "action": "PROCESS_COMPLETED",
+            "summary": "조립 1공정 공정 완료 — 양품 11·불량 0 (PL-2026-103A)"
+          },
+          {
+            "id": "cmtpnsqbt0039wkvvc6orczm0",
+            "occurredAt": "2026-09-06T10:18:43.913Z",
+            "actorName": "현장 데모",
+            "actorRole": "SHOP_FLOOR_OPERATOR",
+            "action": "PROCESS_STARTED",
+            "summary": "조립 1공정 공정 시작 (PL-2026-103A)"
+          },
+          {
+            "id": "cmtpnsqbe0038wkvvx83p1cmm",
+            "occurredAt": "2026-09-06T10:18:43.897Z",
+            "actorName": "현장 데모",
+            "actorRole": "SHOP_FLOOR_OPERATOR",
+            "action": "PROCESS_COMPLETED",
+            "summary": "절단 1공정 공정 완료 — 양품 11·불량 1 (PL-2026-103A)"
+          },
+          {
+            "id": "cmtpnsqb60037wkvv0qhuyypn",
+            "occurredAt": "2026-09-06T10:18:43.890Z",
+            "actorName": "현장 데모",
+            "actorRole": "SHOP_FLOOR_OPERATOR",
+            "action": "PROCESS_STARTED",
+            "summary": "절단 1공정 공정 시작 (PL-2026-103A)"
+          },
+          {
+            "id": "cmtpnsqa60030wkvvfczc63we",
+            "occurredAt": "2026-09-06T10:18:43.854Z",
+            "actorName": "자재 데모",
+            "actorRole": "MATERIAL_MANAGER",
+            "action": "MATERIAL_RESERVED",
+            "summary": "신호 커넥터 PF-FAIL-2026-103-3 48EA 예약"
+          },
+          {
+            "id": "cmtpnsq9r002xwkvvxey96zkv",
+            "occurredAt": "2026-09-06T10:18:43.839Z",
+            "actorName": "자재 데모",
+            "actorRole": "MATERIAL_MANAGER",
+            "action": "MATERIAL_RESERVED",
+            "summary": "TE 쿨링 모듈 PF-FAIL-2026-103-2 12EA 예약"
+          },
+          {
+            "id": "cmtpnsq9c002uwkvvxbl35znr",
+            "occurredAt": "2026-09-06T10:18:43.824Z",
+            "actorName": "자재 데모",
+            "actorRole": "MATERIAL_MANAGER",
+            "action": "MATERIAL_RESERVED",
+            "summary": "적외선 감지 다이오드 어레이 PF-FAIL-2026-103-1 24EA 예약"
+          },
+          {
+            "id": "cmtpnsq91002rwkvv5v91ggs9",
+            "occurredAt": "2026-09-06T10:18:43.813Z",
+            "actorName": "생산계획 데모",
+            "actorRole": "PRODUCTION_PLANNER",
+            "action": "WORK_ORDER_RELEASED",
+            "summary": "적외선 센서 모듈 640px 12EA 작업지시 발행 (BOM 스냅샷 3항목) (검사규격 스냅샷 2항목)"
+          }
+        ]
+      }
+    },
+    {
+      "key": "REVIEWED",
+      "label": "보류 검토 후 완료",
+      "workOrderId": "cmtpnsqd6003fwkvvuwgjmd1j",
+      "orderNumber": "WO-2026-104",
+      "detail": {
+        "id": "cmtpnsqd6003fwkvvuwgjmd1j",
+        "orderNumber": "WO-2026-104",
+        "productCode": "SEN-IR-640",
+        "productName": "적외선 센서 모듈 640px",
+        "plannedQuantity": 12,
+        "unit": "EA",
+        "dueDate": "2026-09-09T08:00:00.000Z",
+        "status": "COMPLETED",
+        "priority": "NORMAL",
+        "progressPercent": 100,
+        "currentStepName": null,
+        "blockedReason": null,
+        "memo": "[PORTFOLIO-V1:REVIEWED] 보류 검토 후 완료",
+        "createdAt": "2026-09-06T10:18:43.962Z",
+        "materialRequirements": [
+          {
+            "materialCode": "SEN-MAT-014",
+            "materialName": "적외선 감지 다이오드 어레이",
+            "requiredQuantity": 24,
+            "unit": "EA"
+          },
+          {
+            "materialCode": "SEN-MAT-032",
+            "materialName": "TE 쿨링 모듈",
+            "requiredQuantity": 12,
+            "unit": "EA"
+          },
+          {
+            "materialCode": "SEN-MAT-045",
+            "materialName": "신호 커넥터",
+            "requiredQuantity": 48,
+            "unit": "EA"
+          }
+        ],
+        "steps": [
+          {
+            "id": "cmtpnsqdm003mwkvvwro6vitb",
+            "sequence": 10,
+            "processStepName": "절단 1공정",
+            "productionLotNumber": "PL-2026-104A",
+            "readiness": "COMPLETED",
+            "blockedReasonCodes": []
+          },
+          {
+            "id": "cmtpnsqdm003nwkvv2ztiy18v",
+            "sequence": 20,
+            "processStepName": "조립 1공정",
+            "productionLotNumber": "PL-2026-104A",
+            "readiness": "COMPLETED",
+            "blockedReasonCodes": []
+          },
+          {
+            "id": "cmtpnsqdm003owkvvkw8jyyol",
+            "sequence": 30,
+            "processStepName": "조립 2공정",
+            "productionLotNumber": "PL-2026-104A",
+            "readiness": "COMPLETED",
+            "blockedReasonCodes": []
+          },
+          {
+            "id": "cmtpnsqdm003pwkvvuwhfc3jk",
+            "sequence": 40,
+            "processStepName": "최종 검사",
+            "productionLotNumber": "PL-2026-104A",
+            "readiness": "COMPLETED",
+            "blockedReasonCodes": []
+          },
+          {
+            "id": "cmtpnsqdm003qwkvvsfyed2vh",
+            "sequence": 50,
+            "processStepName": "포장",
+            "productionLotNumber": "PL-2026-104A",
+            "readiness": "COMPLETED",
+            "blockedReasonCodes": []
+          }
+        ],
+        "inspections": [
+          {
+            "id": "cmtpnsqdo003swkvvf4kian61",
+            "inspectionNumber": "IN-2026-104-01",
+            "processStepName": "조립 2공정",
+            "gate": "ROUTE_ADVANCE",
+            "specName": "조립 정밀도 검사 규격 v2",
+            "executionStatus": "COMPLETED",
+            "verdict": "PASS"
+          },
+          {
+            "id": "cmtpnsqdo003twkvv80mjwfcq",
+            "inspectionNumber": "IN-2026-104-02",
+            "processStepName": "최종 검사",
+            "gate": "LOT_COMPLETE",
+            "specName": "적외선 모듈 최종검사 규격 v3",
+            "executionStatus": "COMPLETED",
+            "verdict": "PASS"
+          }
+        ],
+        "inspectionRequirements": [
+          {
+            "id": "cmtpnsqde003iwkvvq3kjz6p1",
+            "inspectionSpecRevisionId": "cmtmx7nt40022z0vvsm2uy9yb",
+            "specName": "적외선 모듈 최종검사 규격 v3",
+            "gate": "LOT_COMPLETE",
+            "processStepName": null
+          },
+          {
+            "id": "cmtpnsqdd003hwkvv6r3bgoo4",
+            "inspectionSpecRevisionId": "cmtmx7nt10021z0vvpyq4akr9",
+            "specName": "조립 정밀도 검사 규격 v2",
+            "gate": "ROUTE_ADVANCE",
+            "processStepName": "조립 2공정"
+          }
+        ],
+        "recentAudits": [
+          {
+            "id": "cmtpnsqi3004nwkvve7yn82fr",
+            "occurredAt": "2026-09-06T10:18:44.139Z",
+            "actorName": "현장 데모",
+            "actorRole": "SHOP_FLOOR_OPERATOR",
+            "action": "PROCESS_COMPLETED",
+            "summary": "포장 공정 완료 — 양품 11·불량 0 (PL-2026-104A)"
+          },
+          {
+            "id": "cmtpnsqhx004mwkvv5dauav9h",
+            "occurredAt": "2026-09-06T10:18:44.133Z",
+            "actorName": "현장 데모",
+            "actorRole": "SHOP_FLOOR_OPERATOR",
+            "action": "PROCESS_STARTED",
+            "summary": "포장 공정 시작 (PL-2026-104A)"
+          },
+          {
+            "id": "cmtpnsqhn004lwkvvi6lbqqy6",
+            "occurredAt": "2026-09-06T10:18:44.123Z",
+            "actorName": "현장 데모",
+            "actorRole": "SHOP_FLOOR_OPERATOR",
+            "action": "PROCESS_COMPLETED",
+            "summary": "최종 검사 공정 완료 — 양품 11·불량 0 (PL-2026-104A)"
+          },
+          {
+            "id": "cmtpnsqhh004kwkvvckrtvc4a",
+            "occurredAt": "2026-09-06T10:18:44.117Z",
+            "actorName": "현장 데모",
+            "actorRole": "SHOP_FLOOR_OPERATOR",
+            "action": "PROCESS_STARTED",
+            "summary": "최종 검사 공정 시작 (PL-2026-104A)"
+          },
+          {
+            "id": "cmtpnsqgo004fwkvv2azt5cuj",
+            "occurredAt": "2026-09-06T10:18:44.088Z",
+            "actorName": "현장 데모",
+            "actorRole": "SHOP_FLOOR_OPERATOR",
+            "action": "PROCESS_COMPLETED",
+            "summary": "조립 2공정 공정 완료 — 양품 11·불량 0 (PL-2026-104A)"
+          },
+          {
+            "id": "cmtpnsqgi004ewkvvdad6cwsn",
+            "occurredAt": "2026-09-06T10:18:44.082Z",
+            "actorName": "현장 데모",
+            "actorRole": "SHOP_FLOOR_OPERATOR",
+            "action": "PROCESS_STARTED",
+            "summary": "조립 2공정 공정 시작 (PL-2026-104A)"
+          },
+          {
+            "id": "cmtpnsqg8004dwkvvfnd4asbd",
+            "occurredAt": "2026-09-06T10:18:44.072Z",
+            "actorName": "현장 데모",
+            "actorRole": "SHOP_FLOOR_OPERATOR",
+            "action": "PROCESS_COMPLETED",
+            "summary": "조립 1공정 공정 완료 — 양품 11·불량 0 (PL-2026-104A)"
+          },
+          {
+            "id": "cmtpnsqg1004cwkvvkn4igmi2",
+            "occurredAt": "2026-09-06T10:18:44.065Z",
+            "actorName": "현장 데모",
+            "actorRole": "SHOP_FLOOR_OPERATOR",
+            "action": "PROCESS_STARTED",
+            "summary": "조립 1공정 공정 시작 (PL-2026-104A)"
+          },
+          {
+            "id": "cmtpnsqfp004bwkvvurzipxt6",
+            "occurredAt": "2026-09-06T10:18:44.053Z",
+            "actorName": "현장 데모",
+            "actorRole": "SHOP_FLOOR_OPERATOR",
+            "action": "PROCESS_COMPLETED",
+            "summary": "절단 1공정 공정 완료 — 양품 11·불량 1 (PL-2026-104A)"
+          },
+          {
+            "id": "cmtpnsqfj004awkvv64y8fc03",
+            "occurredAt": "2026-09-06T10:18:44.047Z",
+            "actorName": "현장 데모",
+            "actorRole": "SHOP_FLOOR_OPERATOR",
+            "action": "PROCESS_STARTED",
+            "summary": "절단 1공정 공정 시작 (PL-2026-104A)"
+          }
+        ]
+      }
+    }
+  ]
+}

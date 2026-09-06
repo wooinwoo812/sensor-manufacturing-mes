@@ -1,41 +1,48 @@
 :root {
-  --radius: 0.625rem;
-  --background: oklch(0.985 0.003 247.858);
-  --foreground: oklch(0.208 0.042 265.755);
+  /* 2026-09-05: 짙은 청록 탐색 영역, 중립 본문, 청록색 행동을 분리한다.
+   * 다크 모드의 밝은 행동 색에는 어두운 foreground를 사용한다.
+   * 현재 계약: docs/engineering/frontend-design-system.md
+   */
+  --radius: 0.5rem;
+  --background: oklch(0.972 0.004 180);
+  --foreground: oklch(0.19 0.016 262);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.129 0.042 264.695);
+  --card-foreground: oklch(0.16 0.016 262);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.558 0.19 257.91);
+  --popover-foreground: oklch(0.16 0.016 262);
+  --primary: oklch(0.45 0.085 192);
   --primary-foreground: oklch(0.985 0.002 247.839);
-  --secondary: oklch(0.968 0.007 247.896);
-  --secondary-foreground: oklch(0.208 0.042 265.755);
-  --muted: oklch(0.968 0.007 247.896);
-  --muted-foreground: oklch(0.554 0.046 257.417);
-  --accent: oklch(0.951 0.026 255.585);
-  --accent-foreground: oklch(0.424 0.156 258.698);
+  --secondary: oklch(0.955 0.005 250);
+  --secondary-foreground: oklch(0.19 0.016 262);
+  --muted: oklch(0.96 0.005 250);
+  --muted-foreground: oklch(0.52 0.02 258);
+  --accent: oklch(0.94 0.025 185);
+  --accent-foreground: oklch(0.38 0.075 190);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.929 0.013 255.508);
-  --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.558 0.19 257.91);
-  --chart-1: oklch(0.558 0.19 257.91);
+  --border: oklch(0.905 0.006 250);
+  --input: oklch(0.86 0.008 250);
+  --ring: var(--primary);
+  --chart-1: var(--primary);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.968 0.007 247.896);
-  --sidebar-foreground: oklch(0.279 0.041 260.031);
-  --sidebar-primary: oklch(0.558 0.19 257.91);
-  --sidebar-primary-foreground: oklch(0.985 0.002 247.839);
-  --sidebar-accent: oklch(0.951 0.026 255.585);
-  --sidebar-accent-foreground: oklch(0.424 0.156 258.698);
-  --sidebar-border: oklch(0.929 0.013 255.508);
-  --sidebar-ring: oklch(0.558 0.19 257.91);
+  /* 탐색 영역은 짙은 청록색, 활성 메뉴는 한 단계 밝은 면으로 구분한다. */
+  --sidebar: oklch(0.235 0.028 195);
+  --sidebar-foreground: oklch(0.88 0.012 180);
+  --sidebar-primary: oklch(0.8 0.09 175);
+  --sidebar-primary-foreground: oklch(0.235 0.028 195);
+  /* 활성 메뉴 = accent-soft 배경 + accent 글자. 왼쪽 막대 같은 보조 표식은 두지 않는다(중복 신호). */
+  --sidebar-accent: oklch(0.34 0.035 190);
+  --sidebar-accent-foreground: oklch(0.96 0.025 175);
+  --sidebar-border: oklch(0.36 0.02 190);
+  --sidebar-ring: var(--sidebar-primary);
 
   /* 기존 공통 컴포넌트가 기본 shadcn 색을 공유하도록 남긴 호환 alias */
-  --mes-font-sans: "Pretendard Variable", Pretendard, -apple-system,
-    BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", "Apple SD Gothic Neo",
-    "Malgun Gothic", sans-serif;
+  --mes-font-sans:
+    "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic",
+    sans-serif;
   --mes-font-mono: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
   --mes-space-unit: 0.25rem;
   --mes-leading-body: 1.5;
@@ -51,32 +58,40 @@
   --mes-color-text-subtle: var(--muted-foreground);
   --mes-color-accent: var(--primary);
   --mes-color-accent-strong: var(--primary);
-  --mes-color-accent-emphasis: var(--primary);
+  --mes-color-accent-emphasis: oklch(0.37 0.07 192);
   --mes-color-accent-bright: var(--primary);
-  --mes-color-accent-soft: oklch(0.951 0.026 255.585);
+  --mes-color-accent-soft: oklch(0.945 0.025 185);
   --mes-color-focus: var(--ring);
+  /* 상태색: soft 배경 + strong 글자 조합만 쓰고 테두리는 채도를 낮춘다(스티커 느낌 방지).
+     warning 은 노랑(hue 98)이 아니라 앰버(hue 65~80): 흰 배경에서 노랑 테두리는 대비가 무너진다. */
   --mes-color-success: oklch(0.527 0.154 150.069);
   --mes-color-success-strong: oklch(0.448 0.119 151.328);
-  --mes-color-success-soft: oklch(0.962 0.044 156.743);
-  --mes-color-success-border: oklch(0.871 0.15 154.449);
-  --mes-color-warning: oklch(0.666 0.179 58.318);
-  --mes-color-warning-strong: oklch(0.555 0.163 48.998);
-  --mes-color-warning-soft: oklch(0.987 0.026 102.212);
-  --mes-color-warning-border: oklch(0.905 0.182 98.111);
+  --mes-color-success-soft: oklch(0.955 0.035 155);
+  --mes-color-success-border: oklch(0.86 0.07 155);
+  --mes-color-warning: oklch(0.68 0.15 65);
+  --mes-color-warning-strong: oklch(0.52 0.13 55);
+  --mes-color-warning-soft: oklch(0.965 0.035 80);
+  --mes-color-warning-border: oklch(0.87 0.08 78);
   --mes-color-danger: var(--destructive);
   --mes-color-danger-strong: oklch(0.55 0.22 27.325);
-  --mes-color-danger-soft: oklch(0.971 0.013 17.38);
-  --mes-color-danger-border: oklch(0.885 0.062 18.334);
+  --mes-color-danger-soft: oklch(0.96 0.02 20);
+  --mes-color-danger-border: oklch(0.87 0.06 20);
   --mes-color-sidebar-elevated: var(--sidebar);
   --mes-color-sidebar-hover: var(--sidebar-accent);
   --mes-color-sidebar-active: var(--sidebar-accent);
-  --mes-color-sidebar-muted: var(--muted-foreground);
+  --mes-color-sidebar-muted: oklch(0.73 0.018 185);
   --mes-color-overlay: rgb(0 0 0 / 0.5);
   --mes-radius-control: calc(var(--radius) - 2px);
   --mes-radius-panel: var(--radius);
   --mes-radius-brand: var(--radius);
   --mes-shadow-control: 0 1px 2px rgb(0 0 0 / 0.05);
-  --mes-shadow-panel: 0 1px 2px rgb(15 23 42 / 0.04);
+  /* panel 은 그림자 없이 border + 명도차로만 구분한다. overlay(Dialog/Sheet)만 그림자를 쓴다. */
+  --mes-shadow-panel: 0 16px 48px rgb(15 35 35 / 0.16);
+  --mes-color-brand: oklch(0.235 0.028 195);
+  --mes-color-brand-text: oklch(0.97 0.008 180);
+  --mes-color-brand-muted: oklch(0.79 0.02 185);
+  --mes-color-brand-line: oklch(0.38 0.025 190);
+  --mes-color-brand-highlight: oklch(0.8 0.09 175);
   --mes-z-header: 30;
   --mes-z-overlay: 40;
   --mes-z-sidebar: 50;
@@ -84,38 +99,39 @@
 }
 
 .dark {
-  --background: oklch(0.145 0.035 264.695);
+  --background: oklch(0.17 0.014 195);
   --foreground: oklch(0.984 0.003 247.858);
-  --card: oklch(0.178 0.032 263.208);
+  --card: oklch(0.215 0.016 195);
   --card-foreground: oklch(0.984 0.003 247.858);
-  --popover: oklch(0.208 0.042 265.755);
+  --popover: oklch(0.25 0.018 195);
   --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.707 0.145 254.624);
-  --primary-foreground: oklch(0.145 0.035 264.695);
-  --secondary: oklch(0.279 0.041 260.031);
+  --primary: oklch(0.8 0.09 175);
+  --primary-foreground: oklch(0.19 0.025 195);
+  --secondary: oklch(0.28 0.015 195);
   --secondary-foreground: oklch(0.984 0.003 247.858);
-  --muted: oklch(0.279 0.041 260.031);
-  --muted-foreground: oklch(0.704 0.04 256.788);
-  --accent: oklch(0.257 0.055 261.327);
-  --accent-foreground: oklch(0.809 0.105 251.813);
+  --muted: oklch(0.28 0.015 195);
+  --muted-foreground: oklch(0.74 0.015 195);
+  --accent: oklch(0.3 0.035 190);
+  --accent-foreground: oklch(0.85 0.075 180);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.707 0.145 254.624);
-  --chart-1: oklch(0.488 0.243 264.376);
+  --ring: var(--primary);
+  --chart-1: var(--primary);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.129 0.042 264.695);
+  --sidebar: oklch(0.15 0.02 195);
   --sidebar-foreground: oklch(0.929 0.013 255.508);
-  --sidebar-primary: oklch(0.707 0.145 254.624);
-  --sidebar-primary-foreground: oklch(0.985 0.002 247.839);
-  --sidebar-accent: oklch(0.208 0.042 265.755);
+  --sidebar-primary: oklch(0.8 0.09 175);
+  --sidebar-primary-foreground: oklch(0.19 0.025 195);
+  --sidebar-accent: oklch(0.28 0.035 190);
   --sidebar-accent-foreground: oklch(0.929 0.013 255.508);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.707 0.145 254.624);
-  --mes-color-accent-soft: oklch(0.257 0.055 261.327);
+  --sidebar-ring: var(--primary);
+  --mes-color-accent-soft: oklch(0.3 0.035 190);
+  --mes-color-accent-emphasis: oklch(0.85 0.08 175);
   --mes-color-success-strong: oklch(0.792 0.14 158.235);
   --mes-color-success-soft: oklch(0.245 0.052 159.472);
   --mes-color-success-border: oklch(0.448 0.119 151.328);
@@ -128,6 +144,9 @@
 }
 
 @theme inline {
+  /* 업무 화면의 보조 문구·표·메뉴도 14px 미만으로 내려가지 않는다. */
+  --text-xs: 0.875rem;
+  --text-xs--line-height: 1.428571;
   --spacing: var(--mes-space-unit);
   --font-sans: var(--mes-font-sans);
   --font-mono: var(--mes-font-mono);
@@ -197,6 +216,11 @@
   --color-sidebar-active: var(--mes-color-sidebar-active);
   --color-sidebar-muted: var(--mes-color-sidebar-muted);
   --color-overlay: var(--mes-color-overlay);
+  --color-brand: var(--mes-color-brand);
+  --color-brand-text: var(--mes-color-brand-text);
+  --color-brand-muted: var(--mes-color-brand-muted);
+  --color-brand-line: var(--mes-color-brand-line);
+  --color-brand-highlight: var(--mes-color-brand-highlight);
   --radius-control: var(--mes-radius-control);
   --radius-panel: var(--mes-radius-panel);
   --radius-brand: var(--mes-radius-brand);

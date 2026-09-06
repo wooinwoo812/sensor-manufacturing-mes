@@ -100,6 +100,7 @@ export interface WorkOrderDetail extends WorkOrderListItem {
   steps: WorkOrderStepView[];
   inspections: WorkOrderInspectionView[];
   recentAudits: WorkOrderAuditView[];
+  materialRequirements: { materialCode: string; materialName: string; requiredQuantity: number; unit: string }[];
 }
 
 export interface WorkOrderProduct {

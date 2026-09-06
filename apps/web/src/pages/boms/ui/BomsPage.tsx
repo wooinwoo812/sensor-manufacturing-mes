@@ -1,25 +1,27 @@
-import { useEffect, useMemo, useState } from "react";
+import { getPageSize } from "@/shared/lib";
+import { useMemo } from "react";
 import {
   fetchBomRevisions,
   BOM_LIFECYCLE_LABELS,
   type BomLifecycle,
   type BomRevisionListItem,
 } from "@/entities/bom";
-import { ApiRequestError } from "@/shared/api";
 import {
   Badge,
-  type BadgeTone,
   Button,
   DataTable,
-  type DataTableColumn,
   EmptyState,
   ErrorState,
   FilterBar,
   Input,
   PageHeading,
+  Pagination,
   Select,
-  Skeleton,
+  TableSkeleton,
+  type BadgeTone,
+  type DataTableColumn,
 } from "@/shared/ui";
+import { useLoadState, useQueryDraft } from "@/shared/lib";
 import { Main } from "@/widgets/app-shell";
 import {
   mergeBomsSearch,
@@ -32,8 +34,6 @@ const LIFECYCLE_TONES: Record<BomLifecycle, BadgeTone> = {
   PUBLISHED: "success",
   INACTIVE: "warning",
 };
-
-const PAGE_SIZE = 20;
 
 function formatQuantity(quantity: string): string {
   const value = Number(quantity);
@@ -51,87 +51,51 @@ function summarizeItems(items: BomRevisionListItem["items"]): string {
   return items.length === 1 ? headText : `${headText} 외 ${items.length - 1}건`;
 }
 
-type LoadState =
-  | { phase: "loading" }
-  | { phase: "error"; message: string }
-  | {
-      phase: "success";
-      items: BomRevisionListItem[];
-      total: number;
-      page: number;
-    };
-
 interface BomsPageProps {
   search: BomsSearch;
   onSearchChange: (next: BomsSearch) => void;
 }
 
 export function BomsPage({ search, onSearchChange }: BomsPageProps) {
-  const [reloadCount, setReloadCount] = useState(0);
-  const [result, setResult] = useState<{
-    key: string;
-    reload: number;
-    state:
-      | { phase: "error"; message: string }
-      | {
-          phase: "success";
-          items: BomRevisionListItem[];
-          total: number;
-          page: number;
-        };
-  } | null>(null);
-
   const params = useMemo(() => toBomsParams(search).toString(), [search]);
 
-  useEffect(() => {
-    const controller = new AbortController();
-    fetchBomRevisions(new URLSearchParams(params), controller.signal)
-      .then((response) => {
-        setResult({
-          key: params,
-          reload: reloadCount,
-          state: {
-            phase: "success",
-            items: response.items,
-            total: response.total,
-            page: response.page,
-          },
-        });
-      })
-      .catch((error: unknown) => {
-        if (controller.signal.aborted) {
-          return;
-        }
-        setResult({
-          key: params,
-          reload: reloadCount,
-          state: {
-            phase: "error",
-            message:
-              error instanceof ApiRequestError
-                ? error.message
-                : "BOM 목록을 불러오지 못했습니다.",
-          },
-        });
-      });
-    return () => {
-      controller.abort();
-    };
-  }, [params, reloadCount]);
+  const { state, isRefreshing, reload } = useLoadState<{
+    items: BomRevisionListItem[];
+    total: number;
+    page: number;
+    pageSize: number;
+  }>(
+    params,
+    (signal) => {
+      return fetchBomRevisions(new URLSearchParams(params), signal).then(
+        (response) => ({
+          items: response.items,
+          total: response.total,
+          page: response.page,
+          pageSize: response.pageSize,
+        }),
+      );
+    },
+    "BOM 목록을 불러오지 못했습니다.",
+  );
 
-  const state: LoadState =
-    result !== null && result.key === params && result.reload === reloadCount
-      ? result.state
-      : { phase: "loading" };
+  const { draft, setDraft, submit, reset, hasPendingChanges } = useQueryDraft(
+    search,
+    onSearchChange,
+    reload,
+  );
 
   const columns = useMemo<DataTableColumn<BomRevisionListItem>[]>(
     () => [
       {
         key: "revisionNumber",
+        align: "left",
         header: "Revision",
         cell: (row) => (
           <span className="block">
-            <span className="block font-mono text-sm">{row.revisionNumber}</span>
+            <span className="block text-sm tabular-nums">
+              {row.revisionNumber}
+            </span>
             <span className="block text-xs text-text-muted">
               생성 {new Date(row.createdAt).toLocaleDateString("ko-KR")}
             </span>
@@ -140,11 +104,15 @@ export function BomsPage({ search, onSearchChange }: BomsPageProps) {
       },
       {
         key: "product",
+        align: "left",
+        wrap: true,
         header: "제품",
         cell: (row) => (
           <span className="block">
-            <span className="block text-sm">{row.productName}</span>
-            <span className="block font-mono text-xs text-text-muted">
+            <span className="block min-w-48 max-w-72 text-sm font-medium leading-5 text-text-strong">
+              {row.productName}
+            </span>
+            <span className="block text-xs tabular-nums text-text-muted">
               {row.productCode} · 기준단위 {row.productBaseUom}
             </span>
           </span>
@@ -152,6 +120,7 @@ export function BomsPage({ search, onSearchChange }: BomsPageProps) {
       },
       {
         key: "lifecycle",
+        align: "center",
         header: "상태",
         cell: (row) => (
           <Badge tone={LIFECYCLE_TONES[row.lifecycle]}>
@@ -161,6 +130,7 @@ export function BomsPage({ search, onSearchChange }: BomsPageProps) {
       },
       {
         key: "items",
+        align: "left",
         header: "구성 자재",
         cell: (row) => (
           <span className="block text-sm">{summarizeItems(row.items)}</span>
@@ -168,6 +138,7 @@ export function BomsPage({ search, onSearchChange }: BomsPageProps) {
       },
       {
         key: "itemCount",
+        align: "center",
         header: "항목 수",
         cell: (row) => <span className="tabular-nums">{row.items.length}</span>,
       },
@@ -178,11 +149,37 @@ export function BomsPage({ search, onSearchChange }: BomsPageProps) {
   const hasActiveFilter =
     search.q !== undefined || search.lifecycle !== undefined;
 
-  const currentPage = state.phase === "success" ? state.page : search.page ?? 1;
+  const pageSize =
+    state.phase === "success" ? state.pageSize : getPageSize(search.pageSize);
+  const currentPage =
+    state.phase === "success" ? state.page : (search.page ?? 1);
   const totalPages =
     state.phase === "success"
-      ? Math.max(1, Math.ceil(state.total / PAGE_SIZE))
+      ? Math.max(1, Math.ceil(state.total / pageSize))
       : 1;
+
+  const pagination =
+    state.phase === "success" ? (
+      <Pagination
+        currentPage={currentPage}
+        totalItems={state.total}
+        pageSize={pageSize}
+        onPageSizeChange={(size) =>
+          onSearchChange(
+            mergeBomsSearch(search, {
+              pageSize: size === 10 ? undefined : size,
+              page: undefined,
+            }),
+          )
+        }
+        busy={isRefreshing}
+        label="BOM 페이지 탐색"
+        onPageChange={(page) =>
+          onSearchChange(mergeBomsSearch(search, { page }))
+        }
+        totalPages={totalPages}
+      />
+    ) : null;
 
   return (
     <Main id="main-content" tabIndex={-1}>
@@ -193,6 +190,10 @@ export function BomsPage({ search, onSearchChange }: BomsPageProps) {
       />
 
       <FilterBar
+        onSearch={submit}
+        onReset={reset}
+        busy={state.phase === "loading" || isRefreshing}
+        hasPendingChanges={hasPendingChanges}
         resultLabel={
           state.phase === "success"
             ? `총 ${state.total.toLocaleString("ko-KR")}건 중 ${state.items.length.toLocaleString("ko-KR")}건 표시`
@@ -201,21 +202,11 @@ export function BomsPage({ search, onSearchChange }: BomsPageProps) {
       >
         <Input
           aria-label="BOM 검색"
-          defaultValue={search.q}
+          value={draft.q ?? ""}
+          onChange={(event) => setDraft({ ...draft, q: event.target.value })}
           id="bom-q"
           label="검색"
           name="q"
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              const value = event.currentTarget.value.trim();
-              onSearchChange(
-                mergeBomsSearch(search, {
-                  q: value === "" ? undefined : value,
-                  page: undefined,
-                }),
-              );
-            }
-          }}
           placeholder="revision 번호·제품 코드·제품명"
         />
         <Select
@@ -228,13 +219,13 @@ export function BomsPage({ search, onSearchChange }: BomsPageProps) {
             })),
           ]}
           value={
-            search.lifecycle?.length === 1
-              ? (search.lifecycle[0] ?? "all")
+            draft.lifecycle?.length === 1
+              ? (draft.lifecycle[0] ?? "all")
               : "all"
           }
           onValueChange={(value) =>
-            onSearchChange(
-              mergeBomsSearch(search, {
+            setDraft(
+              mergeBomsSearch(draft, {
                 lifecycle:
                   value === "all" ? undefined : [value as BomLifecycle],
                 page: undefined,
@@ -245,16 +236,13 @@ export function BomsPage({ search, onSearchChange }: BomsPageProps) {
       </FilterBar>
 
       {state.phase === "loading" ? (
-        <Skeleton className="h-64 w-full" />
+        <TableSkeleton label="BOM 목록 조회 중" rows={pageSize} />
       ) : state.phase === "error" ? (
         <ErrorState
           title="BOM 목록을 불러올 수 없습니다"
           description={state.message}
           action={
-            <Button
-              variant="secondary"
-              onClick={() => setReloadCount((count) => count + 1)}
-            >
+            <Button variant="secondary" onClick={() => reload()}>
               다시 시도
             </Button>
           }
@@ -274,6 +262,9 @@ export function BomsPage({ search, onSearchChange }: BomsPageProps) {
         />
       ) : (
         <DataTable
+          footer={pagination}
+          rowNumberStart={state.total - (currentPage - 1) * pageSize}
+          busy={isRefreshing}
           caption="BOM revision 목록"
           columns={columns}
           rows={state.items}
@@ -281,36 +272,9 @@ export function BomsPage({ search, onSearchChange }: BomsPageProps) {
           emptyMessage="조건에 맞는 BOM이 없습니다."
         />
       )}
-
-      {state.phase === "success" && totalPages > 1 ? (
-        <div className="flex items-center justify-end gap-2">
-          <Button
-            variant="secondary"
-            size="compact"
-            disabled={currentPage <= 1}
-            onClick={() =>
-              onSearchChange(
-                mergeBomsSearch(search, { page: currentPage - 1 }),
-              )
-            }
-          >
-            이전
-          </Button>
-          <span className="text-sm text-text-muted">
-            {currentPage} / {totalPages} 페이지
-          </span>
-          <Button
-            variant="secondary"
-            size="compact"
-            disabled={currentPage >= totalPages}
-            onClick={() =>
-              onSearchChange(
-                mergeBomsSearch(search, { page: currentPage + 1 }),
-              )
-            }
-          >
-            다음
-          </Button>
+      {state.phase === "success" && state.items.length === 0 ? (
+        <div className="rounded-panel border border-border bg-surface">
+          {pagination}
         </div>
       ) : null}
     </Main>

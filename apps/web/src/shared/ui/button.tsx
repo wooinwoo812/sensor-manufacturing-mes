@@ -1,26 +1,22 @@
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 import { LoaderCircle } from "lucide-react";
-import {
-  forwardRef,
-  type ButtonHTMLAttributes,
-  type ReactNode,
-} from "react";
+import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { cn } from "@/shared/lib";
 
 const buttonVariants = cva(
-  "inline-flex min-h-10 items-center justify-center gap-2 rounded-control border px-4 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-focus/35 focus-visible:ring-offset-2 focus-visible:ring-offset-surface disabled:pointer-events-none disabled:opacity-45 aria-disabled:pointer-events-none aria-disabled:opacity-45 motion-reduce:transition-none",
+  "relative inline-flex min-h-10 items-center justify-center gap-2 rounded-control border px-4 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-focus/35 focus-visible:ring-offset-2 focus-visible:ring-offset-surface disabled:pointer-events-none disabled:opacity-45 aria-disabled:pointer-events-none aria-disabled:opacity-45 motion-reduce:transition-none",
   {
     variants: {
       variant: {
         primary:
-          "border-accent-strong bg-accent-strong text-white shadow-control hover:bg-accent-emphasis",
+          "border-transparent bg-accent-strong text-primary-foreground shadow-control hover:bg-accent-emphasis",
         secondary:
-          "border-border-strong bg-surface text-text hover:bg-surface-subtle",
+          "border-border bg-surface text-text shadow-control hover:border-border-strong hover:bg-surface-subtle",
         ghost:
           "border-transparent bg-transparent text-text hover:bg-surface-subtle",
         danger:
-          "border-danger bg-danger text-white shadow-control hover:bg-danger-strong",
+          "border-danger bg-danger text-primary-foreground shadow-control hover:bg-danger-strong",
       },
       size: {
         default: "h-10",
@@ -36,7 +32,8 @@ const buttonVariants = cva(
 );
 
 export interface ButtonProps
-  extends ButtonHTMLAttributes<HTMLButtonElement>,
+  extends
+    ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean;
   loading?: boolean;
@@ -78,14 +75,26 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         className={cn(buttonVariants({ variant, size }), className)}
         disabled={disabled || loading}
+        aria-busy={loading || undefined}
         ref={ref}
         {...props}
       >
         {loading ? (
-          <LoaderCircle className="size-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+          <LoaderCircle
+            className="absolute left-1/2 top-1/2 -ml-2 -mt-2 size-4 animate-spin motion-reduce:animate-none"
+            aria-hidden="true"
+          />
         ) : null}
         {loading ? <span className="sr-only">{loadingLabel}</span> : null}
-        <span aria-hidden={loading || undefined}>{children}</span>
+        <span
+          className={cn(
+            "inline-flex items-center justify-center gap-2",
+            loading && "invisible",
+          )}
+          aria-hidden={loading || undefined}
+        >
+          {children}
+        </span>
       </button>
     );
   },

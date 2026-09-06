@@ -42,6 +42,13 @@ class TestCommandController {
   executeProcess(@Req() request: HttpRequest) {
     return { actorId: request.auth?.userId };
   }
+
+  @Post("all-permissions")
+  @UseGuards(PermissionGuard, CsrfGuard)
+  @RequirePermissions(...Object.values(Permission))
+  allPermissions(@Req() request: HttpRequest) {
+    return { actorId: request.auth?.userId, role: request.auth?.activeRole };
+  }
 }
 
 interface FakeUser {
@@ -85,7 +92,11 @@ class FakePrismaService {
   };
 
   readonly session = {
-    create: async ({ data }: { data: Omit<FakeSession, "id" | "revokedAt"> }) => {
+    create: async ({
+      data,
+    }: {
+      data: Omit<FakeSession, "id" | "revokedAt">;
+    }) => {
       const session: FakeSession = {
         ...data,
         id: `session-${++this.sequence}`,
@@ -102,7 +113,9 @@ class FakePrismaService {
         return null;
       }
 
-      const user = this.users.find((candidate) => candidate.id === session.userId);
+      const user = this.users.find(
+        (candidate) => candidate.id === session.userId,
+      );
       if (user === undefined) {
         return null;
       }
@@ -120,7 +133,8 @@ class FakePrismaService {
       for (const session of this.sessions) {
         const matchesId = where.id === undefined || session.id === where.id;
         const matchesToken =
-          where.tokenHash === undefined || session.tokenHash === where.tokenHash;
+          where.tokenHash === undefined ||
+          session.tokenHash === where.tokenHash;
         if (matchesId && matchesToken && session.revokedAt === null) {
           session.revokedAt = data.revokedAt;
           count += 1;
@@ -179,9 +193,13 @@ describe("demo authentication and RBAC", () => {
     expect(new Set(DEMO_ACCOUNTS.map((account) => account.role))).toEqual(
       new Set(Object.keys(ROLE_CONFIG)),
     );
-    expect(ROLE_CONFIG.SYSTEM_ADMIN.permissions).not.toContain(
-      Permission.PROCESS_EXECUTION_EXECUTE,
+    expect(new Set(ROLE_CONFIG.SYSTEM_ADMIN.permissions)).toEqual(
+      new Set(Object.values(Permission)),
     );
+    expect(ROLE_CONFIG.SYSTEM_ADMIN).toMatchObject({
+      label: "최고관리자",
+      landingRoute: "/dashboard",
+    });
   });
 
   it("유효한 계정에 보안 cookie와 서버 session을 발급한다", async () => {
@@ -207,9 +225,12 @@ describe("demo authentication and RBAC", () => {
     expect(login.body).not.toHaveProperty("password");
     expect(login.body).not.toHaveProperty("sessionToken");
 
-    await agent.get("/api/auth/me").expect(200).expect({
-      ...login.body,
-    });
+    await agent
+      .get("/api/auth/me")
+      .expect(200)
+      .expect({
+        ...login.body,
+      });
   });
 
   it("없는 계정과 틀린 비밀번호를 같은 오류로 응답한다", async () => {
@@ -292,7 +313,10 @@ describe("demo authentication and RBAC", () => {
         .send({ email: account.email, password: DEMO_PASSWORD })
         .expect(200);
       const expectedStatus =
-        account.role === "SHOP_FLOOR_OPERATOR" ? 201 : 403;
+        account.role === "SHOP_FLOOR_OPERATOR" ||
+        account.role === "SYSTEM_ADMIN"
+          ? 201
+          : 403;
 
       const response = await agent
         .post("/api/test/commands/execute-process")
@@ -306,6 +330,66 @@ describe("demo authentication and RBAC", () => {
       }
     },
   );
+
+  it.each(DEMO_ACCOUNTS)(
+    "$role 전체 권한은 최고관리자에게만 허용한다",
+    async (account) => {
+      const agent = request.agent(app.getHttpServer());
+      const login = await agent
+        .post("/api/auth/login")
+        .set("Origin", allowedOrigin)
+        .send({ email: account.email, password: DEMO_PASSWORD })
+        .expect(200);
+      const response = await agent
+        .post("/api/test/commands/all-permissions")
+        .set("Origin", allowedOrigin)
+        .set("X-CSRF-Token", login.body.csrfToken as string)
+        .send({ actorId: "forged", role: "SYSTEM_ADMIN" })
+        .expect(account.role === "SYSTEM_ADMIN" ? 201 : 403);
+      if (account.role === "SYSTEM_ADMIN") {
+        expect(login.body.activeRole).toEqual({
+          code: "SYSTEM_ADMIN",
+          label: "최고관리자",
+        });
+        expect(login.body.landingRoute).toBe("/dashboard");
+        expect(response.body).toEqual({
+          actorId: account.id,
+          role: "SYSTEM_ADMIN",
+        });
+      } else expect(response.body.code).toBe("PERMISSION_DENIED");
+    },
+  );
+
+  it("최고관리자도 CSRF·Origin·세션 만료 검증을 우회하지 않는다", async () => {
+    const account = DEMO_ACCOUNTS.find(
+      (account) => account.role === "SYSTEM_ADMIN",
+    )!;
+    const agent = request.agent(app.getHttpServer());
+    const login = await agent
+      .post("/api/auth/login")
+      .set("Origin", allowedOrigin)
+      .send({ email: account.email, password: DEMO_PASSWORD })
+      .expect(200);
+    await agent
+      .post("/api/test/commands/all-permissions")
+      .set("Origin", allowedOrigin)
+      .send({})
+      .expect(403)
+      .expect(({ body }) => expect(body.code).toBe("CSRF_REJECTED"));
+    await agent
+      .post("/api/test/commands/all-permissions")
+      .set("Origin", "https://attacker.example")
+      .set("X-CSRF-Token", login.body.csrfToken as string)
+      .send({})
+      .expect(403);
+    prisma.sessions.at(-1)!.expiresAt = new Date(0);
+    await agent
+      .post("/api/test/commands/all-permissions")
+      .set("Origin", allowedOrigin)
+      .set("X-CSRF-Token", login.body.csrfToken as string)
+      .send({})
+      .expect(401);
+  });
 
   it("logout은 session을 폐기하고 cookie를 제거한다", async () => {
     const account = DEMO_ACCOUNTS[4];
@@ -364,7 +448,9 @@ describe("demo authentication and RBAC", () => {
       .set("Origin", "https://attacker.example");
 
     expect(response.headers["access-control-allow-origin"]).toBeUndefined();
-    expect(response.headers["access-control-allow-credentials"]).toBeUndefined();
+    expect(
+      response.headers["access-control-allow-credentials"],
+    ).toBeUndefined();
   });
 
   it("production cookie는 __Host prefix와 Secure를 강제한다", () => {

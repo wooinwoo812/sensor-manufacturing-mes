@@ -1,10 +1,7 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import {
-  fetchBomRevisions,
-  type BomRevisionListResult,
-} from "@/entities/bom";
+import { fetchBomRevisions, type BomRevisionListResult } from "@/entities/bom";
 import { BomsPage } from "./BomsPage";
 import type { BomsSearch } from "../model/boms-search";
 
@@ -84,13 +81,21 @@ describe("BomsPage", () => {
     renderPage();
 
     expect(await screen.findByText("BOM-2026-R003")).toBeInTheDocument();
-    expect(screen.getAllByText("다목적 환경 센서 모듈").length).toBeGreaterThan(0);
-    expect(screen.getByText("발행")).toBeInTheDocument();
-    expect(screen.getByText("초안")).toBeInTheDocument();
+    expect(screen.getAllByText("다목적 환경 센서 모듈").length).toBeGreaterThan(
+      0,
+    );
     expect(
-      screen.getByText("SEN-MAT-014 ×2 외 1건"),
+      within(screen.getByRole("table")).getByText("발행"),
     ).toBeInTheDocument();
-    expect(screen.getByText("항목 없음")).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("table")).getByText("초안"),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("table")).getByText("SEN-MAT-014 ×2 외 1건"),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("table")).getByText("항목 없음"),
+    ).toBeInTheDocument();
   });
 
   it("검색어를 입력하면 검색 조건을 반영한다", async () => {
@@ -113,6 +118,8 @@ describe("BomsPage", () => {
     await userEvent.click(trigger);
     const option = await screen.findByRole("option", { name: "발행" });
     await userEvent.click(option);
+    expect(onSearchChange).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: "조회" }));
 
     expect(onSearchChange).toHaveBeenCalledWith(
       expect.objectContaining({ lifecycle: ["PUBLISHED"] }),

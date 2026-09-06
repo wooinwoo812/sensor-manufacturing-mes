@@ -17,7 +17,7 @@ export const Route = createFileRoute("/_authenticated/work-orders")({
   component: WorkOrdersRoute,
 });
 
-function WorkOrdersRoute() {
+export function WorkOrdersRoute() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const { session } = Route.useRouteContext();
@@ -39,7 +39,8 @@ function WorkOrdersRoute() {
         void navigate({
           to: "/work-orders",
           search: next,
-          replace: true,
+          replace: false,
+          resetScroll: false,
         });
       }}
     />

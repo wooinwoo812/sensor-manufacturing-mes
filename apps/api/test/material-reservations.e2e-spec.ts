@@ -142,6 +142,10 @@ class FakePrismaService {
     count: async () => this.workOrders.length,
   };
 
+  readonly processStepExecution = { findMany: async () => [] };
+  readonly inspection = { findMany: async () => [] };
+  readonly workOrderMaterialRequirement = { findMany: async () => [] };
+
   readonly materialLot = {
     findUnique: async ({ where }: { where: { id: string } }) =>
       this.materialLots.find((lot) => lot.id === where.id) ?? null,

@@ -19,6 +19,15 @@ import { DEMO_WORK_ORDERS } from "../prisma/demo-work-orders.js";
 import { DEMO_PROCESS_STEPS } from "../prisma/demo-process-steps.js";
 import { DEMO_INSPECTIONS } from "../prisma/demo-inspections.js";
 import { DEMO_INSPECTION_SPEC_REVISIONS } from "../prisma/demo-inspection-specs.js";
+import { DEMO_BOM_REVISIONS } from "../prisma/demo-boms.js";
+
+interface FakeMaterialRequirement {
+  workOrderId: string;
+  materialId: string;
+  requiredQuantity: string;
+  unit: string;
+  material: { code: string; name: string };
+}
 
 const allowedOrigin = "http://localhost:5173";
 let passwordHash: string;
@@ -50,6 +59,7 @@ interface FakeWorkOrderRow {
   createdAt: Date;
   processSteps: { readiness: string }[];
   inspectionRequirements: FakeInspectionRequirementRow[];
+  materialRequirements: FakeMaterialRequirement[];
   inspections: {
     inspectionNumber: string;
     processStepName: string;
@@ -71,6 +81,7 @@ interface FakeSessionRow {
 }
 
 class FakePrismaService {
+  failAudit = false;
   private sequence = 0;
   readonly users: {
     id: string;
@@ -102,6 +113,7 @@ class FakePrismaService {
       (step) => step.workOrderNumber === order.orderNumber,
     ).map((step) => ({ readiness: step.readiness })),
     inspectionRequirements: [],
+    materialRequirements: [],
     inspections: DEMO_INSPECTIONS.filter(
       (inspection) => inspection.workOrderNumber === order.orderNumber,
     ).map((inspection) => ({
@@ -168,6 +180,7 @@ class FakePrismaService {
 
   readonly auditEvent = {
     create: async ({ data }: { data: Record<string, unknown> }) => {
+      if (this.failAudit) throw new Error("injected audit failure");
       const row = { id: `audit-${++this.sequence}`, ...data };
       this.auditEvents.push(row as (typeof this.auditEvents)[number]);
       return row;
@@ -207,6 +220,7 @@ class FakePrismaService {
         createdAt: new Date(),
         processSteps: [],
         inspectionRequirements: [],
+        materialRequirements: [],
         inspections: [],
       };
       this.workOrders.push(row);
@@ -234,6 +248,46 @@ class FakePrismaService {
           spec.productCode === where.productCode && spec.lifecycle === where.lifecycle,
       ),
   };
+
+  readonly boms = DEMO_BOM_REVISIONS.map((bom) => ({
+    id: bom.revisionNumber, lifecycle: bom.lifecycle, product: { code: bom.productCode },
+    items: bom.items.map((item) => ({ materialId: item.materialCode,
+      quantityPerProductBaseUom: { toFixed: () => item.quantityPerProductBaseUom },
+      material: { code: item.materialCode, name: item.materialCode, unit: "EA" },
+    })),
+  }));
+  readonly bomRevision = {
+    findUnique: async ({ where }: { where: { id: string } }) => this.boms.find((row) => row.id === where.id) ?? null,
+    findFirst: async ({ where }: { where: { product: { code: string }; lifecycle: string } }) =>
+      this.boms.find((row) => row.product.code === where.product.code && row.lifecycle === where.lifecycle) ?? null,
+  };
+  readonly workOrderMaterialRequirement = {
+    upsert: async ({ create }: { create: Omit<FakeMaterialRequirement, "material"> }) => {
+      const order = this.workOrders.find((row) => row.id === create.workOrderId)!;
+      const row = { ...create, material: { code: create.materialId, name: create.materialId } };
+      order.materialRequirements.push(row);
+      return row;
+    },
+  };
+  readonly processStepExecution = {
+    createMany: async ({ data }: { data: ({ workOrderId: string; readiness: string } & Record<string, unknown>)[] }) => {
+      for (const row of data) this.workOrders.find((order) => order.id === row.workOrderId)!.processSteps.push({ ...row, id: `step-${++this.sequence}` } as { readiness: string });
+      return { count: data.length };
+    },
+  };
+  readonly inspection = {
+    updateMany: async ({ where }: { where: { workOrderId: string } }) => {
+      const rows = this.workOrders.find((row) => row.id === where.workOrderId)!.inspections;
+      for (const row of rows) if (["PENDING", "IN_PROGRESS"].includes(row.executionStatus)) row.executionStatus = "CANCELLED";
+      return { count: rows.length };
+    },
+    createMany: async ({ data }: { data: (Omit<FakeWorkOrderRow["inspections"][number], "verdict"> & { workOrderId: string })[] }) => {
+      for (const row of data) this.workOrders.find((order) => order.id === row.workOrderId)!.inspections.push({ ...row, verdict: null });
+      return { count: data.length };
+    },
+  };
+  readonly traceNode = { upsert: async () => ({ id: "trace-created" }) };
+  readonly materialAllocation = { findMany: async () => [] };
 
   readonly inspectionRequirement = {
     upsert: async ({
@@ -265,7 +319,14 @@ class FakePrismaService {
   };
 
   async $transaction<T>(callback: (transaction: this) => Promise<T>) {
-    return callback(this);
+    const orders = structuredClone(this.workOrders);
+    const audits = structuredClone(this.auditEvents);
+    try { return await callback(this); }
+    catch (error) {
+      this.workOrders.splice(0, this.workOrders.length, ...orders);
+      this.auditEvents.splice(0, this.auditEvents.length, ...audits);
+      throw error;
+    }
   }
 
   async $disconnect() {}
@@ -464,6 +525,11 @@ describe("work order commands", () => {
       .set("x-csrf-token", csrfToken)
       .expect(200);
     expect(released.body.status).toBe("RELEASED");
+    expect(released.body.steps).toHaveLength(5);
+    expect(released.body.steps[0]).toMatchObject({ readiness: "BLOCKED", blockedReasonCodes: ["MATERIAL_SHORTAGE"] });
+    expect(released.body.steps.every((step: { productionLotNumber: string }) => step.productionLotNumber.startsWith("PL-"))).toBe(true);
+    expect(released.body.inspections.length).toBeGreaterThan(0);
+    expect(released.body.materialRequirements.length).toBeGreaterThan(0);
     expect(
       released.body.recentAudits.map((event: { action: string }) => event.action),
     ).toContain("WORK_ORDER_RELEASED");
@@ -573,6 +639,7 @@ describe("work order commands", () => {
       createdAt: new Date(),
       processSteps: [{ readiness: "IN_PROGRESS" }],
       inspectionRequirements: [],
+      materialRequirements: [],
       inspections: [],
     });
     await agent
@@ -590,6 +657,20 @@ describe("work order commands", () => {
       .set("x-csrf-token", csrfToken)
       .send({ reason: "짧" })
       .expect(400);
+  });
+
+  it("감사 실패 시 취소 상태를 롤백하고 긴 취소 사유를 손실 없이 남긴다", async () => {
+    const { agent, csrfToken } = await loginAs("PRODUCTION_PLANNER");
+    const draft = prisma.workOrders.find((row) => row.orderNumber === "WO-2026-093")!;
+    prisma.failAudit = true;
+    const command = () => agent.post(`/api/work-orders/${draft.id}/cancel`).set("Origin", allowedOrigin).set("x-csrf-token", csrfToken).send({ reason: "사".repeat(500) });
+    await command().expect(500);
+    expect(prisma.workOrders.find((row) => row.id === draft.id)?.status).toBe("DRAFT");
+    prisma.failAudit = false;
+    await command().expect(200);
+    const audit = prisma.auditEvents.find((row) => row.action === "WORK_ORDER_CANCELLED")!;
+    expect(Array.from(audit.summary).length).toBeLessThanOrEqual(200);
+    expect(audit.details).toMatchObject({ reason: "사".repeat(500) });
   });
 
   it("상세는 공정·검사·감사를 포함하고 없는 ID는 404를 반환한다", async () => {

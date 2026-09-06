@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { getPageSize } from "@/shared/lib";
+import { useMemo, useState } from "react";
 import {
   BLOCKED_REASON_LABELS,
   fetchProcessExecutions,
@@ -6,22 +7,27 @@ import {
   PROCESS_READINESS_LABELS,
   type ProcessExecutionListItem,
 } from "@/entities/process-execution";
-import { ProcessExecutionPanel, StartProcessAction } from "@/features/process-execution";
-import { ApiRequestError } from "@/shared/api";
 import {
+  ProcessExecutionPanel,
+  StartProcessAction,
+} from "@/features/process-execution";
+import {
+  ActionSheet,
   Badge,
-  type BadgeTone,
   Button,
   DataTable,
-  type DataTableColumn,
   EmptyState,
   ErrorState,
   FilterBar,
   Input,
   PageHeading,
+  Pagination,
   Select,
-  Skeleton,
+  TableSkeleton,
+  type BadgeTone,
+  type DataTableColumn,
 } from "@/shared/ui";
+import { useLoadState, useQueryDraft } from "@/shared/lib";
 import { Main } from "@/widgets/app-shell";
 import {
   mergeExecutionQueueSearch,
@@ -37,23 +43,13 @@ const READINESS_TONES: Record<string, BadgeTone> = {
   BLOCKED: "danger",
 };
 
-const PAGE_SIZE = 20;
-
-type LoadState =
-  | { phase: "loading" }
-  | { phase: "error"; message: string }
-  | {
-      phase: "success";
-      items: ProcessExecutionListItem[];
-      total: number;
-      page: number;
-    };
-
 interface ExecutionQueuePageProps {
   search: ExecutionQueueSearch;
   onSearchChange: (next: ExecutionQueueSearch) => void;
   csrfToken: string;
   canExecute: boolean;
+  /** 행을 누르면 공정 실행 상세로 간다. 상세 라우트는 있었지만 어디에서도 연결되지 않았다. */
+  onOpenDetail?: ((row: ProcessExecutionListItem) => void) | undefined;
 }
 
 function blockedReasonLabel(code: string): string {
@@ -67,103 +63,87 @@ export function ExecutionQueuePage({
   onSearchChange,
   csrfToken,
   canExecute,
+  onOpenDetail,
 }: ExecutionQueuePageProps) {
   const searchKey = JSON.stringify(search);
-  const [reloadCount, setReloadCount] = useState(0);
   const [completionTarget, setCompletionTarget] =
     useState<ProcessExecutionListItem | null>(null);
-  const [result, setResult] = useState<{
-    key: string;
-    reload: number;
-    state: Exclude<LoadState, { phase: "loading" }>;
-  } | null>(null);
+  const { state, isRefreshing, reload } = useLoadState<{
+    items: ProcessExecutionListItem[];
+    total: number;
+    page: number;
+    pageSize: number;
+  }>(
+    searchKey,
+    (signal) => {
+      const searchValue = JSON.parse(searchKey) as ExecutionQueueSearch;
+      return fetchProcessExecutions(
+        toExecutionQueueParams(searchValue),
+        signal,
+      ).then((response) => ({
+        items: response.items,
+        total: response.total,
+        page: response.page,
+        pageSize: response.pageSize,
+      }));
+    },
+    "공정 실행 대기열을 불러오지 못했습니다.",
+  );
 
-  useEffect(() => {
-    const searchValue = JSON.parse(searchKey) as ExecutionQueueSearch;
-    const controller = new AbortController();
-    let active = true;
-    fetchProcessExecutions(toExecutionQueueParams(searchValue), controller.signal)
-      .then((response) => {
-        if (!active) {
-          return;
-        }
-        setResult({
-          key: searchKey,
-          reload: reloadCount,
-          state: {
-            phase: "success",
-            items: response.items,
-            total: response.total,
-            page: response.page,
-          },
-        });
-      })
-      .catch((error: unknown) => {
-        if (!active) {
-          return;
-        }
-        setResult({
-          key: searchKey,
-          reload: reloadCount,
-          state: {
-            phase: "error",
-            message:
-              error instanceof ApiRequestError
-                ? error.message
-                : "공정 실행 대기열을 불러오지 못했습니다.",
-          },
-        });
-      });
-    return () => {
-      active = false;
-      controller.abort();
-    };
-  }, [searchKey, reloadCount]);
-
-  const state: LoadState =
-    result !== null && result.key === searchKey && result.reload === reloadCount
-      ? result.state
-      : { phase: "loading" };
+  const { draft, setDraft, submit, reset, hasPendingChanges } = useQueryDraft(
+    search,
+    onSearchChange,
+    reload,
+  );
 
   const columns = useMemo<DataTableColumn<ProcessExecutionListItem>[]>(
     () => [
       {
         key: "workOrderNumber",
+        align: "left",
         header: "작업지시",
         cell: (row) => (
-          <span className="font-mono text-xs font-bold text-text-strong">
+          <span className="text-xs tabular-nums font-bold text-text-strong">
             {row.workOrderNumber}
           </span>
         ),
       },
       {
         key: "productionLotNumber",
+        align: "left",
         header: "생산 LOT",
         cell: (row) => (
-          <span className="font-mono text-xs text-text-muted">
+          <span className="text-xs tabular-nums text-text-muted">
             {row.productionLotNumber}
           </span>
         ),
       },
       {
         key: "processStepName",
+        align: "left",
         header: "공정",
         cell: (row) => (
           <span className="flex items-center gap-2">
             <span className="tabular-nums text-xs text-text-muted">
               {String(row.sequence).padStart(2, "0")}
             </span>
-            <span className="text-sm text-text-strong">{row.processStepName}</span>
+            <span className="text-sm text-text-strong">
+              {row.processStepName}
+            </span>
           </span>
         ),
       },
       {
         key: "product",
+        align: "left",
+        wrap: true,
         header: "제품",
         cell: (row) => (
-          <span className="block min-w-32">
-            <span className="block text-sm text-text-strong">{row.productName}</span>
-            <span className="block font-mono text-xs text-text-muted">
+          <span className="block min-w-48 max-w-72 space-y-0.5">
+            <span className="block text-sm font-medium leading-5 text-text-strong">
+              {row.productName}
+            </span>
+            <span className="block text-sm leading-5 tabular-nums text-text-muted">
               {row.productCode}
             </span>
           </span>
@@ -171,8 +151,9 @@ export function ExecutionQueuePage({
       },
       {
         key: "plannedQuantity",
+        align: "center",
         header: "계획수량",
-        align: "right",
+
         cell: (row) => (
           <span className="tabular-nums">
             {row.plannedQuantity.toLocaleString("ko-KR")} {row.unit}
@@ -181,6 +162,7 @@ export function ExecutionQueuePage({
       },
       {
         key: "readiness",
+        align: "center",
         header: "준비 상태",
         cell: (row) => (
           <Badge tone={READINESS_TONES[row.readiness] ?? "neutral"}>
@@ -190,6 +172,8 @@ export function ExecutionQueuePage({
       },
       {
         key: "blockedReasonCodes",
+        align: "left",
+        wrap: true,
         header: "차단 사유",
         cell: (row) =>
           row.blockedReasonCodes.length === 0 ? (
@@ -208,18 +192,20 @@ export function ExecutionQueuePage({
         ? [
             {
               key: "actions",
+              align: "center",
               header: "행동",
               cell: (row: ProcessExecutionListItem) =>
                 row.readiness === "READY" ? (
                   <StartProcessAction
                     csrfToken={csrfToken}
-                    onDone={() => setReloadCount((count) => count + 1)}
+                    onDone={() => reload()}
                     target={{
                       stepId: row.id,
                       workOrderNumber: row.workOrderNumber,
                       processStepName: row.processStepName,
                       productionLotNumber: row.productionLotNumber,
                       plannedQuantity: row.plannedQuantity,
+                      outputQuantityLimit: row.outputQuantityLimit,
                     }}
                   />
                 ) : row.readiness === "IN_PROGRESS" ? (
@@ -236,16 +222,43 @@ export function ExecutionQueuePage({
           ]
         : []),
     ],
-    [canExecute, csrfToken],
+    [canExecute, csrfToken, reload],
   );
 
-  const hasActiveFilter = search.q !== undefined || search.readiness !== undefined;
+  const hasActiveFilter =
+    search.q !== undefined || search.readiness !== undefined;
 
-  const currentPage = state.phase === "success" ? state.page : search.page ?? 1;
+  const pageSize =
+    state.phase === "success" ? state.pageSize : getPageSize(search.pageSize);
+  const currentPage =
+    state.phase === "success" ? state.page : (search.page ?? 1);
   const totalPages =
     state.phase === "success"
-      ? Math.max(1, Math.ceil(state.total / PAGE_SIZE))
+      ? Math.max(1, Math.ceil(state.total / pageSize))
       : 1;
+
+  const pagination =
+    state.phase === "success" ? (
+      <Pagination
+        currentPage={currentPage}
+        totalItems={state.total}
+        pageSize={pageSize}
+        onPageSizeChange={(size) =>
+          onSearchChange(
+            mergeExecutionQueueSearch(search, {
+              pageSize: size === 10 ? undefined : size,
+              page: undefined,
+            }),
+          )
+        }
+        busy={isRefreshing}
+        label="공정 대기열 페이지 탐색"
+        onPageChange={(page) =>
+          onSearchChange(mergeExecutionQueueSearch(search, { page }))
+        }
+        totalPages={totalPages}
+      />
+    ) : null;
 
   return (
     <Main id="main-content" tabIndex={-1}>
@@ -256,6 +269,10 @@ export function ExecutionQueuePage({
       />
 
       <FilterBar
+        onSearch={submit}
+        onReset={reset}
+        busy={state.phase === "loading" || isRefreshing}
+        hasPendingChanges={hasPendingChanges}
         resultLabel={
           state.phase === "success"
             ? `총 ${state.total.toLocaleString("ko-KR")}건 중 ${state.items.length.toLocaleString("ko-KR")}건 표시 (작업지시·공정 순서)`
@@ -263,18 +280,13 @@ export function ExecutionQueuePage({
         }
       >
         <Input
+          data-tour="list-search"
           aria-label="공정 대기열 검색"
-          defaultValue={search.q}
+          value={draft.q ?? ""}
+          onChange={(event) => setDraft({ ...draft, q: event.target.value })}
           id="execution-q"
           label="검색"
           name="q"
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              const value = event.currentTarget.value.trim();
-              onSearchChange(mergeExecutionQueueSearch(search, {q: value === "" ? undefined : value,
-                page: undefined,}));
-            }
-          }}
           placeholder="작업지시·공정·생산 LOT"
         />
         <Select
@@ -282,36 +294,27 @@ export function ExecutionQueuePage({
           options={Object.entries(PROCESS_READINESS_FILTER_OPTIONS).map(
             ([value, label]) => ({ label, value }),
           )}
-          value={search.readiness ?? "all"}
+          value={draft.readiness ?? "all"}
           onValueChange={(value) =>
-            onSearchChange(mergeExecutionQueueSearch(search, {readiness:
-                value === "all"
-                  ? undefined
-                  : (value as keyof typeof PROCESS_READINESS_FILTER_OPTIONS),
-              page: undefined,}))
+            setDraft(
+              mergeExecutionQueueSearch(draft, {
+                readiness:
+                  value === "all"
+                    ? undefined
+                    : (value as keyof typeof PROCESS_READINESS_FILTER_OPTIONS),
+                page: undefined,
+              }),
+            )
           }
         />
-        {hasActiveFilter ? (
-          <Button variant="ghost" onClick={() => onSearchChange({})}>
-            조건 초기화
-          </Button>
-        ) : null}
       </FilterBar>
 
       {state.phase === "loading" ? (
-        <div className="space-y-2" aria-label="공정 대기열 조회 중" role="status">
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
-        </div>
+        <TableSkeleton label="공정 대기열 조회 중" rows={pageSize} />
       ) : state.phase === "error" ? (
         <ErrorState
           description={state.message}
-          action={
-            <Button onClick={() => setReloadCount((count) => count + 1)}>
-              다시 시도
-            </Button>
-          }
+          action={<Button onClick={() => reload()}>다시 시도</Button>}
         />
       ) : state.items.length === 0 ? (
         <EmptyState
@@ -319,7 +322,7 @@ export function ExecutionQueuePage({
           description="조회 조건을 초기화하거나 다른 준비 상태로 확인해 주세요."
           action={
             hasActiveFilter ? (
-              <Button variant="secondary" onClick={() => onSearchChange({})}>
+              <Button variant="secondary" onClick={reset}>
                 조건 초기화
               </Button>
             ) : undefined
@@ -327,12 +330,38 @@ export function ExecutionQueuePage({
         />
       ) : (
         <>
-          {completionTarget !== null ? (
+          <DataTable
+            footer={pagination}
+            rowNumberStart={state.total - (currentPage - 1) * pageSize}
+            busy={isRefreshing}
+            onRowClick={onOpenDetail}
+            caption="공정 실행 대기열"
+            columns={columns}
+            emptyMessage="조건에 맞는 공정이 없습니다."
+            getRowKey={(row) => row.id}
+            tourRecord="execution"
+            getTourContext={(row) => row.productionLotNumber}
+            isTourPreferred={(row) => row.readiness === "IN_PROGRESS"}
+            rows={state.items}
+          />
+        </>
+      )}
+
+      <ActionSheet
+        open={completionTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setCompletionTarget(null);
+        }}
+        title="공정 완료 실적 입력"
+        description="선택한 공정의 양품·불량 수량을 기록합니다. 저장하면 대기열이 갱신됩니다."
+      >
+        {completionTarget !== null ? (
+          <>
             <ProcessExecutionPanel
               csrfToken={csrfToken}
               onDone={() => {
                 setCompletionTarget(null);
-                setReloadCount((count) => count + 1);
+                reload();
               }}
               target={{
                 stepId: completionTarget.id,
@@ -340,40 +369,17 @@ export function ExecutionQueuePage({
                 processStepName: completionTarget.processStepName,
                 productionLotNumber: completionTarget.productionLotNumber,
                 plannedQuantity: completionTarget.plannedQuantity,
+                outputQuantityLimit: completionTarget.outputQuantityLimit,
               }}
             />
-          ) : null}
-          <DataTable
-            caption="공정 실행 대기열"
-            columns={columns}
-            emptyMessage="조건에 맞는 공정이 없습니다."
-            getRowKey={(row) => row.id}
-            rows={state.items}
-          />
-          <nav
-            aria-label="공정 대기열 페이지 탐색"
-            className="flex items-center justify-end gap-2"
-          >
-            <Button
-              disabled={currentPage <= 1}
-              variant="secondary"
-              onClick={() => onSearchChange(mergeExecutionQueueSearch(search, {page: currentPage - 1 }))}
-            >
-              이전
-            </Button>
-            <span className="text-xs tabular-nums text-text-muted">
-              {currentPage} / {totalPages} 페이지
-            </span>
-            <Button
-              disabled={currentPage >= totalPages}
-              variant="secondary"
-              onClick={() => onSearchChange(mergeExecutionQueueSearch(search, {page: currentPage + 1 }))}
-            >
-              다음
-            </Button>
-          </nav>
-        </>
-      )}
+          </>
+        ) : null}
+      </ActionSheet>
+      {state.phase === "success" && state.items.length === 0 ? (
+        <div className="rounded-panel border border-border bg-surface">
+          {pagination}
+        </div>
+      ) : null}
     </Main>
   );
 }

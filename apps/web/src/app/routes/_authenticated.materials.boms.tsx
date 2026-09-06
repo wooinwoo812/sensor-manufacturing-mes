@@ -17,7 +17,7 @@ export const Route = createFileRoute("/_authenticated/materials/boms")({
   component: BomsRoute,
 });
 
-function BomsRoute() {
+export function BomsRoute() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
 
@@ -28,7 +28,8 @@ function BomsRoute() {
         void navigate({
           to: "/materials/boms",
           search: next,
-          replace: true,
+          replace: false,
+          resetScroll: false,
         });
       }}
     />

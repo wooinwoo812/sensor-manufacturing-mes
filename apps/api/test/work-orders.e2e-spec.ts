@@ -334,7 +334,7 @@ describe("work order list API", () => {
 
     expect(
       (response.body.items as { orderNumber: string }[]).map((item) => item.orderNumber).sort(),
-    ).toEqual(["WO-2026-092", "WO-2026-098"]);
+    ).toEqual(["WO-2026-092", "WO-2026-094", "WO-2026-098"]);
   });
 
   it("q 검색은 작업지시 번호·제품 코드·제품명을 포괄한다", async () => {

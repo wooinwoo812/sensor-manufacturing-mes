@@ -1,25 +1,27 @@
-import { useEffect, useMemo, useState } from "react";
+import { getPageSize } from "@/shared/lib";
+import { useMemo } from "react";
 import {
   fetchTraceNodes,
   TRACE_NODE_TYPE_LABELS,
   type TraceNodeListItem,
   type TraceNodeType,
 } from "@/entities/trace-node";
-import { ApiRequestError } from "@/shared/api";
 import {
   Badge,
-  type BadgeTone,
   Button,
   DataTable,
-  type DataTableColumn,
   EmptyState,
   ErrorState,
   FilterBar,
   Input,
   PageHeading,
+  Pagination,
   Select,
-  Skeleton,
+  TableSkeleton,
+  type BadgeTone,
+  type DataTableColumn,
 } from "@/shared/ui";
+import { useLoadState, useQueryDraft } from "@/shared/lib";
 import { Main } from "@/widgets/app-shell";
 import {
   mergeTraceabilitySearch,
@@ -33,18 +35,6 @@ const NODE_TYPE_TONES: Record<TraceNodeType, BadgeTone> = {
   FINISHED_UNIT: "warning",
 };
 
-const PAGE_SIZE = 20;
-
-type LoadState =
-  | { phase: "loading" }
-  | { phase: "error"; message: string }
-  | {
-      phase: "success";
-      items: TraceNodeListItem[];
-      total: number;
-      page: number;
-    };
-
 interface TraceabilityPageProps {
   search: TraceabilitySearch;
   onSearchChange: (next: TraceabilitySearch) => void;
@@ -56,74 +46,47 @@ export function TraceabilityPage({
   onSearchChange,
   onOpenDetail,
 }: TraceabilityPageProps) {
-  const [reloadCount, setReloadCount] = useState(0);
-  const [result, setResult] = useState<{
-    key: string;
-    reload: number;
-    state:
-      | { phase: "error"; message: string }
-      | {
-          phase: "success";
-          items: TraceNodeListItem[];
-          total: number;
-          page: number;
-        };
-  } | null>(null);
-
   const params = useMemo(
     () => toTraceabilityParams(search).toString(),
     [search],
   );
 
-  useEffect(() => {
-    const controller = new AbortController();
-    fetchTraceNodes(new URLSearchParams(params), controller.signal)
-      .then((response) => {
-        setResult({
-          key: params,
-          reload: reloadCount,
-          state: {
-            phase: "success",
-            items: response.items,
-            total: response.total,
-            page: response.page,
-          },
-        });
-      })
-      .catch((error: unknown) => {
-        if (controller.signal.aborted) {
-          return;
-        }
-        setResult({
-          key: params,
-          reload: reloadCount,
-          state: {
-            phase: "error",
-            message:
-              error instanceof ApiRequestError
-                ? error.message
-                : "추적 노드를 불러오지 못했습니다.",
-          },
-        });
-      });
-    return () => {
-      controller.abort();
-    };
-  }, [params, reloadCount]);
+  const { state, isRefreshing, reload } = useLoadState<{
+    items: TraceNodeListItem[];
+    total: number;
+    page: number;
+    pageSize: number;
+  }>(
+    params,
+    (signal) => {
+      return fetchTraceNodes(new URLSearchParams(params), signal).then(
+        (response) => ({
+          items: response.items,
+          total: response.total,
+          page: response.page,
+          pageSize: response.pageSize,
+        }),
+      );
+    },
+    "추적 노드를 불러오지 못했습니다.",
+  );
 
-  const state: LoadState =
-    result !== null && result.key === params && result.reload === reloadCount
-      ? result.state
-      : { phase: "loading" };
+  const { draft, setDraft, submit, reset, hasPendingChanges } = useQueryDraft(
+    search,
+    onSearchChange,
+    reload,
+  );
 
   const columns = useMemo<DataTableColumn<TraceNodeListItem>[]>(
     () => [
       {
         key: "label",
+        align: "left",
+        wrap: true,
         header: "LOT 식별",
         cell: (row) => (
           <span className="block">
-            <span className="block font-mono text-sm">{row.label}</span>
+            <span className="block text-sm tabular-nums">{row.label}</span>
             <span className="block text-xs text-text-muted">
               생성 {new Date(row.createdAt).toLocaleDateString("ko-KR")}
             </span>
@@ -132,6 +95,7 @@ export function TraceabilityPage({
       },
       {
         key: "nodeType",
+        align: "center",
         header: "구분",
         cell: (row) => (
           <Badge tone={NODE_TYPE_TONES[row.nodeType]}>
@@ -141,6 +105,7 @@ export function TraceabilityPage({
       },
       {
         key: "upstreamCount",
+        align: "center",
         header: "원천 (투입)",
         cell: (row) => (
           <span className="tabular-nums">{row.upstreamCount}</span>
@@ -148,36 +113,50 @@ export function TraceabilityPage({
       },
       {
         key: "downstreamCount",
+        align: "center",
         header: "영향 (산출)",
         cell: (row) => (
           <span className="tabular-nums">{row.downstreamCount}</span>
         ),
       },
-      {
-        key: "open",
-        header: "상세",
-        cell: (row) => (
-          <Button
-            variant="ghost"
-            size="compact"
-            onClick={() => onOpenDetail(row.id)}
-          >
-            계보 열기
-          </Button>
-        ),
-      },
     ],
-    [onOpenDetail],
+    [],
   );
 
   const hasActiveFilter =
     search.q !== undefined || search.nodeType !== undefined;
 
-  const currentPage = state.phase === "success" ? state.page : search.page ?? 1;
+  const pageSize =
+    state.phase === "success" ? state.pageSize : getPageSize(search.pageSize);
+  const currentPage =
+    state.phase === "success" ? state.page : (search.page ?? 1);
   const totalPages =
     state.phase === "success"
-      ? Math.max(1, Math.ceil(state.total / PAGE_SIZE))
+      ? Math.max(1, Math.ceil(state.total / pageSize))
       : 1;
+
+  const pagination =
+    state.phase === "success" ? (
+      <Pagination
+        currentPage={currentPage}
+        totalItems={state.total}
+        pageSize={pageSize}
+        onPageSizeChange={(size) =>
+          onSearchChange(
+            mergeTraceabilitySearch(search, {
+              pageSize: size === 10 ? undefined : size,
+              page: undefined,
+            }),
+          )
+        }
+        busy={isRefreshing}
+        label="추적 노드 페이지 탐색"
+        onPageChange={(page) =>
+          onSearchChange(mergeTraceabilitySearch(search, { page }))
+        }
+        totalPages={totalPages}
+      />
+    ) : null;
 
   return (
     <Main id="main-content" tabIndex={-1}>
@@ -188,6 +167,10 @@ export function TraceabilityPage({
       />
 
       <FilterBar
+        onSearch={submit}
+        onReset={reset}
+        busy={state.phase === "loading" || isRefreshing}
+        hasPendingChanges={hasPendingChanges}
         resultLabel={
           state.phase === "success"
             ? `총 ${state.total.toLocaleString("ko-KR")}건 중 ${state.items.length.toLocaleString("ko-KR")}건 표시`
@@ -195,22 +178,13 @@ export function TraceabilityPage({
         }
       >
         <Input
+          data-tour="list-search"
           aria-label="추적 노드 검색"
-          defaultValue={search.q}
+          value={draft.q ?? ""}
+          onChange={(event) => setDraft({ ...draft, q: event.target.value })}
           id="trace-q"
           label="검색"
           name="q"
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              const value = event.currentTarget.value.trim();
-              onSearchChange(
-                mergeTraceabilitySearch(search, {
-                  q: value === "" ? undefined : value,
-                  page: undefined,
-                }),
-              );
-            }
-          }}
           placeholder="LOT 번호 (예: ML-2026-0331)"
         />
         <Select
@@ -223,15 +197,13 @@ export function TraceabilityPage({
             })),
           ]}
           value={
-            search.nodeType?.length === 1 ? (search.nodeType[0] ?? "all") : "all"
+            draft.nodeType?.length === 1 ? (draft.nodeType[0] ?? "all") : "all"
           }
           onValueChange={(value) =>
-            onSearchChange(
-              mergeTraceabilitySearch(search, {
+            setDraft(
+              mergeTraceabilitySearch(draft, {
                 nodeType:
-                  value === "all"
-                    ? undefined
-                    : [value as TraceNodeType],
+                  value === "all" ? undefined : [value as TraceNodeType],
                 page: undefined,
               }),
             )
@@ -240,16 +212,13 @@ export function TraceabilityPage({
       </FilterBar>
 
       {state.phase === "loading" ? (
-        <Skeleton className="h-64 w-full" />
+        <TableSkeleton label="추적 노드 조회 중" rows={pageSize} />
       ) : state.phase === "error" ? (
         <ErrorState
           title="추적 노드를 불러올 수 없습니다"
           description={state.message}
           action={
-            <Button
-              variant="secondary"
-              onClick={() => setReloadCount((count) => count + 1)}
-            >
+            <Button variant="secondary" onClick={() => reload()}>
               다시 시도
             </Button>
           }
@@ -269,43 +238,22 @@ export function TraceabilityPage({
         />
       ) : (
         <DataTable
+          footer={pagination}
+          rowNumberStart={state.total - (currentPage - 1) * pageSize}
+          onRowClick={(row) => onOpenDetail(row.id)}
+          busy={isRefreshing}
           caption="추적 노드 목록"
           columns={columns}
           rows={state.items}
           getRowKey={(row) => row.id}
+          tourRecord="trace-node"
+
           emptyMessage="조건에 맞는 추적 노드가 없습니다."
         />
       )}
-
-      {state.phase === "success" && totalPages > 1 ? (
-        <div className="flex items-center justify-end gap-2">
-          <Button
-            variant="secondary"
-            size="compact"
-            disabled={currentPage <= 1}
-            onClick={() =>
-              onSearchChange(
-                mergeTraceabilitySearch(search, { page: currentPage - 1 }),
-              )
-            }
-          >
-            이전
-          </Button>
-          <span className="text-sm text-text-muted">
-            {currentPage} / {totalPages} 페이지
-          </span>
-          <Button
-            variant="secondary"
-            size="compact"
-            disabled={currentPage >= totalPages}
-            onClick={() =>
-              onSearchChange(
-                mergeTraceabilitySearch(search, { page: currentPage + 1 }),
-              )
-            }
-          >
-            다음
-          </Button>
+      {state.phase === "success" && state.items.length === 0 ? (
+        <div className="rounded-panel border border-border bg-surface">
+          {pagination}
         </div>
       ) : null}
     </Main>

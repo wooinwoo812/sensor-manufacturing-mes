@@ -1,0 +1,317 @@
+/* Geometry and color match AppShell from the first HTML paint, before React/auth. */
+:root {
+  --boot-sidebar-width: 256px;
+  --boot-background: oklch(0.972 0.004 180);
+  --boot-foreground: oklch(0.19 0.016 262);
+  --boot-surface: #fff;
+  --boot-border: oklch(0.905 0.006 250);
+  --boot-sidebar: oklch(0.235 0.028 195);
+  --boot-sidebar-foreground: oklch(0.88 0.012 180);
+  --boot-sidebar-primary: oklch(0.8 0.09 175);
+  --boot-sidebar-primary-foreground: oklch(0.235 0.028 195);
+  --boot-sidebar-accent: oklch(0.34 0.035 190);
+  --boot-sidebar-accent-foreground: oklch(0.96 0.025 175);
+  --boot-sidebar-border: oklch(0.36 0.02 190);
+  --boot-sidebar-muted: oklch(0.73 0.018 185);
+}
+:root.dark {
+  --boot-background: oklch(0.17 0.014 195);
+  --boot-foreground: oklch(0.984 0.003 247.858);
+  --boot-surface: oklch(0.215 0.016 195);
+  --boot-border: oklch(1 0 0 / 10%);
+  --boot-sidebar: oklch(0.15 0.02 195);
+  --boot-sidebar-foreground: oklch(0.929 0.013 255.508);
+  --boot-sidebar-primary-foreground: oklch(0.19 0.025 195);
+  --boot-sidebar-accent: oklch(0.28 0.035 190);
+  --boot-sidebar-accent-foreground: oklch(0.929 0.013 255.508);
+  --boot-sidebar-border: oklch(1 0 0 / 10%);
+}
+:root[data-boot-sidebar="collapsed"] {
+  --boot-sidebar-width: 48px;
+}
+:root[data-boot-layout="public"] {
+  --boot-sidebar-width: 0px;
+}
+html {
+  scrollbar-gutter: stable;
+  overflow-x: hidden;
+  background: var(--background, var(--boot-background));
+}
+body {
+  margin: 0;
+  background: var(--background, var(--boot-background));
+}
+.mes-boot,
+.mes-boot * {
+  box-sizing: border-box;
+}
+.mes-boot {
+  min-height: 100svh;
+  color: var(--foreground, var(--boot-foreground));
+  font:
+    14px/1.5 "Pretendard Variable",
+    "Malgun Gothic",
+    sans-serif;
+}
+.boot-sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: var(--boot-sidebar-width);
+  overflow: hidden;
+  background: var(--sidebar, var(--boot-sidebar));
+  color: #e6efee;
+}
+.boot-brand {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.boot-workspace {
+  margin-left: var(--boot-sidebar-width);
+  min-width: 0;
+}
+.boot-header {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  padding: 0 28px;
+  background: var(--card, var(--boot-surface));
+  border-bottom: 1px solid var(--border, var(--boot-border));
+}
+.boot-main {
+  width: 100%;
+  max-width: 1400px;
+  min-height: calc(100svh - 64px);
+  margin: 0 auto;
+  padding: 24px 28px;
+}
+.mes-boot h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 32px;
+}
+.mes-boot p {
+  margin: 4px 0 20px;
+  line-height: 24px;
+}
+[data-boot-layout="public"] .boot-sidebar,
+[data-boot-layout="public"] .boot-header {
+  display: none;
+}
+[data-boot-sidebar="collapsed"] .boot-brand {
+  font-size: 0;
+}
+@media (width < 64rem) {
+  :root {
+    --boot-sidebar-width: 0px !important;
+  }
+  .boot-sidebar {
+    display: none;
+  }
+}
+@media (width < 48rem) {
+  .boot-main {
+    padding: 24px 16px;
+  }
+  .boot-header {
+    padding: 0 16px;
+  }
+}
+
+.mes-boot {
+  min-height: max(100svh, var(--boot-document-height, 0px));
+}
+
+/* Loading is announced without replacing the page with a visible connection message. */
+.mes-boot .boot-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.boot-header {
+  font-weight: 600;
+  padding-left: 96px;
+}
+@media (width < 48rem) {
+  .boot-header {
+    padding-left: 92px;
+  }
+}
+
+/* The same public sidebar geometry during reload; this layer is inert until real auth. */
+.sidebar-preview {
+  display: flex;
+  flex-direction: column;
+  height: 100svh;
+  border-right: 1px solid var(--sidebar-border, var(--boot-sidebar-border));
+  font:
+    14px/20px "Pretendard Variable",
+    Pretendard,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    "Noto Sans KR",
+    "Apple SD Gothic Neo",
+    "Malgun Gothic",
+    sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+.preview-brand {
+  height: 64px;
+  flex-shrink: 0;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--sidebar-border, var(--boot-sidebar-border));
+}
+.preview-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  color: var(--mes-color-sidebar-muted, var(--boot-sidebar-muted));
+}
+.preview-icon svg {
+  width: 16px;
+  height: 16px;
+}
+.preview-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--sidebar-primary, var(--boot-sidebar-primary));
+}
+.preview-mark .preview-icon {
+  color: var(
+    --sidebar-primary-foreground,
+    var(--boot-sidebar-primary-foreground)
+  );
+}
+.preview-brand-text {
+  display: grid;
+  line-height: 17.5px;
+}
+.preview-brand-text strong {
+  font-weight: 700;
+  letter-spacing: -0.35px;
+}
+.preview-brand-text > span {
+  margin-top: 4px;
+  color: var(--mes-color-sidebar-muted, var(--boot-sidebar-muted));
+}
+.preview-content {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  gap: 20px;
+  overflow: hidden;
+  padding: 12px 8px;
+}
+.preview-navigation {
+  display: grid;
+  gap: 16px;
+}
+.preview-group-label {
+  height: 28px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  font-weight: 500;
+  color: var(--mes-color-sidebar-muted, var(--boot-sidebar-muted));
+}
+.preview-items {
+  display: grid;
+  gap: 4px;
+}
+.preview-item {
+  display: flex;
+  width: 100%;
+  height: 40px;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  color: var(--sidebar-foreground, var(--boot-sidebar-foreground));
+  white-space: nowrap;
+  overflow: hidden;
+}
+.preview-item[data-active="true"] {
+  background: var(--sidebar-accent, var(--boot-sidebar-accent));
+  color: var(
+    --sidebar-accent-foreground,
+    var(--boot-sidebar-accent-foreground)
+  );
+  font-weight: 600;
+}
+.preview-item[data-active="true"] .preview-icon {
+  color: var(--sidebar-primary, var(--boot-sidebar-primary));
+}
+.preview-support {
+  margin-top: auto;
+  padding-top: 8px;
+}
+.preview-footer {
+  flex-shrink: 0;
+  padding: 8px;
+  border-top: 1px solid var(--sidebar-border, var(--boot-sidebar-border));
+}
+.preview-switch {
+  height: 40px;
+}
+.preview-switch .preview-icon {
+  color: inherit;
+}
+.preview-role {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+[data-boot-sidebar="collapsed"] .preview-brand {
+  padding: 8px 4px;
+}
+[data-boot-sidebar="collapsed"] .preview-brand-text,
+[data-boot-sidebar="collapsed"] .preview-group-label,
+[data-boot-sidebar="collapsed"] .preview-label,
+[data-boot-sidebar="collapsed"] .preview-role {
+  display: none;
+}
+[data-boot-sidebar="collapsed"] .preview-content {
+  padding-left: 4px;
+  padding-right: 4px;
+}
+[data-boot-sidebar="collapsed"] .preview-navigation {
+  gap: 12px;
+}
+[data-boot-sidebar="collapsed"] .preview-item {
+  width: 40px;
+  height: 40px;
+  padding: 12px;
+}
+[data-boot-sidebar="collapsed"] .preview-footer {
+  padding-left: 4px;
+  padding-right: 4px;
+}
+@media (width < 64rem) {
+  .sidebar-preview {
+    display: none;
+  }
+}

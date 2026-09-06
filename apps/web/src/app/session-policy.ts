@@ -25,31 +25,35 @@ export const RoutePermission = {
 const implementedRoutePermission: Record<string, string> = {
   "/dashboard": RoutePermission.DASHBOARD_READ,
   "/work-orders": RoutePermission.WORK_ORDER_READ,
+  "/work-orders/new": RoutePermission.WORK_ORDER_CREATE,
   "/work-orders/$workOrderId": RoutePermission.WORK_ORDER_READ,
-  "/work-orders/$workOrderId/material-reservations": RoutePermission.WORK_ORDER_READ,
+  "/work-orders/$workOrderId/material-reservations":
+    RoutePermission.WORK_ORDER_READ,
   "/materials/lots": RoutePermission.MATERIAL_LOT_READ,
   "/materials/boms": RoutePermission.MASTER_DATA_READ,
   "/execution/queue": RoutePermission.PROCESS_EXECUTION_READ,
-  "/execution/lots/$productionLotId/steps/$processStepRevisionId": RoutePermission.PROCESS_EXECUTION_READ,
+  "/execution/lots/$productionLotId/steps/$processStepRevisionId":
+    RoutePermission.PROCESS_EXECUTION_READ,
   "/quality/inspections": RoutePermission.INSPECTION_READ,
   "/quality/incidents": RoutePermission.QUALITY_INCIDENT_READ,
-  "/quality/incidents/$qualityIncidentId": RoutePermission.QUALITY_INCIDENT_READ,
+  "/quality/incidents/$qualityIncidentId":
+    RoutePermission.QUALITY_INCIDENT_READ,
   "/traceability": RoutePermission.TRACE_READ,
   "/traceability/$traceNodeId": RoutePermission.TRACE_READ,
   "/audit-events": RoutePermission.AUDIT_EVENT_READ,
   "/admin/users": RoutePermission.USER_MANAGE,
 };
 
-export function resolvePostLoginPath(
-  session: Session,
-  requestedPath?: string,
-) {
-  const path = requestedPath === undefined ? undefined : readInternalPath(requestedPath);
+export function resolvePostLoginPath(session: Session, requestedPath?: string) {
+  const path =
+    requestedPath === undefined ? undefined : readInternalPath(requestedPath);
   if (path === undefined) {
     return session.landingRoute;
   }
 
   const pathname = new URL(path, "https://sensor-mes.local").pathname;
+  // Static guidance is readable by every authenticated role; business guards are unchanged.
+  if (pathname === "/guide") return path;
   const permission = implementedRoutePermission[pathname];
   return permission !== undefined && sessionHasPermission(session, permission)
     ? path
@@ -72,7 +76,9 @@ export function requireRoutePermission(
 
 export function readLoginSearch(search: Record<string, unknown>) {
   const redirectPath =
-    typeof search.redirect === "string" ? readInternalPath(search.redirect) : undefined;
+    typeof search.redirect === "string"
+      ? readInternalPath(search.redirect)
+      : undefined;
   const reason = isLoginReason(search.reason) ? search.reason : undefined;
 
   return {
@@ -82,12 +88,14 @@ export function readLoginSearch(search: Record<string, unknown>) {
 }
 
 export function readForbiddenSearch(search: Record<string, unknown>) {
-  const from = typeof search.from === "string" ? readInternalPath(search.from) : undefined;
+  const from =
+    typeof search.from === "string" ? readInternalPath(search.from) : undefined;
   return from === undefined ? {} : { from };
 }
 
 export function roleLandingLabel(route: LandingRoute) {
   const labels: Record<LandingRoute, string> = {
+    "/dashboard": "대시보드",
     "/work-orders": "작업지시",
     "/materials/lots": "자재 LOT",
     "/execution/queue": "공정 실행",

@@ -20,6 +20,8 @@ import {
   type InspectionSortField,
 } from "./inspections.contract.js";
 
+import { inspectionEligibility } from "./inspection-eligibility.js";
+
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 100;
 
@@ -150,7 +152,7 @@ export class InspectionsService {
   async detail(id: string): Promise<InspectionDetail> {
     const record = await this.prisma.inspection.findUnique({
       where: { id },
-      include: { workOrder: true },
+      include: { workOrder: { include: { processSteps: true } }, decisions: { orderBy: { sequence: "asc" } } },
     });
     if (record === null) {
       throw new NotFoundException({
@@ -166,6 +168,12 @@ export class InspectionsService {
 
     return {
       id: record.id,
+      workOrderId: record.workOrderId,
+      eligibility: inspectionEligibility(record, record.workOrder.status, record.workOrder.processSteps),
+      decisions: record.decisions.map(decision => ({
+        id: decision.id, sequence: decision.sequence, phase: decision.phase, verdict: decision.verdict,
+        memo: decision.memo, actorName: decision.actorName, actorRole: decision.actorRole, occurredAt: decision.occurredAt.toISOString(),
+      })),
       inspectionNumber: record.inspectionNumber,
       workOrderNumber: record.workOrder.orderNumber,
       productCode: record.workOrder.productCode,

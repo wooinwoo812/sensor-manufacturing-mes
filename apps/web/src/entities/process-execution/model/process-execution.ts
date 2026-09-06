@@ -26,6 +26,8 @@ export const BLOCKED_REASON_LABELS = {
   MATERIAL_SHORTAGE: "자재 부족",
   MATERIAL_QUARANTINED: "자재 격리",
   MATERIAL_EXPIRED: "자재 만료",
+  NO_GOOD_OUTPUT: "선행 공정 양품 없음",
+  PREDECESSOR_QUANTITY_MISSING: "선행 공정 실적 확인 필요",
 } as const;
 
 export interface ProcessExecutionListItem {
@@ -34,6 +36,7 @@ export interface ProcessExecutionListItem {
   productCode: string;
   productName: string;
   plannedQuantity: number;
+  outputQuantityLimit: number | null;
   unit: string;
   dueDate: string;
   sequence: number;
@@ -64,6 +67,7 @@ export interface ProcessExecutionDetail {
   productCode: string;
   productName: string;
   plannedQuantity: number;
+  outputQuantityLimit: number | null;
   unit: string;
   dueDate: string;
   sequence: number;

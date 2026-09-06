@@ -137,6 +137,14 @@ class FakePrismaService {
     findMany: async () => this.auditEvents,
   };
 
+  readonly decisions: { id: string; inspectionId: string; sequence: number; verdict: string; memo: string | null }[] = [];
+  readonly inspectionDecision = {
+    create: async ({ data }: { data: { inspectionId: string; sequence: number; verdict: string; memo: string | null } }) => {
+      const row = { id: `decision-${this.decisions.length + 1}`, ...data }; this.decisions.push(row); return row;
+    },
+    findFirst: async ({ where }: { where: { inspectionId: string } }) => this.decisions.filter(row => row.inspectionId === where.inspectionId).at(-1) ?? null,
+  };
+
   readonly inspection = {
     findUnique: async ({ where }: { where: { id: string } }) =>
       this.inspections.find((inspection) => inspection.id === where.id) ?? null,
@@ -262,6 +270,8 @@ class FakePrismaService {
       throw new Error("이 테스트에서는 사용하지 않습니다.");
     },
   };
+
+  readonly workOrderMaterialRequirement = { findMany: async () => [] };
 
   readonly materialLot = {
     findUnique: async () => null,
@@ -403,6 +413,10 @@ describe("inspection verdict command", () => {
   it("대기 검사에 판정을 기록하고 감사를 남긴다", async () => {
     const { agent, csrfToken } = await loginAs("QUALITY_ENGINEER");
     const inspectionId = prisma.inspectionIdOf("INSP-2026-0101");
+    const target = prisma.inspections.find(row => row.id === inspectionId)!;
+    for (const step of prisma.processSteps.filter(row => row.workOrderId === target.workOrderId)) {
+      Object.assign(step, { readiness: "COMPLETED", goodQuantity: 120, defectQuantity: 0 });
+    }
 
     await agent
       .post(`/api/inspections/${inspectionId}/verdict`)
