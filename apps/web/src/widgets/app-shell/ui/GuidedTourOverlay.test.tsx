@@ -111,7 +111,7 @@ it("이미 보이는 대상은 스크롤하지 않고 즉시 초점과 테두리
 it("다음 대상을 기다리는 동안 카드 위치를 유지하고 이전 강조는 즉시 제거한다", () => {
   const view = render(overlay());
   const card = screen.getByRole("dialog");
-  const position = { transform: card.style.transform };
+  const position = { left: card.style.left, top: card.style.top };
   view.rerender(overlay(null));
   expect(card).toHaveStyle(position);
   expect(card).toHaveFocus();

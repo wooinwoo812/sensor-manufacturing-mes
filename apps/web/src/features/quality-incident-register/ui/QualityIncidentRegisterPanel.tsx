@@ -29,7 +29,13 @@ export function QualityIncidentRegisterPanel({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useNavigationSafety(title !== "" || sourceType !== "MATERIAL_LOT" || sourceLotNumber !== "" || description !== "", pending);
+  useNavigationSafety(
+    title !== "" ||
+      sourceType !== "MATERIAL_LOT" ||
+      sourceLotNumber !== "" ||
+      description !== "",
+    pending,
+  );
 
   async function submit() {
     if (pending) {
@@ -50,7 +56,9 @@ export function QualityIncidentRegisterPanel({
         {
           title: title.trim(),
           sourceType: sourceType as
-            "MATERIAL_LOT" | "PRODUCTION_LOT" | "FINISHED_UNIT",
+            | "MATERIAL_LOT"
+            | "PRODUCTION_LOT"
+            | "FINISHED_UNIT",
           sourceLotNumber: sourceLotNumber.trim(),
           ...(description.trim() === ""
             ? {}
@@ -122,11 +130,11 @@ export function QualityIncidentRegisterPanel({
         </div>
       </FormFields>
       <FormActions>
+        <Button variant="secondary" onClick={onDone}>
+          취소
+        </Button>
         <Button loading={pending} onClick={() => void submit()}>
           사건 등록
-        </Button>
-        <Button variant="ghost" onClick={onDone}>
-          취소
         </Button>
       </FormActions>
       {error !== null ? (

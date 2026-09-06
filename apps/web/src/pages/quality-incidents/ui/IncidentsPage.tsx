@@ -111,7 +111,6 @@ export function IncidentsPage({
         key: "title",
         width: 280,
         align: "left",
-        wrap: true,
         header: "제목",
         cell: (row) => (
           <span className="block min-w-48">
@@ -128,7 +127,6 @@ export function IncidentsPage({
         key: "source",
         width: 240,
         align: "left",
-        wrap: true,
         header: "원천 대상",
         cell: (row) => (
           <span className="block">

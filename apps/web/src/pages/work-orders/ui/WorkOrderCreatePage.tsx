@@ -208,6 +208,10 @@ export function WorkOrderCreatePage({
                   {error}
                 </p>
               ) : null}
+              <p className="text-xs text-text-muted">
+                생성 즉시 감사 이력이 기록됩니다. 발행은 상세 화면에서 별도
+                확정합니다.
+              </p>
               <FormActions>
                 <Button
                   disabled={submitting}
@@ -216,10 +220,6 @@ export function WorkOrderCreatePage({
                 >
                   초안 생성
                 </Button>
-                <p className="text-xs text-text-muted">
-                  생성 즉시 감사 이력이 기록됩니다. 발행은 상세 화면에서 별도
-                  확정합니다.
-                </p>
               </FormActions>
             </form>
           </Panel>

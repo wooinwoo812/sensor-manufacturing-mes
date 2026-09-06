@@ -6,7 +6,7 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
-import { ArrowLeft, ArrowRight, Check, Compass, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Compass, Pause, X } from "lucide-react";
 import { Button } from "@/shared/ui";
 import type { GuideStep } from "../model/role-onboarding";
 import { positionTourCard, type TourRect } from "../model/tour-target";
@@ -341,13 +341,12 @@ export function GuidedTourOverlay({
         aria-describedby="guided-tour-description"
         tabIndex={-1}
         data-tour-card="true"
-        className="pointer-events-auto fixed flex max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] flex-col overflow-hidden rounded-panel border border-border bg-surface p-5 text-text-strong shadow-panel outline-none transition-transform duration-200 ease-out will-change-transform motion-reduce:transition-none"
+        className="pointer-events-auto fixed flex max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] flex-col overflow-hidden rounded-panel border border-border bg-surface p-4 font-sans text-text-strong shadow-panel outline-none sm:p-5"
         style={{
           height: TOUR_CARD_HEIGHT,
           maxWidth: TOUR_CARD_WIDTH,
-          left: 0,
-          top: 0,
-          transform: `translate3d(${geometry.left}px, ${geometry.top}px, 0)`,
+          left: Math.round(geometry.left),
+          top: Math.round(geometry.top),
         }}
       >
         <div className="mb-3 flex shrink-0 items-center justify-between gap-2">
@@ -397,13 +396,13 @@ export function GuidedTourOverlay({
         >
           <p
             id="guided-tour-description"
-            className="text-base leading-[1.625] text-text-strong"
+            className="text-base font-medium leading-[1.625] text-text-strong"
           >
             {step.description}
           </p>
           <p
             role="status"
-            className="mt-3 rounded-control bg-surface-subtle px-3 py-2 text-xs leading-5 text-text-muted"
+            className="mt-3 rounded-control bg-surface-subtle px-3 py-2 text-sm leading-5 text-text"
           >
             {status === "loading"
               ? "화면을 이동하고 안내 대상을 찾는 중입니다…"
@@ -426,7 +425,12 @@ export function GuidedTourOverlay({
           ) : null}
         </div>
         <div className="flex shrink-0 items-center justify-between gap-2 border-t border-border pt-3">
-          <Button variant="ghost" className="px-2" onClick={onPause}>
+          <Button
+            variant="secondary"
+            className="shrink-0 border-accent-strong/50 bg-accent-soft px-2 text-accent-strong hover:border-accent-strong hover:bg-accent-soft [&>span]:gap-1.5"
+            onClick={onPause}
+          >
+            <Pause className="size-4 shrink-0" aria-hidden="true" />
             일시중지
           </Button>
           <div className="flex gap-2">
@@ -439,12 +443,22 @@ export function GuidedTourOverlay({
             >
               <ArrowLeft className="size-4" aria-hidden="true" />
             </Button>
-            <Button disabled={status === "loading"} onClick={onNext}>
+            <Button
+              className="px-3"
+              disabled={status === "loading"}
+              onClick={onNext}
+            >
               {index === count - 1 ? "안내 완료" : "다음"}
               {index === count - 1 ? (
-                <Check className="size-4" aria-hidden="true" />
+                <Check
+                  className="hidden size-4 min-[360px]:block"
+                  aria-hidden="true"
+                />
               ) : (
-                <ArrowRight className="size-4" aria-hidden="true" />
+                <ArrowRight
+                  className="hidden size-4 min-[360px]:block"
+                  aria-hidden="true"
+                />
               )}
             </Button>
           </div>

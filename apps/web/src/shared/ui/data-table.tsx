@@ -11,6 +11,8 @@ import {
   useEffect,
   useRef,
   useState,
+  Children,
+  isValidElement,
   type KeyboardEvent,
   type MouseEvent,
   type ReactNode,
@@ -24,7 +26,7 @@ export interface DataTableColumn<Row> {
   cell: (row: Row) => ReactNode;
   /** Explicit alignment is required; business lists follow frontend-table-rules.md. */
   align: "left" | "center" | "right";
-  /** 제품명·제목처럼 긴 텍스트 열만 줄바꿈을 허용한다. 식별자·수량·날짜·배지는 한 줄을 지킨다. */
+  /** 모든 열은 기본 말줄임. 여러 줄 설명이 꼭 필요한 경우에만 명시적으로 허용한다. */
   wrap?: boolean;
   /** 최초 조회와 데이터 표시가 같은 열 너비를 사용한다. */
   width?: number;
@@ -65,6 +67,22 @@ interface DataTableProps<Row> {
 function isInsideControl(event: MouseEvent | KeyboardEvent): boolean {
   const target = event.target as HTMLElement;
   return target.closest("button, a, input, select, [role='combobox']") !== null;
+}
+
+/** 말줄임된 값도 마우스 오버와 접근성 트리에서 원문을 확인할 수 있다. */
+function cellText(content: ReactNode): string {
+  return Children.toArray(content)
+    .map((part) => {
+      if (typeof part === "string" || typeof part === "number")
+        return String(part);
+      return isValidElement<{ children?: ReactNode }>(part)
+        ? cellText(part.props.children)
+        : "";
+    })
+    .filter(Boolean)
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 export function DataTable<Row>({
@@ -194,12 +212,13 @@ export function DataTable<Row>({
               {columns.map((column, columnIndex) => (
                 <th
                   className={cn(
-                    "whitespace-nowrap border-b border-border px-3 py-2.5 align-middle font-medium last:pr-4",
+                    "overflow-hidden text-ellipsis whitespace-nowrap border-b border-border px-3 py-2.5 align-middle font-medium last:pr-4",
                     // 첫 열(식별자)은 가로 스크롤 중에도 보인다. 1024px 에서 표가 옆으로 밀려도 어느 행인지 잃지 않는다.
                     columnIndex === 0 && "sticky z-[1] bg-surface-subtle",
                   )}
                   key={column.key}
                   aria-label={column.header}
+                  title={column.header}
                   aria-sort={
                     column.sortKey && onSortChange
                       ? sort?.sort === column.sortKey
@@ -226,7 +245,7 @@ export function DataTable<Row>({
                     <button
                       type="button"
                       className={cn(
-                        "inline-flex min-h-6 items-center gap-1 rounded-sm font-medium outline-offset-4 hover:text-accent-strong focus-visible:outline-2 focus-visible:outline-focus disabled:cursor-wait",
+                        "inline-flex max-w-full min-h-6 items-center gap-1 rounded-sm font-medium outline-offset-4 hover:text-accent-strong focus-visible:outline-2 focus-visible:outline-focus disabled:cursor-wait",
                         sort?.sort === column.sortKey && "text-accent-strong",
                       )}
                       disabled={busy || loading}
@@ -242,7 +261,7 @@ export function DataTable<Row>({
                         })
                       }
                     >
-                      {column.header}
+                      <span className="min-w-0 truncate">{column.header}</span>
                       {sort?.sort === column.sortKey ? (
                         sort.order === "asc" ? (
                           <ArrowUp
@@ -354,36 +373,53 @@ export function DataTable<Row>({
                 {showRowNumbers ? (
                   <td
                     data-sticky-column="true"
-                    className="sticky left-0 z-[2] w-16 min-w-16 bg-inherit px-3 py-2 text-center align-middle text-sm tabular-nums text-text-muted"
+                    className="sticky left-0 z-[2] w-16 min-w-16 overflow-hidden text-ellipsis whitespace-nowrap bg-inherit px-3 py-2 text-center align-middle text-sm tabular-nums text-text-muted"
                   >
                     {(rowNumberStart ?? rows.length) - rowIndex}
                   </td>
                 ) : null}
-                {columns.map((column, columnIndex) => (
-                  <td
-                    className={cn(
-                      "px-3 py-2 align-middle text-text tabular-nums last:pr-4",
-                      columnIndex === 0 && "sticky z-[1] bg-inherit",
-                      column.align === "center" && "[&>.flex]:justify-center",
-                      column.wrap
-                        ? "min-w-32 whitespace-normal [&_.rounded-full]:h-auto [&_.rounded-full]:min-h-6 [&_.rounded-full]:whitespace-normal [&_.rounded-full]:py-1 [&_.rounded-full]:leading-4 [&_svg]:shrink-0"
-                        : "whitespace-nowrap",
-                    )}
-                    key={column.key}
-                    data-sticky-column={columnIndex === 0 ? "true" : undefined}
-                    style={{
-                      textAlign: column.align ?? "left",
-                      left:
-                        columnIndex === 0
-                          ? showRowNumbers
-                            ? 64
-                            : 0
-                          : undefined,
-                    }}
-                  >
-                    {column.cell(row)}
-                  </td>
-                ))}
+                {columns.map((column, columnIndex) => {
+                  const content = column.cell(row);
+                  return (
+                    <td
+                      className={cn(
+                        "overflow-hidden px-3 py-2 align-middle text-text tabular-nums last:pr-4",
+                        columnIndex === 0 && "sticky z-[1] bg-inherit",
+                        column.align === "center" && "[&>.flex]:justify-center",
+                        column.wrap
+                          ? "min-w-32 whitespace-normal [&_.rounded-full]:h-auto [&_.rounded-full]:min-h-6 [&_.rounded-full]:whitespace-normal [&_.rounded-full]:py-1 [&_.rounded-full]:leading-4 [&_svg]:shrink-0"
+                          : "text-ellipsis whitespace-nowrap [&>button]:max-w-full [&>button]:truncate [&>button]:align-middle [&>a]:inline-block [&>a]:max-w-full [&>a]:truncate [&>a]:align-middle",
+                      )}
+                      key={column.key}
+                      data-cell-overflow={column.wrap ? "wrap" : "ellipsis"}
+                      title={cellText(content) || undefined}
+                      onMouseEnter={(event) => {
+                        // Custom cells can render text that is not present in their React children.
+                        event.currentTarget.title = (
+                          event.currentTarget.innerText ??
+                          event.currentTarget.textContent ??
+                          ""
+                        )
+                          .replace(/\s+/g, " ")
+                          .trim();
+                      }}
+                      data-sticky-column={
+                        columnIndex === 0 ? "true" : undefined
+                      }
+                      style={{
+                        textAlign: column.align ?? "left",
+                        left:
+                          columnIndex === 0
+                            ? showRowNumbers
+                              ? 64
+                              : 0
+                            : undefined,
+                      }}
+                    >
+                      {content}
+                    </td>
+                  );
+                })}
                 {clickable ? (
                   <td className="w-10 px-2 text-center">
                     <ChevronRight

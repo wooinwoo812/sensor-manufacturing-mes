@@ -142,7 +142,6 @@ export function InspectionsPage({
         key: "specName",
         width: 176,
         align: "left",
-        wrap: true,
         header: "검사 규격",
         cell: (row) => (
           <span className="block min-w-40 text-sm text-text-strong">

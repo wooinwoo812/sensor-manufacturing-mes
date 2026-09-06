@@ -120,7 +120,6 @@ export function AuditEventsPage({
       },
       {
         key: "entity",
-        wrap: true,
         width: 190,
         sortKey: "entityId",
         align: "left",
@@ -140,7 +139,6 @@ export function AuditEventsPage({
         key: "summary",
         width: 280,
         align: "left",
-        wrap: true,
         header: "내용",
         cell: (row) => (
           <span className="block text-sm text-text-strong">{row.summary}</span>
@@ -148,7 +146,6 @@ export function AuditEventsPage({
       },
       {
         key: "requestId",
-        wrap: true,
         width: 290,
         align: "left",
         header: "요청 ID",

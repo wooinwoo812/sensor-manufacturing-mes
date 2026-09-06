@@ -2,7 +2,7 @@ import { useNavigationSafety } from "@/shared/lib";
 import { useState } from "react";
 import { verdictInspection } from "../api/inspection-verdict";
 import { ApiRequestError } from "@/shared/api";
-import { Badge, Button, Input, Panel, Select } from "@/shared/ui";
+import { Badge, Button, Input, Panel, Select, FormActions } from "@/shared/ui";
 
 export interface InspectionVerdictTarget {
   inspectionId: string;
@@ -67,7 +67,11 @@ export function InspectionVerdictPanel({
   return (
     <Panel
       ariaLabel={review ? "보류 검토 입력" : "검사 판정 입력"}
-      description={review ? "기존 보류 판정과 사유를 보존하고, 검토 결과를 새 이력으로 기록합니다." : "불합격·보류는 다음 공정을 차단합니다. 판정 후에는 보류 검사만 추가 검토할 수 있습니다."}
+      description={
+        review
+          ? "기존 보류 판정과 사유를 보존하고, 검토 결과를 새 이력으로 기록합니다."
+          : "불합격·보류는 다음 공정을 차단합니다. 판정 후에는 보류 검사만 추가 검토할 수 있습니다."
+      }
       headingLevel="h2"
       title={`${review ? "보류 검토" : "판정 입력"} · ${target.specName} (${target.productionLotNumber})`}
     >
@@ -77,14 +81,20 @@ export function InspectionVerdictPanel({
             label="판정"
             tourAnchor="inspection-verdict"
             disabled={pending}
-            options={VERDICT_OPTIONS.filter(option => !review || option.value !== "HOLD").map((option) => ({ ...option }))}
+            options={VERDICT_OPTIONS.filter(
+              (option) => !review || option.value !== "HOLD",
+            ).map((option) => ({ ...option }))}
             value={verdict}
             onValueChange={setVerdict}
           />
         </div>
-        <div className="min-w-56 flex-1">
+        <div className="min-w-0 basis-56 flex-1">
           <Input
-            hint={review || verdict !== "PASS" ? "검토 근거와 사유를 2~300자로 입력해 주세요." : "선택 사항 · 최대 300자"}
+            hint={
+              review || verdict !== "PASS"
+                ? "검토 근거와 사유를 2~300자로 입력해 주세요."
+                : "선택 사항 · 최대 300자"
+            }
             maxLength={300}
             disabled={pending}
             id="verdict-memo"
@@ -95,13 +105,19 @@ export function InspectionVerdictPanel({
             value={memo}
           />
         </div>
-        <Button loading={pending} disabled={(review || verdict !== "PASS") && memo.trim().length < 2} onClick={() => void submit()}>
-          {review ? "검토 결과 확정" : "판정 확정"}
-        </Button>
-        <Button variant="ghost" disabled={pending} onClick={onDone}>
+      </div>
+      <FormActions>
+        <Button variant="secondary" disabled={pending} onClick={onDone}>
           취소
         </Button>
-      </div>
+        <Button
+          loading={pending}
+          disabled={(review || verdict !== "PASS") && memo.trim().length < 2}
+          onClick={() => void submit()}
+        >
+          {review ? "검토 결과 확정" : "판정 확정"}
+        </Button>
+      </FormActions>
       {verdict !== "PASS" ? (
         <p className="mt-3">
           <Badge tone={verdict === "FAIL" ? "danger" : "warning"}>

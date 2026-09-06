@@ -110,7 +110,6 @@ export function WorkOrdersPage({
         key: "product",
         width: 216,
         align: "left",
-        wrap: true,
         header: "제품",
         cell: (row) => (
           <span className="block w-full space-y-0.5">
@@ -214,7 +213,6 @@ export function WorkOrdersPage({
         key: "blockedReason",
         width: 144,
         align: "left",
-        wrap: true,
         header: "차단 사유",
         cell: (row) =>
           row.blockedReason === null ? (

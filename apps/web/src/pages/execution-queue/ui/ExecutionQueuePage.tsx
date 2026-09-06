@@ -143,7 +143,6 @@ export function ExecutionQueuePage({
         key: "product",
         width: 216,
         align: "left",
-        wrap: true,
         header: "제품",
         cell: (row) => (
           <span className="block w-full space-y-0.5">
@@ -183,7 +182,6 @@ export function ExecutionQueuePage({
         key: "blockedReasonCodes",
         width: 160,
         align: "left",
-        wrap: true,
         header: "차단 사유",
         cell: (row) =>
           row.blockedReasonCodes.length === 0 ? (
