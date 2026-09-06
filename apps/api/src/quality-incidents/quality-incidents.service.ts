@@ -5,6 +5,7 @@ import type {
   QualityIncidentStatus,
 } from "../generated/prisma/enums.js";
 import { PrismaService } from "../database/prisma.service.js";
+import { auditSummary } from "../audit-events/audit-summary.js";
 import type { CommandActor } from "../work-orders/work-orders.service.js";
 import {
   QUALITY_INCIDENT_SORT_FIELDS,
@@ -248,7 +249,7 @@ export class QualityIncidentsService {
           action: "QUALITY_INCIDENT_REGISTERED",
           entityType: "QUALITY_INCIDENT",
           entityId: incident.incidentNumber,
-          summary: `${incident.title} (${incident.sourceLotNumber}) 부적합 사건 등록${description === undefined ? "" : ` — ${description}`}`,
+          summary: auditSummary(`${incident.title} (${incident.sourceLotNumber}) 부적합 사건 등록${description === undefined ? "" : ` — ${description}`}`),
           requestId: `req-${Date.now().toString(36)}-${Math.random()
             .toString(36)
             .slice(2, 8)}`,

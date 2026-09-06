@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import {
@@ -70,9 +70,15 @@ describe("TraceabilityPage", () => {
     renderPage();
 
     expect(await screen.findByText("ML-2026-0331")).toBeInTheDocument();
-    expect(screen.getByText("PL-2026-091A")).toBeInTheDocument();
-    expect(screen.getByText("자재 LOT")).toBeInTheDocument();
-    expect(screen.getByText("생산 LOT")).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("table")).getByText("PL-2026-091A"),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("table")).getByText("자재 LOT"),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("table")).getByText("생산 LOT"),
+    ).toBeInTheDocument();
   });
 
   it("검색어를 입력하면 검색 조건을 반영한다", async () => {
@@ -99,9 +105,7 @@ describe("TraceabilityPage", () => {
   });
 
   it("조건에 맞는 노드가 없으면 안내를 표시한다", async () => {
-    fetchMock.mockResolvedValue(
-      sampleResult({ items: [], total: 0 }),
-    );
+    fetchMock.mockResolvedValue(sampleResult({ items: [], total: 0 }));
     renderPage({ q: "없는번호" });
 
     expect(

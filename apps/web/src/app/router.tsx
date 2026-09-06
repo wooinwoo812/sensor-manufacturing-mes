@@ -3,8 +3,8 @@ import { routeTree } from "./routeTree.gen";
 
 export const router = createRouter({
   routeTree,
-  defaultPreload: "intent",
-  defaultPreloadStaleTime: 30_000,
+  // Before-load auth checks should run on navigation, not pointer hover/focus.
+  defaultPreload: false,
   scrollRestoration: true,
 });
 

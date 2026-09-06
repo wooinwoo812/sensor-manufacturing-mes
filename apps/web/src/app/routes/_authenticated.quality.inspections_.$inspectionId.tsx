@@ -27,6 +27,8 @@ export function InspectionDetailRoute() {
       inspectionId={inspectionId}
       csrfToken={session.csrfToken}
       canVerdict={session.permissions.includes("inspection:execute")}
+      canReview={session.permissions.includes("inspection:correct")}
+      onOpenWorkOrder={(id) => { void navigate({ to: "/work-orders/$workOrderId", params: { workOrderId: id } }); }}
       onBack={() => {
         void navigate({ to: "/quality/inspections", search: {}, replace: true });
       }}

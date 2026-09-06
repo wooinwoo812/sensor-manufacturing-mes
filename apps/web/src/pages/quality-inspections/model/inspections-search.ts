@@ -1,3 +1,4 @@
+import { getPageSize, readPageSize } from "@/shared/lib";
 import {
   INSPECTION_EXECUTION_STATUS_LABELS,
   INSPECTION_GATE_LABELS,
@@ -13,9 +14,13 @@ export interface InspectionsSearch {
   verdict?: readonly InspectionVerdict[];
   gate?: readonly InspectionGate[];
   page?: number;
+  pageSize?: number;
 }
 
-function parseList<T extends string>(raw: unknown, allowed: readonly T[]): readonly T[] | undefined {
+function parseList<T extends string>(
+  raw: unknown,
+  allowed: readonly T[],
+): readonly T[] | undefined {
   if (typeof raw !== "string" || raw === "") {
     return undefined;
   }
@@ -23,11 +28,15 @@ function parseList<T extends string>(raw: unknown, allowed: readonly T[]): reado
     .split(",")
     .map((value) => value.trim())
     .filter((value) => value !== "");
-  const valid = values.filter((value): value is T => allowed.includes(value as T));
+  const valid = values.filter((value): value is T =>
+    allowed.includes(value as T),
+  );
   return valid.length > 0 ? valid : undefined;
 }
 
-export function readInspectionsSearch(raw: Record<string, unknown>): InspectionsSearch {
+export function readInspectionsSearch(
+  raw: Record<string, unknown>,
+): InspectionsSearch {
   let page: number | undefined;
   if (
     typeof raw.page === "string" &&
@@ -42,10 +51,22 @@ export function readInspectionsSearch(raw: Record<string, unknown>): Inspections
 
   return stripUndefinedSearch({
     q,
-    executionStatus: parseList(raw.executionStatus, Object.keys(INSPECTION_EXECUTION_STATUS_LABELS) as InspectionExecutionStatus[]),
-    verdict: parseList(raw.verdict, Object.keys(INSPECTION_VERDICT_LABELS) as InspectionVerdict[]),
-    gate: parseList(raw.gate, Object.keys(INSPECTION_GATE_LABELS) as InspectionGate[]),
+    executionStatus: parseList(
+      raw.executionStatus,
+      Object.keys(
+        INSPECTION_EXECUTION_STATUS_LABELS,
+      ) as InspectionExecutionStatus[],
+    ),
+    verdict: parseList(
+      raw.verdict,
+      Object.keys(INSPECTION_VERDICT_LABELS) as InspectionVerdict[],
+    ),
+    gate: parseList(
+      raw.gate,
+      Object.keys(INSPECTION_GATE_LABELS) as InspectionGate[],
+    ),
     page,
+    pageSize: readPageSize(raw.pageSize),
   });
 }
 
@@ -53,7 +74,9 @@ type InspectionsSearchPatch = {
   [K in keyof InspectionsSearch]?: InspectionsSearch[K] | undefined;
 };
 
-export function stripUndefinedSearch(value: InspectionsSearchPatch): InspectionsSearch {
+export function stripUndefinedSearch(
+  value: InspectionsSearchPatch,
+): InspectionsSearch {
   const result: Record<string, unknown> = {};
   for (const [key, entry] of Object.entries(value)) {
     if (entry !== undefined) {
@@ -70,12 +93,17 @@ export function mergeInspectionsSearch(
   return stripUndefinedSearch({ ...base, ...patch });
 }
 
-export function toInspectionsParams(search: InspectionsSearch): URLSearchParams {
+export function toInspectionsParams(
+  search: InspectionsSearch,
+): URLSearchParams {
   const params = new URLSearchParams();
   if (search.q !== undefined) {
     params.set("q", search.q);
   }
-  if (search.executionStatus !== undefined && search.executionStatus.length > 0) {
+  if (
+    search.executionStatus !== undefined &&
+    search.executionStatus.length > 0
+  ) {
     params.set("executionStatus", search.executionStatus.join(","));
   }
   if (search.verdict !== undefined && search.verdict.length > 0) {
@@ -87,5 +115,6 @@ export function toInspectionsParams(search: InspectionsSearch): URLSearchParams 
   if (search.page !== undefined && search.page > 1) {
     params.set("page", String(search.page));
   }
+  params.set("pageSize", String(getPageSize(search.pageSize)));
   return params;
 }

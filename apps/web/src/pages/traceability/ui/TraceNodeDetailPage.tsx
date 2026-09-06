@@ -11,7 +11,10 @@ import {
   ErrorState,
   PageHeading,
   Panel,
+  ContentGrid,
+  StatusStrip,
   Skeleton,
+  DataRegion,
 } from "@/shared/ui";
 import { useLoadState } from "@/shared/lib";
 import { Main, PageCrumb } from "@/widgets/app-shell";
@@ -35,12 +38,14 @@ interface TraceNodeDetailPageProps {
 }
 
 function EdgeList({
+  tourAnchor,
   title,
   description,
   edges,
   emptyText,
   onOpenNode,
 }: {
+  tourAnchor: string;
   title: string;
   description: string;
   edges: TraceEdgeView[];
@@ -48,14 +53,19 @@ function EdgeList({
   onOpenNode?: ((traceNodeId: string) => void) | undefined;
 }) {
   return (
-    <Panel description={description} headingLevel="h2" title={title}>
+    <Panel
+      tourAnchor={tourAnchor}
+      description={description}
+      headingLevel="h2"
+      title={title}
+    >
       {edges.length === 0 ? (
         <p className="py-1 text-sm text-text-muted">{emptyText}</p>
       ) : (
         <ul className="divide-y divide-border">
           {edges.map((edge) => (
             <li
-              className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"
+              className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"
               key={edge.id}
             >
               <div className="min-w-0">
@@ -68,17 +78,24 @@ function EdgeList({
                     {edge.node.label}
                   </button>
                 ) : (
-                  <span className="text-sm font-semibold tabular-nums">{edge.node.label}</span>
+                  <span className="text-sm font-semibold tabular-nums">
+                    {edge.node.label}
+                  </span>
                 )}
                 <p className="mt-0.5 text-xs text-text-muted">
-                  {TRACE_NODE_TYPE_LABELS[edge.node.nodeType]} · {formatDateTime(edge.createdAt)}
+                  {TRACE_NODE_TYPE_LABELS[edge.node.nodeType]} ·{" "}
+                  {formatDateTime(edge.createdAt)}
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-3">
-                <Badge tone="info">{LOT_RELATION_TYPE_LABELS[edge.relationType]}</Badge>
+                <Badge tone="info">
+                  {LOT_RELATION_TYPE_LABELS[edge.relationType]}
+                </Badge>
                 <span className="text-sm tabular-nums">
                   <span className="text-text-muted">수량 </span>
-                  <strong className="font-semibold">{edge.quantity.toLocaleString("ko-KR")}</strong>
+                  <strong className="font-semibold">
+                    {edge.quantity.toLocaleString("ko-KR")}
+                  </strong>
                 </span>
               </div>
             </li>
@@ -96,60 +113,78 @@ export function TraceNodeDetailPage({
 }: TraceNodeDetailPageProps) {
   const { state } = useLoadState<{ detail: TraceNodeDetail }>(
     traceNodeId,
-    (signal) => fetchTraceNodeDetail(traceNodeId, signal).then((detail) => ({ detail })),
+    (signal) =>
+      fetchTraceNodeDetail(traceNodeId, signal).then((detail) => ({ detail })),
     "추적 노드를 불러오지 못했습니다.",
   );
+  const detail = state.phase === "success" ? state.detail : null;
 
   return (
     <Main id="main-content" tabIndex={-1}>
-      {state.phase === "loading" ? (
-        <Skeleton className="h-64 w-full" />
-      ) : state.phase === "error" ? (
-        <ErrorState
-          title="추적 노드를 불러올 수 없습니다"
-          description={state.message}
-          action={
-            <Button variant="secondary" onClick={onBack}>
-              목록으로
-            </Button>
-          }
-        />
-      ) : (
-        <>
-          <PageCrumb value={state.detail.label} />
-          <PageHeading
-            back={{ label: "LOT 계보 목록", onClick: onBack }}
-            description="이 노드로 투입된 원천과 이 노드가 투입된 산출을 양방향으로 확인합니다."
-            eyebrow="LOT 계보 상세"
-            meta={<span>생성 {formatDateTime(state.detail.createdAt)}</span>}
-            title={state.detail.label}
+      <PageHeading
+        back={{ label: "LOT 계보 목록", onClick: onBack }}
+        eyebrow="LOT 계보 상세"
+        title={detail?.label ?? "LOT 계보"}
+        description={
+          detail
+            ? "이 노드로 투입된 원천과 이 노드가 투입된 산출을 양방향으로 확인합니다."
+            : state.phase === "loading"
+              ? "상세 정보를 불러오고 있습니다."
+              : "상세 정보를 확인하지 못했습니다. 다시 시도하거나 이전 화면으로 돌아가세요."
+        }
+        meta={
+          detail ? (
+            <span>생성 {formatDateTime(detail.createdAt)}</span>
+          ) : undefined
+        }
+      />
+      <DataRegion name="detail" loading={state.phase === "loading"}>
+        {state.phase === "loading" ? (
+          <Skeleton className="h-64 w-full" />
+        ) : state.phase === "error" ? (
+          <ErrorState
+            title="추적 노드를 불러올 수 없습니다"
+            description={state.message}
+            action={
+              <Button variant="secondary" onClick={onBack}>
+                목록으로
+              </Button>
+            }
           />
-          {/* 다른 상세와 같은 자리: 제목 아래 배지 행. 노드 종류는 eyebrow 문장이 아니라 배지로 보여준다. */}
-          <div className="flex flex-wrap items-center gap-3">
-            <Badge tone="info">{TRACE_NODE_TYPE_LABELS[state.detail.nodeType]}</Badge>
-            <span className="text-xs text-text-muted">
-              CONSUME 관계는 공정 시작 시점에 자동으로 기록됩니다.
-            </span>
-          </div>
-          {/* 원천 → 이 노드 → 영향. 흐름의 양쪽이므로 나란히 둔다. */}
-          <div className="grid gap-4 xl:grid-cols-2">
-            <EdgeList
-              description="이 노드를 만들기 위해 투입된 자재·LOT"
-              edges={state.detail.upstream}
-              emptyText="투입 기록이 없습니다."
-              onOpenNode={onOpenNode}
-              title="원천 (upstream)"
-            />
-            <EdgeList
-              description="이 노드가 투입된 생산 LOT·완제품"
-              edges={state.detail.downstream}
-              emptyText="투입된 산출 기록이 없습니다."
-              onOpenNode={onOpenNode}
-              title="영향 (downstream)"
-            />
-          </div>
-        </>
-      )}
+        ) : (
+          <>
+            <PageCrumb value={state.detail.label} />
+            {/* 다른 상세와 같은 자리: 제목 아래 배지 행. 노드 종류는 eyebrow 문장이 아니라 배지로 보여준다. */}
+            <StatusStrip>
+              <Badge tone="info">
+                {TRACE_NODE_TYPE_LABELS[state.detail.nodeType]}
+              </Badge>
+              <span className="text-xs text-text-muted">
+                자재 소비 관계는 공정 시작 시점에 자동으로 기록됩니다.
+              </span>
+            </StatusStrip>
+            {/* 원천 → 이 노드 → 영향. 흐름의 양쪽이므로 나란히 둔다. */}
+            <ContentGrid>
+              <EdgeList
+                description="이 노드를 만들기 위해 투입된 자재·LOT"
+                edges={state.detail.upstream}
+                emptyText="투입 기록이 없습니다."
+                onOpenNode={onOpenNode}
+                title="원천 (upstream)"
+                tourAnchor="trace-upstream"
+              />
+              <EdgeList
+                description="이 노드가 투입된 생산 LOT·완제품"
+                edges={state.detail.downstream}
+                emptyText="투입된 산출 기록이 없습니다."
+                onOpenNode={onOpenNode}
+                title="영향 (downstream)"
+                tourAnchor="trace-downstream"
+              />
+            </ContentGrid>
+          </>
+        )}
+      </DataRegion>
     </Main>
   );
 }

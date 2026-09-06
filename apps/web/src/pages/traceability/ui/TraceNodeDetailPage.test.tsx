@@ -44,6 +44,27 @@ function sampleDetail(): TraceNodeDetail {
 }
 
 describe("TraceNodeDetailPage", () => {
+  it("응답 전후 제목·돌아가기 DOM을 유지해 클릭과 초점을 잃지 않는다", async () => {
+    let resolveDetail!: (detail: TraceNodeDetail) => void;
+    fetchMock.mockReturnValue(
+      new Promise((resolve) => {
+        resolveDetail = resolve;
+      }),
+    );
+    const onBack = vi.fn();
+    render(<TraceNodeDetailPage traceNodeId="trace-p-1" onBack={onBack} />);
+    const heading = screen.getByRole("heading", { level: 1 });
+    const back = screen.getByRole("button", { name: "LOT 계보 목록" });
+    back.focus();
+    resolveDetail(sampleDetail());
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "PL-2026-091A" }),
+    ).toBe(heading);
+    expect(screen.getByRole("button", { name: "LOT 계보 목록" })).toBe(back);
+    expect(back).toHaveFocus();
+    await userEvent.click(back);
+    expect(onBack).toHaveBeenCalledOnce();
+  });
   it("노드 제목과 원천 투입 관계를 표시한다", async () => {
     fetchMock.mockResolvedValue(sampleDetail());
     render(<TraceNodeDetailPage traceNodeId="trace-p-1" onBack={vi.fn()} />);
@@ -55,17 +76,19 @@ describe("TraceNodeDetailPage", () => {
     expect(screen.getByText("원천 (upstream)")).toBeInTheDocument();
     expect(screen.getByText("ML-2026-0301")).toBeInTheDocument();
     expect(screen.getByText("40")).toBeInTheDocument();
-    expect(screen.getByText("투입된 산출 기록이 없습니다.")).toBeInTheDocument();
+    expect(
+      screen.getByText("투입된 산출 기록이 없습니다."),
+    ).toBeInTheDocument();
   });
 
   it("목록으로 버튼이 뒤로가기를 호출한다", async () => {
     fetchMock.mockResolvedValue(sampleDetail());
     const onBack = vi.fn();
-    render(
-      <TraceNodeDetailPage traceNodeId="trace-p-1" onBack={onBack} />,
-    );
+    render(<TraceNodeDetailPage traceNodeId="trace-p-1" onBack={onBack} />);
 
-    await userEvent.click(await screen.findByRole("button", { name: "LOT 계보 목록" }));
+    await userEvent.click(
+      await screen.findByRole("button", { name: "LOT 계보 목록" }),
+    );
     expect(onBack).toHaveBeenCalled();
   });
 });

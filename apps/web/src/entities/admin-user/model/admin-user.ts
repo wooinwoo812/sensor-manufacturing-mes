@@ -6,4 +6,5 @@ export interface AdminUserListItem {
   isDemo: boolean;
   roles: { code: string; label: string }[];
   createdAt: string;
+  updatedAt: string;
 }

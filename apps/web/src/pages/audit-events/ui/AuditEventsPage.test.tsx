@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import {
@@ -8,7 +8,8 @@ import {
 import { AuditEventsPage } from "./AuditEventsPage";
 
 vi.mock("@/entities/audit-event", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/entities/audit-event")>();
+  const actual =
+    await importOriginal<typeof import("@/entities/audit-event")>();
   return {
     ...actual,
     fetchAuditEvents: vi.fn(),
@@ -17,7 +18,9 @@ vi.mock("@/entities/audit-event", async (importOriginal) => {
 
 const fetchMock = vi.mocked(fetchAuditEvents);
 
-function sampleResult(overrides: Partial<AuditEventListResult> = {}): AuditEventListResult {
+function sampleResult(
+  overrides: Partial<AuditEventListResult> = {},
+): AuditEventListResult {
   return {
     items: [
       {
@@ -64,9 +67,15 @@ describe("AuditEventsPage", () => {
     renderPage();
 
     expect(await screen.findByText("INSP-2026-0107")).toBeInTheDocument();
-    expect(screen.getByText("검사 판정")).toBeInTheDocument();
-    expect(screen.getByText("품질 담당자")).toBeInTheDocument();
-    expect(screen.getByText("req-2026-09-03-0042")).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("table")).getByText("검사 판정"),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("table")).getByText("품질 담당자"),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("table")).getByText("req-2026-09-03-0042"),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("table", { name: "감사 이벤트 목록" }),
     ).toBeInTheDocument();
@@ -106,6 +115,8 @@ describe("AuditEventsPage", () => {
       await screen.findByRole("option", { name: "생산계획 담당자" }),
     );
 
+    expect(onSearchChange).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "조회" }));
     expect(onSearchChange).toHaveBeenCalledWith({
       actorRole: ["PRODUCTION_PLANNER"],
     });

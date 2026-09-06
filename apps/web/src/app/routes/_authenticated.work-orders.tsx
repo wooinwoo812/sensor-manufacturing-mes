@@ -39,7 +39,8 @@ export function WorkOrdersRoute() {
         void navigate({
           to: "/work-orders",
           search: next,
-          replace: true,
+          replace: false,
+          resetScroll: false,
         });
       }}
     />

@@ -1,10 +1,13 @@
 import {
+  ArrowDown,
+  ChevronUp,
+  ChevronsUp,
+  Minus,
   AlertTriangle,
   Check,
   Circle,
   Clock3,
   Info,
-  ShieldAlert,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/shared/lib";
@@ -19,11 +22,11 @@ interface BadgeProps {
 }
 
 const toneClasses: Record<BadgeTone, string> = {
-  neutral: "border-border/70 bg-surface-subtle text-text-muted",
-  info: "border-accent/60 bg-accent-soft text-accent-strong",
-  success: "border-success-border/60 bg-success-soft text-success-strong",
-  warning: "border-warning-border/60 bg-warning-soft text-warning-strong",
-  danger: "border-danger-border/60 bg-danger-soft text-danger-strong",
+  neutral: "border-transparent bg-surface-subtle text-text-muted",
+  info: "border-transparent bg-accent-soft text-accent-strong",
+  success: "border-transparent bg-success-soft text-success-strong",
+  warning: "border-transparent bg-warning-soft text-warning-strong",
+  danger: "border-transparent bg-danger-soft text-danger-strong",
 };
 
 const defaultIcon: Record<BadgeTone, LucideIcon> = {
@@ -34,42 +37,59 @@ const defaultIcon: Record<BadgeTone, LucideIcon> = {
   danger: AlertTriangle,
 };
 
-export function Badge({ children, className, icon, tone = "neutral" }: BadgeProps) {
+export function Badge({
+  children,
+  className,
+  icon,
+  tone = "neutral",
+}: BadgeProps) {
   const Icon = icon ?? defaultIcon[tone];
 
   return (
-    <span className={cn("inline-flex h-6 items-center gap-1 whitespace-nowrap rounded-md border px-1.5 text-xs font-medium leading-none", toneClasses[tone], className)}>
+    <span
+      className={cn(
+        "inline-flex h-6 items-center gap-1 whitespace-nowrap rounded-full border px-2 text-xs font-medium leading-none",
+        toneClasses[tone],
+        className,
+      )}
+    >
       <Icon className="size-3.5" aria-hidden="true" />
       {children}
     </span>
   );
 }
 
-export function PriorityBadge({ priority }: { priority: "low" | "normal" | "high" | "critical" }) {
+export function PriorityBadge({
+  priority,
+}: {
+  priority: "low" | "normal" | "high" | "critical";
+}) {
   const config = {
     low: { label: "낮음", tone: "neutral" },
-    normal: { label: "보통", tone: "info" },
+    normal: { label: "보통", tone: "neutral" },
     high: { label: "높음", tone: "warning" },
     critical: { label: "긴급", tone: "danger" },
   } as const;
 
-  // 우선순위는 점 + 텍스트로만 표시한다. 한 행에 상태·차단 사유·우선순위 배지가 나란히 놓이면
-  // 세 번째 pill 은 정보가 아니라 소음이 된다. 긴급만 아이콘을 붙여 색 없이도 구분되게 한다.
-  const dotTone: Record<BadgeTone, string> = {
-    neutral: "bg-text-subtle",
-    info: "bg-accent-strong",
-    success: "bg-success",
-    warning: "bg-warning",
-    danger: "bg-danger",
+  const priorityColors = {
+    neutral: "text-text-muted",
+    warning: "text-warning-strong",
+    danger: "text-danger-strong",
   };
-
+  const Icon = {
+    low: ArrowDown,
+    normal: Minus,
+    high: ChevronUp,
+    critical: ChevronsUp,
+  }[priority];
   return (
-    <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-xs font-medium text-text">
-      {priority === "critical" ? (
-        <ShieldAlert className="size-3.5 text-danger-strong" aria-hidden="true" />
-      ) : (
-        <span aria-hidden="true" className={cn("size-2 rounded-full", dotTone[config[priority].tone])} />
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 whitespace-nowrap text-sm font-medium leading-5",
+        priorityColors[config[priority].tone],
       )}
+    >
+      <Icon className="size-4 shrink-0" aria-hidden="true" />
       {config[priority].label}
     </span>
   );

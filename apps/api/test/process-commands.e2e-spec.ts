@@ -388,8 +388,10 @@ class FakePrismaService {
     },
   };
 
+  readonly workOrderMaterialRequirement = { findMany: async () => [] };
+
   readonly materialLot = {
-    findUnique: async () => null,
+    findUnique: async ({ where }: { where: { id: string } }) => this.materialLots.find((lot) => lot.id === where.id) ?? null,
     findMany: async () => this.materialLots,
     update: async ({
       where,
@@ -586,17 +588,21 @@ describe("process execution commands", () => {
     const { agent, csrfToken } = await loginAs("SHOP_FLOOR_OPERATOR");
     const stepId = prisma.stepIdOf("WO-2026-091", "조립 2공정");
 
+    const gate = prisma.inspections.find((row) => row.workOrderId === "work-order-1" && row.gate === "ROUTE_ADVANCE")!;
+    gate.executionStatus = "COMPLETED";
+    gate.verdict = "PASS";
+
     await agent
       .post(`/api/process-executions/steps/${stepId}/complete`)
       .set("Origin", allowedOrigin)
       .set("x-csrf-token", csrfToken)
-      .send({ goodQuantity: 110, defectQuantity: 5, memo: "검증 완료 실적" })
+      .send({ goodQuantity: 115, defectQuantity: 5, memo: "검증 완료 실적" })
       .expect(200);
 
     const step = prisma.processSteps.find((row) => row.id === stepId);
     expect(step).toMatchObject({
       readiness: "COMPLETED",
-      goodQuantity: 110,
+      goodQuantity: 115,
       defectQuantity: 5,
       executionMemo: "검증 완료 실적",
     });

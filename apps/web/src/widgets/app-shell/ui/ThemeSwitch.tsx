@@ -29,10 +29,7 @@ export function ThemeSwitch() {
 
   useEffect(() => {
     const metaThemeColor = document.querySelector("meta[name='theme-color']");
-    metaThemeColor?.setAttribute(
-      "content",
-      browserChromeColor[resolvedTheme],
-    );
+    metaThemeColor?.setAttribute("content", browserChromeColor[resolvedTheme]);
   }, [resolvedTheme]);
 
   return (
@@ -40,7 +37,7 @@ export function ThemeSwitch() {
       <DropdownMenuTrigger asChild>
         <Button
           aria-label="테마 변경"
-          className="relative size-11 lg:size-9"
+          className="relative size-11 shrink-0 lg:size-9"
           size="icon"
           type="button"
           variant="ghost"

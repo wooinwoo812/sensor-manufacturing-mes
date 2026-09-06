@@ -2,7 +2,6 @@
  * Adapted from shadcn-admin@e16c87f213a5ba5e45964e9b67c792105ec74d26.
  * Copyright (c) 2024 Sat Naing. MIT License; see THIRD_PARTY_NOTICES.md.
  */
-import { Link } from "@tanstack/react-router";
 import {
   Boxes,
   ClipboardCheck,
@@ -23,12 +22,12 @@ import {
   SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
-  useSidebar,
 } from "@/shared/ui";
 import type {
   NavigationGroup as NavigationGroupModel,
   NavigationIcon,
 } from "../model/navigation";
+import { SidebarNavLink } from "./SidebarNavLink";
 
 const iconByName: Record<NavigationIcon, LucideIcon> = {
   audit: History,
@@ -49,11 +48,9 @@ interface NavGroupProps {
 }
 
 export function NavGroup({ group, pathname }: NavGroupProps) {
-  const { setOpenMobile } = useSidebar();
-
   return (
-    <SidebarGroup>
-      <SidebarGroupLabel className="h-7 text-[11px] font-semibold tracking-wide text-text-subtle">
+    <SidebarGroup className="p-0">
+      <SidebarGroupLabel className="h-7 px-3 text-sm font-medium text-sidebar-muted group-data-[collapsible=icon]:hidden">
         {group.label}
       </SidebarGroupLabel>
       <SidebarMenu>
@@ -63,18 +60,15 @@ export function NavGroup({ group, pathname }: NavGroupProps) {
           return (
             <SidebarMenuItem key={item.label}>
               {item.to ? (
-                <SidebarMenuButton
-                  asChild
-                  className="h-9 text-sm data-[active=true]:font-semibold [&>svg]:text-text-muted data-[active=true]:[&>svg]:text-sidebar-accent-foreground"
-                  // 상세(/work-orders/xxx)에서도 부모 메뉴를 활성으로 유지해 현재 영역을 잃지 않게 한다.
-                  isActive={item.to === pathname || pathname.startsWith(`${item.to}/`)}
-                  tooltip={item.label}
+                <SidebarNavLink
+                  to={item.to}
+                  pathname={pathname}
+                  label={item.label}
+                  className="text-sidebar-foreground data-[active=true]:font-semibold [&>svg]:text-sidebar-muted data-[active=true]:[&>svg]:text-sidebar-primary"
                 >
-                  <Link to={item.to} onClick={() => setOpenMobile(false)}>
-                    <Icon aria-hidden="true" />
-                    <span>{item.label}</span>
-                  </Link>
-                </SidebarMenuButton>
+                  <Icon aria-hidden="true" />
+                  <span>{item.label}</span>
+                </SidebarNavLink>
               ) : (
                 <SidebarMenuButton
                   aria-label={`${item.label}${item.pending ? ", 구현 예정" : ""}`}

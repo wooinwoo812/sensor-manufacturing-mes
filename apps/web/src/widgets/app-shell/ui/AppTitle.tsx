@@ -11,20 +11,37 @@ import {
   useSidebar,
 } from "@/shared/ui";
 
-export function AppTitle() {
+import type { NavigationItem } from "../model/navigation";
+
+export function AppTitle({
+  homePath = "/dashboard",
+}: {
+  homePath?: NonNullable<NavigationItem["to"]>;
+}) {
   const { setOpenMobile } = useSidebar();
 
   return (
     <SidebarMenu>
       <SidebarMenuItem>
-        <SidebarMenuButton asChild size="lg">
-          <Link onClick={() => setOpenMobile(false)} to="/dashboard">
+        <SidebarMenuButton
+          asChild
+          size="lg"
+          tooltip="FabriScope MES · 첫 업무로 이동"
+          className="p-0 group-data-[collapsible=icon]:p-1!"
+        >
+          <Link
+            aria-label="FabriScope MES · 첫 업무로 이동"
+            onClick={() => setOpenMobile(false)}
+            to={homePath}
+          >
             <div className="flex aspect-square size-8 items-center justify-center rounded-brand bg-sidebar-primary text-sidebar-primary-foreground">
               <Factory className="size-4" aria-hidden="true" />
             </div>
-            <div className="grid flex-1 text-start text-sm leading-tight">
-              <span className="truncate font-semibold">FabriScope MES</span>
-              <span className="truncate text-xs text-sidebar-foreground/65">
+            <div className="grid flex-1 text-start text-sm leading-tight group-data-[collapsible=icon]:hidden">
+              <span className="truncate font-bold tracking-tight">
+                FabriScope MES
+              </span>
+              <span className="mt-1 truncate text-xs text-sidebar-muted">
                 센서 제조 운영
               </span>
             </div>

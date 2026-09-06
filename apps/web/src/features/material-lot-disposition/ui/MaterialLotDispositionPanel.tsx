@@ -1,3 +1,4 @@
+import { useNavigationSafety } from "@/shared/lib";
 import { useState } from "react";
 import {
   decideMaterialLotDisposition,
@@ -5,7 +6,7 @@ import {
 } from "../api/material-lot-disposition";
 import { MATERIAL_LOT_DISPOSITION_LABELS } from "@/entities/material-lot";
 import { ApiRequestError } from "@/shared/api";
-import { Badge, Button, Input, Select } from "@/shared/ui";
+import { Badge, Button, Input, Notice, Panel, Select } from "@/shared/ui";
 
 const DISPOSITION_OPTIONS = [
   { label: "합격 (ACCEPTED)", value: "ACCEPTED" },
@@ -28,6 +29,8 @@ export function MaterialLotDispositionPanel({
   const [memo, setMemo] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useNavigationSafety(disposition !== "ACCEPTED" || memo !== "", pending);
 
   async function submit() {
     if (pending) {
@@ -56,13 +59,11 @@ export function MaterialLotDispositionPanel({
   }
 
   return (
-    <div
-      className="rounded-panel border border-border bg-surface p-4"
-      aria-label="자재 LOT 품질 처분"
+    <Panel
+      ariaLabel="자재 LOT 품질 처분"
+      title="자재 LOT 품질 처분"
+      description={`${target.materialName} · ${target.lotNumber} (재고 ${target.onHand.toLocaleString("ko-KR")}${target.unit})`}
     >
-      <p className="text-sm font-semibold">
-        {`${target.materialName} · ${target.lotNumber} (재고 ${target.onHand.toLocaleString("ko-KR")}${target.unit})`}
-      </p>
       <p className="mt-1 text-xs text-text-muted">
         현재 품질 상태{" "}
         <Badge tone="neutral">
@@ -70,8 +71,8 @@ export function MaterialLotDispositionPanel({
             target.currentDisposition as keyof typeof MATERIAL_LOT_DISPOSITION_LABELS
           ] ?? target.currentDisposition}
         </Badge>{" "}
-        — 처분 확정 시 감사 이력에 기록됩니다. 합격 상태의 사후 문제는 부적합 사건
-        등록으로 격리한 뒤 처분해야 합니다.
+        — 처분 확정 시 감사 이력에 기록됩니다. 합격 상태의 사후 문제는 부적합
+        사건 등록으로 격리한 뒤 처분해야 합니다.
       </p>
       <div className="mt-3 flex flex-wrap items-end gap-3">
         <div className="min-w-44">
@@ -100,17 +101,18 @@ export function MaterialLotDispositionPanel({
         </Button>
       </div>
       {disposition === "REJECTED" ? (
-        <p className="mt-3">
-          <Badge tone="danger">
-            거부·폐기 처분은 잔여 재고를 폐기 수량으로 이관하며 되돌릴 수 없습니다
-          </Badge>
-        </p>
+        <div className="mt-4">
+          <Notice tone="danger">
+            거부·폐기 처분은 잔여 재고를 폐기 수량으로 이관하며 되돌릴 수
+            없습니다
+          </Notice>
+        </div>
       ) : null}
       {error !== null ? (
         <p className="mt-3 rounded-panel border border-danger/40 bg-danger-soft/40 px-4 py-3 text-sm text-danger-strong">
           {error}
         </p>
       ) : null}
-    </div>
+    </Panel>
   );
 }

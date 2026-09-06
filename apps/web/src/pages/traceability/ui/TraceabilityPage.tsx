@@ -1,3 +1,4 @@
+import { getPageSize } from "@/shared/lib";
 import { useMemo } from "react";
 import {
   fetchTraceNodes,
@@ -20,7 +21,7 @@ import {
   type BadgeTone,
   type DataTableColumn,
 } from "@/shared/ui";
-import { useLoadState } from "@/shared/lib";
+import { useLoadState, useQueryDraft } from "@/shared/lib";
 import { Main } from "@/widgets/app-shell";
 import {
   mergeTraceabilitySearch,
@@ -33,9 +34,6 @@ const NODE_TYPE_TONES: Record<TraceNodeType, BadgeTone> = {
   PRODUCTION_LOT: "success",
   FINISHED_UNIT: "warning",
 };
-
-const PAGE_SIZE = 20;
-
 
 interface TraceabilityPageProps {
   search: TraceabilitySearch;
@@ -57,22 +55,33 @@ export function TraceabilityPage({
     items: TraceNodeListItem[];
     total: number;
     page: number;
+    pageSize: number;
   }>(
     params,
     (signal) => {
-      return fetchTraceNodes(new URLSearchParams(params), signal).then((response) => ({
-        items: response.items,
-        total: response.total,
-        page: response.page,
-      }));
+      return fetchTraceNodes(new URLSearchParams(params), signal).then(
+        (response) => ({
+          items: response.items,
+          total: response.total,
+          page: response.page,
+          pageSize: response.pageSize,
+        }),
+      );
     },
     "추적 노드를 불러오지 못했습니다.",
+  );
+
+  const { draft, setDraft, submit, reset, hasPendingChanges } = useQueryDraft(
+    search,
+    onSearchChange,
+    reload,
   );
 
   const columns = useMemo<DataTableColumn<TraceNodeListItem>[]>(
     () => [
       {
         key: "label",
+        align: "left",
         wrap: true,
         header: "LOT 식별",
         cell: (row) => (
@@ -86,6 +95,7 @@ export function TraceabilityPage({
       },
       {
         key: "nodeType",
+        align: "center",
         header: "구분",
         cell: (row) => (
           <Badge tone={NODE_TYPE_TONES[row.nodeType]}>
@@ -95,6 +105,7 @@ export function TraceabilityPage({
       },
       {
         key: "upstreamCount",
+        align: "center",
         header: "원천 (투입)",
         cell: (row) => (
           <span className="tabular-nums">{row.upstreamCount}</span>
@@ -102,6 +113,7 @@ export function TraceabilityPage({
       },
       {
         key: "downstreamCount",
+        align: "center",
         header: "영향 (산출)",
         cell: (row) => (
           <span className="tabular-nums">{row.downstreamCount}</span>
@@ -114,11 +126,37 @@ export function TraceabilityPage({
   const hasActiveFilter =
     search.q !== undefined || search.nodeType !== undefined;
 
-  const currentPage = state.phase === "success" ? state.page : search.page ?? 1;
+  const pageSize =
+    state.phase === "success" ? state.pageSize : getPageSize(search.pageSize);
+  const currentPage =
+    state.phase === "success" ? state.page : (search.page ?? 1);
   const totalPages =
     state.phase === "success"
-      ? Math.max(1, Math.ceil(state.total / PAGE_SIZE))
+      ? Math.max(1, Math.ceil(state.total / pageSize))
       : 1;
+
+  const pagination =
+    state.phase === "success" ? (
+      <Pagination
+        currentPage={currentPage}
+        totalItems={state.total}
+        pageSize={pageSize}
+        onPageSizeChange={(size) =>
+          onSearchChange(
+            mergeTraceabilitySearch(search, {
+              pageSize: size === 10 ? undefined : size,
+              page: undefined,
+            }),
+          )
+        }
+        busy={isRefreshing}
+        label="추적 노드 페이지 탐색"
+        onPageChange={(page) =>
+          onSearchChange(mergeTraceabilitySearch(search, { page }))
+        }
+        totalPages={totalPages}
+      />
+    ) : null;
 
   return (
     <Main id="main-content" tabIndex={-1}>
@@ -129,6 +167,10 @@ export function TraceabilityPage({
       />
 
       <FilterBar
+        onSearch={submit}
+        onReset={reset}
+        busy={state.phase === "loading" || isRefreshing}
+        hasPendingChanges={hasPendingChanges}
         resultLabel={
           state.phase === "success"
             ? `총 ${state.total.toLocaleString("ko-KR")}건 중 ${state.items.length.toLocaleString("ko-KR")}건 표시`
@@ -136,22 +178,13 @@ export function TraceabilityPage({
         }
       >
         <Input
+          data-tour="list-search"
           aria-label="추적 노드 검색"
-          defaultValue={search.q}
+          value={draft.q ?? ""}
+          onChange={(event) => setDraft({ ...draft, q: event.target.value })}
           id="trace-q"
           label="검색"
           name="q"
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              const value = event.currentTarget.value.trim();
-              onSearchChange(
-                mergeTraceabilitySearch(search, {
-                  q: value === "" ? undefined : value,
-                  page: undefined,
-                }),
-              );
-            }
-          }}
           placeholder="LOT 번호 (예: ML-2026-0331)"
         />
         <Select
@@ -164,15 +197,13 @@ export function TraceabilityPage({
             })),
           ]}
           value={
-            search.nodeType?.length === 1 ? (search.nodeType[0] ?? "all") : "all"
+            draft.nodeType?.length === 1 ? (draft.nodeType[0] ?? "all") : "all"
           }
           onValueChange={(value) =>
-            onSearchChange(
-              mergeTraceabilitySearch(search, {
+            setDraft(
+              mergeTraceabilitySearch(draft, {
                 nodeType:
-                  value === "all"
-                    ? undefined
-                    : [value as TraceNodeType],
+                  value === "all" ? undefined : [value as TraceNodeType],
                 page: undefined,
               }),
             )
@@ -181,16 +212,13 @@ export function TraceabilityPage({
       </FilterBar>
 
       {state.phase === "loading" ? (
-        <TableSkeleton label="추적 노드 조회 중" />
+        <TableSkeleton label="추적 노드 조회 중" rows={pageSize} />
       ) : state.phase === "error" ? (
         <ErrorState
           title="추적 노드를 불러올 수 없습니다"
           description={state.message}
           action={
-            <Button
-              variant="secondary"
-              onClick={() => reload()}
-            >
+            <Button variant="secondary" onClick={() => reload()}>
               다시 시도
             </Button>
           }
@@ -210,23 +238,23 @@ export function TraceabilityPage({
         />
       ) : (
         <DataTable
+          footer={pagination}
+          rowNumberStart={state.total - (currentPage - 1) * pageSize}
           onRowClick={(row) => onOpenDetail(row.id)}
           busy={isRefreshing}
           caption="추적 노드 목록"
           columns={columns}
           rows={state.items}
           getRowKey={(row) => row.id}
+          tourRecord="trace-node"
+
           emptyMessage="조건에 맞는 추적 노드가 없습니다."
         />
       )}
-
-      {state.phase === "success" ? (
-        <Pagination
-          currentPage={currentPage}
-          label="추적 노드 페이지 탐색"
-          onPageChange={(page) => onSearchChange(mergeTraceabilitySearch(search, { page }))}
-          totalPages={totalPages}
-        />
+      {state.phase === "success" && state.items.length === 0 ? (
+        <div className="rounded-panel border border-border bg-surface">
+          {pagination}
+        </div>
       ) : null}
     </Main>
   );

@@ -17,7 +17,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="grid gap-2">
         <label
-          className={cn("text-[13px] font-medium text-text", hideLabel && "sr-only")}
+          className={cn("text-xs font-medium text-text-muted", hideLabel && "sr-only")}
           htmlFor={inputId}
         >
           {label}
@@ -30,7 +30,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           aria-describedby={hint || error ? descriptionId : undefined}
           aria-invalid={error ? true : undefined}
           className={cn(
-            "h-10 w-full rounded-control border border-border-strong bg-surface px-3 text-sm text-text-strong shadow-control outline-none transition-colors placeholder:text-text-subtle hover:border-text-subtle focus:border-accent focus:ring-3 focus:ring-focus/20 disabled:cursor-not-allowed disabled:bg-surface-subtle disabled:text-text-subtle motion-reduce:transition-none",
+            "h-10 w-full rounded-control border border-input bg-surface px-3 text-sm text-text-strong shadow-control outline-none transition-colors placeholder:text-text-subtle hover:border-text-subtle focus:border-primary focus:ring-3 focus:ring-focus/20 disabled:cursor-not-allowed disabled:bg-surface-subtle disabled:text-text-subtle motion-reduce:transition-none",
             error && "border-danger focus:border-danger focus:ring-danger/15",
             className,
           )}

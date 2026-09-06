@@ -6,6 +6,7 @@ import {
 } from "@nestjs/common";
 import { PrismaService } from "../database/prisma.service.js";
 import type { CommandActor } from "../work-orders/work-orders.service.js";
+import { outputQuantityLimit, productionTransaction, refreshMaterialReadiness, refreshProductionFlow } from "./production-flow.js";
 
 function invalidInput(message: string) {
   return new BadRequestException({
@@ -19,25 +20,32 @@ export class ProcessCommandsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async start(stepId: string, actor: CommandActor) {
-    const step = await this.prisma.processStepExecution.findUnique({
-      where: { id: stepId },
-    });
-    if (step === null) {
-      throw new NotFoundException({
-        code: "PROCESS_STEP_NOT_FOUND",
-        message: "공정을 찾을 수 없습니다.",
+    await productionTransaction(this.prisma, async (transaction) => {
+      let step = await transaction.processStepExecution.findUnique({
+        where: { id: stepId },
       });
-    }
-    if (step.readiness !== "READY") {
-      throw new ConflictException({
-        code: "PROCESS_NOT_READY",
-        message: "실행 가능 상태의 공정만 시작할 수 있습니다.",
-        currentReadiness: step.readiness,
-        reasonCodes: step.blockedReasonCodes,
-      });
-    }
+      if (step === null) {
+        throw new NotFoundException({
+          code: "PROCESS_STEP_NOT_FOUND",
+          message: "공정을 찾을 수 없습니다.",
+        });
+      }
+      const orderState = await transaction.workOrder.findUnique({ where: { id: step.workOrderId } });
+      if (!orderState || !["RELEASED", "IN_PROGRESS"].includes(orderState.status)) {
+        throw new ConflictException({ code: "WORK_ORDER_NOT_EXECUTABLE", message: "발행 또는 진행 중인 작업지시만 실행할 수 있습니다." });
+      }
+      await refreshMaterialReadiness(transaction, step.workOrderId);
+      await refreshProductionFlow(transaction, step.workOrderId);
+      step = (await transaction.processStepExecution.findUnique({ where: { id: stepId } }))!;
+      if (step.readiness !== "READY") {
+        throw new ConflictException({
+          code: "PROCESS_NOT_READY",
+          message: "실행 가능 상태의 공정만 시작할 수 있습니다.",
+          currentReadiness: step.readiness,
+          reasonCodes: step.blockedReasonCodes,
+        });
+      }
 
-    await this.prisma.$transaction(async (transaction) => {
       const activeAllocations = await transaction.materialAllocation.findMany({
         where: { workOrderId: step.workOrderId, status: "ACTIVE" },
       });
@@ -51,6 +59,10 @@ export class ProcessCommandsService {
         update: {},
       });
       for (const allocation of activeAllocations) {
+        const reservedLot = await transaction.materialLot.findUnique({ where: { id: allocation.materialLotId } });
+        if (!reservedLot || reservedLot.qualityDisposition !== "ACCEPTED" || (reservedLot.expiresAt !== null && reservedLot.expiresAt.getTime() <= Date.now()) || reservedLot.onHand < allocation.quantity || reservedLot.reservedQuantity < allocation.quantity) {
+          throw new ConflictException({ code: "MATERIAL_LOT_UNAVAILABLE", message: "예약한 자재의 품질·만료·재고가 변경되었습니다. 자재 예약을 다시 확인해 주세요." });
+        }
         const lot = await transaction.materialLot.update({
           where: { id: allocation.materialLotId },
           data: {
@@ -135,55 +147,64 @@ export class ProcessCommandsService {
     input: { goodQuantity?: unknown; defectQuantity?: unknown; memo?: unknown },
     actor: CommandActor,
   ) {
-    const step = await this.prisma.processStepExecution.findUnique({
-      where: { id: stepId },
-    });
-    if (step === null) {
-      throw new NotFoundException({
-        code: "PROCESS_STEP_NOT_FOUND",
-        message: "공정을 찾을 수 없습니다.",
+    return productionTransaction(this.prisma, async (transaction) => {
+      const step = await transaction.processStepExecution.findUnique({
+        where: { id: stepId },
       });
-    }
-    if (step.readiness !== "IN_PROGRESS") {
-      throw new ConflictException({
-        code: "PROCESS_NOT_IN_PROGRESS",
-        message: "진행 중인 공정만 완료할 수 있습니다.",
-        currentReadiness: step.readiness,
-      });
-    }
-
-    const goodQuantity = input.goodQuantity;
-    const defectQuantity = input.defectQuantity;
-    if (
-      typeof goodQuantity !== "number" ||
-      !Number.isInteger(goodQuantity) ||
-      goodQuantity < 0
-    ) {
-      throw invalidInput("양품 수량은 0 이상 정수여야 합니다.");
-    }
-    if (
-      typeof defectQuantity !== "number" ||
-      !Number.isInteger(defectQuantity) ||
-      defectQuantity < 0
-    ) {
-      throw invalidInput("불량 수량은 0 이상 정수여야 합니다.");
-    }
-    if (goodQuantity + defectQuantity < 1) {
-      throw invalidInput("양품과 불량의 합계는 1 이상이어야 합니다.");
-    }
-    let memo: string | undefined;
-    if (
-      input.memo !== undefined &&
-      input.memo !== null &&
-      input.memo !== ""
-    ) {
-      if (typeof input.memo !== "string" || input.memo.length > 300) {
-        throw invalidInput("메모는 300자 이하여야 합니다.");
+      if (step === null) {
+        throw new NotFoundException({
+          code: "PROCESS_STEP_NOT_FOUND",
+          message: "공정을 찾을 수 없습니다.",
+        });
       }
-      memo = input.memo;
-    }
+      if (step.readiness !== "IN_PROGRESS") {
+        throw new ConflictException({
+          code: "PROCESS_NOT_IN_PROGRESS",
+          message: "진행 중인 공정만 완료할 수 있습니다.",
+          currentReadiness: step.readiness,
+        });
+      }
 
-    await this.prisma.$transaction(async (transaction) => {
+      const goodQuantity = input.goodQuantity;
+      const defectQuantity = input.defectQuantity;
+      if (
+        typeof goodQuantity !== "number" ||
+        !Number.isInteger(goodQuantity) ||
+        goodQuantity < 0
+      ) {
+        throw invalidInput("양품 수량은 0 이상 정수여야 합니다.");
+      }
+      if (
+        typeof defectQuantity !== "number" ||
+        !Number.isInteger(defectQuantity) ||
+        defectQuantity < 0
+      ) {
+        throw invalidInput("불량 수량은 0 이상 정수여야 합니다.");
+      }
+      if (goodQuantity + defectQuantity < 1) {
+        throw invalidInput("양품과 불량의 합계는 1 이상이어야 합니다.");
+      }
+      const orderState = await transaction.workOrder.findUnique({ where: { id: step.workOrderId } });
+      if (!orderState || orderState.status !== "IN_PROGRESS") {
+        throw new ConflictException({ code: "WORK_ORDER_NOT_EXECUTABLE", message: "진행 중인 작업지시만 실적을 기록할 수 있습니다." });
+      }
+      const steps = await transaction.processStepExecution.findMany({ where: { workOrderId: step.workOrderId }, orderBy: { sequence: "asc" } });
+      const limit = outputQuantityLimit(step, steps, orderState.plannedQuantity);
+      if (limit === null || goodQuantity + defectQuantity !== limit) {
+        throw new BadRequestException({ code: "PROCESS_QUANTITY_MISMATCH", message: limit === null ? "선행 공정의 완료 실적을 먼저 확인해 주세요." : `양품과 불량의 합계는 이번 공정 투입량 ${limit}개와 같아야 합니다.`, inputQuantity: limit });
+      }
+      let memo: string | undefined;
+      if (
+        input.memo !== undefined &&
+        input.memo !== null &&
+        input.memo !== ""
+      ) {
+        if (typeof input.memo !== "string" || input.memo.length > 300) {
+          throw invalidInput("메모는 300자 이하여야 합니다.");
+        }
+        memo = input.memo;
+      }
+
       await transaction.processStepExecution.update({
         where: { id: stepId },
         data: {
@@ -195,63 +216,7 @@ export class ProcessCommandsService {
         },
       });
 
-      const following = await transaction.processStepExecution.findMany({
-        where: { workOrderId: step.workOrderId, readiness: "WAITING" },
-        orderBy: { sequence: "asc" },
-      });
-      const next = following[0];
-
-      const gatingInspections = await transaction.inspection.findMany({
-        where: {
-          workOrderId: step.workOrderId,
-          gate: "ROUTE_ADVANCE",
-          processStepName: step.processStepName,
-          executionStatus: { not: "CANCELLED" },
-        },
-      });
-      const reasonCodes: string[] = [];
-      for (const inspection of gatingInspections) {
-        if (inspection.executionStatus !== "COMPLETED") {
-          reasonCodes.push("INSPECTION_PENDING");
-          break;
-        }
-        if (inspection.verdict === "FAIL") {
-          reasonCodes.push("INSPECTION_FAILED");
-          break;
-        }
-        if (inspection.verdict === "HOLD") {
-          reasonCodes.push("INSPECTION_HELD");
-          break;
-        }
-      }
-
-      if (next !== undefined && reasonCodes.length === 0) {
-        await transaction.processStepExecution.update({
-          where: { id: next.id },
-          data: { readiness: "READY" },
-        });
-      } else if (next !== undefined && reasonCodes.length > 0) {
-        await transaction.processStepExecution.update({
-          where: { id: next.id },
-          data: { readiness: "BLOCKED", blockedReasonCodes: reasonCodes },
-        });
-      }
-
-      const siblings = await transaction.processStepExecution.findMany({
-        where: { workOrderId: step.workOrderId },
-        orderBy: { sequence: "asc" },
-      });
-      const completedCount = siblings.filter((row) => row.readiness === "COMPLETED").length;
-      const nextOpen = siblings.find(
-        (row) => row.readiness !== "COMPLETED",
-      );
-      await transaction.workOrder.update({
-        where: { id: step.workOrderId },
-        data: {
-          progressPercent: Math.round((completedCount / siblings.length) * 100),
-          currentStepName: nextOpen?.processStepName ?? null,
-        },
-      });
+      await refreshProductionFlow(transaction, step.workOrderId);
 
       const order = await transaction.workOrder.findUnique({
         where: { id: step.workOrderId },
@@ -272,8 +237,7 @@ export class ProcessCommandsService {
             .slice(2, 8)}`,
         },
       });
+      return { ok: true as const };
     });
-
-    return { ok: true as const };
   }
 }

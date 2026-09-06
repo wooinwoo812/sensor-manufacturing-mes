@@ -40,7 +40,7 @@ describe("InspectionVerdictPanel", () => {
     );
 
     expect(
-      await screen.findByText("불합격은 품질 처분 대상이 됩니다"),
+      await screen.findByText("불합격으로 후속 진행을 차단합니다"),
     ).toBeInTheDocument();
   });
 
@@ -52,7 +52,7 @@ describe("InspectionVerdictPanel", () => {
     await user.click(await screen.findByRole("option", { name: "보류 (HOLD)" }));
 
     expect(
-      await screen.findByText("보류는 재측정 전까지 진행을 막습니다"),
+      await screen.findByText("검토 결과가 확정될 때까지 진행을 차단합니다"),
     ).toBeInTheDocument();
   });
 
@@ -65,7 +65,7 @@ describe("InspectionVerdictPanel", () => {
     await user.click(
       await screen.findByRole("option", { name: "불합격 (FAIL)" }),
     );
-    await user.type(screen.getByLabelText("판정 메모"), "기준 초과 0.05mm");
+    await user.type(screen.getByLabelText("판정 사유"), "기준 초과 0.05mm");
     await user.click(screen.getByRole("button", { name: "판정 확정" }));
 
     await waitFor(() => {
@@ -73,6 +73,7 @@ describe("InspectionVerdictPanel", () => {
         "inspection-1",
         { verdict: "FAIL", memo: "기준 초과 0.05mm" },
         "csrf",
+        false,
       );
       expect(onDone).toHaveBeenCalled();
     });

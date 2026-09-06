@@ -1,6 +1,6 @@
 import { Module } from "@nestjs/common";
 import { AuthModule } from "../auth/auth.module.js";
-import { PrismaService } from "../database/prisma.service.js";
+import { DatabaseModule } from "../database/database.module.js";
 import {
   MaterialAllocationsController,
   MaterialReservationsController,
@@ -8,8 +8,8 @@ import {
 import { MaterialReservationsService } from "./material-reservations.service.js";
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, DatabaseModule],
   controllers: [MaterialReservationsController, MaterialAllocationsController],
-  providers: [PrismaService, MaterialReservationsService],
+  providers: [MaterialReservationsService],
 })
 export class MaterialReservationsModule {}

@@ -1,0 +1,274 @@
+[
+  {
+    "id": "index",
+    "path": "docs/README.md",
+    "title": "문서 길잡이",
+    "group": "시작 안내",
+    "state": "현재",
+    "summary": "목적별 바로가기, 역할별 읽는 순서와 전체 폴더 지도."
+  },
+  {
+    "id": "project",
+    "path": "README.md",
+    "title": "프로젝트 소개·실행",
+    "group": "시작 안내",
+    "state": "현재",
+    "summary": "프로젝트 목적, 기술 구성, 실행 방법과 공개 범위."
+  },
+  {
+    "id": "product-context",
+    "path": "PRODUCT.md",
+    "title": "제품 원칙·포트폴리오 기준",
+    "group": "제품·업무",
+    "state": "현재",
+    "summary": "대상 사용자, 문제, 가상 데이터와 구현·검증을 설명하는 원칙."
+  },
+  {
+    "id": "operations",
+    "path": "docs/product/operations-guide.md",
+    "title": "MES 업무 안내",
+    "group": "시작 안내",
+    "state": "현재",
+    "summary": "메뉴별 확인사항, 용어, 역할별 시작점과 기록 확인 체크리스트."
+  },
+  {
+    "id": "demo",
+    "path": "docs/engineering/testing-and-demo.md",
+    "title": "검증 방법과 5분 시연",
+    "group": "시작 안내",
+    "state": "현재",
+    "summary": "실제 기록을 읽는 시연 순서, 테스트 종류와 검증 범위의 한계."
+  },
+  {
+    "id": "vision",
+    "path": "docs/product/vision.md",
+    "title": "제품 비전",
+    "group": "제품·업무",
+    "state": "설계",
+    "summary": "왜 이 MES를 만드는지, 목표 사용자와 제품 방향."
+  },
+  {
+    "id": "product-plan",
+    "path": "docs/product/product-plan-cross-review.md",
+    "title": "제품·UX·기술 기획",
+    "group": "제품·업무",
+    "state": "설계",
+    "summary": "목표 기능과 단계별 기획. 전체 구현 완료 목록은 아닙니다."
+  },
+  {
+    "id": "layout-contract",
+    "path": "docs/product/ui-layout-contracts.md",
+    "title": "화면 배치·상태 계약",
+    "group": "제품·업무",
+    "state": "설계",
+    "summary": "정보구조와 초기 화면 설계. 최신 시각 기준은 디자인 시스템을 확인합니다."
+  },
+  {
+    "id": "routes",
+    "path": "docs/product/route-contract.md",
+    "title": "URL·역할·권한 계약",
+    "group": "제품·업무",
+    "state": "설계",
+    "summary": "경로·조회조건·역할의 설계 계약. 실제 API 경로와 구분해서 읽습니다."
+  },
+  {
+    "id": "domain",
+    "path": "docs/domain/manufacturing-domain-contract.md",
+    "title": "제조 도메인 계약",
+    "group": "도메인",
+    "state": "설계",
+    "summary": "LOT·수량·상태 전이·계보의 목표 업무 의미와 불변조건."
+  },
+  {
+    "id": "domain-sources",
+    "path": "docs/domain/source-review.md",
+    "title": "제조 도메인 공개 근거",
+    "group": "도메인",
+    "state": "참고",
+    "summary": "참고한 공개 자료, 프로젝트 가정과 적용 한계."
+  },
+  {
+    "id": "table-rules",
+    "path": "docs/engineering/frontend-table-rules.md",
+    "title": "목록 화면·테이블 규칙",
+    "group": "디자인",
+    "state": "현재",
+    "summary": "No 역순·가운데 정렬·조회/초기화·기본 10건·표시 건수 선택."
+  },
+  {
+    "id": "design-system",
+    "path": "docs/engineering/frontend-design-system.md",
+    "title": "프런트엔드 디자인 시스템",
+    "group": "디자인",
+    "state": "현재",
+    "summary": "토큰·최소 14px·간격·공통 컴포넌트·반응형. 시각 디자인은 검토 중입니다."
+  },
+  {
+    "id": "design-references",
+    "path": "docs/product/design-reference-candidates.md",
+    "title": "디자인 참고 후보",
+    "group": "디자인",
+    "state": "참고",
+    "summary": "참고 자료와 선택 맥락. 현재 구현 기준을 대신하지 않습니다."
+  },
+  {
+    "id": "engineering-index",
+    "path": "docs/engineering/README.md",
+    "title": "개발 문서 지도",
+    "group": "개발",
+    "state": "현재",
+    "summary": "화면·API·DB·실행·검증·인수인계 문서를 관심 영역별로 찾습니다."
+  },
+  {
+    "id": "frontend-architecture",
+    "path": "docs/engineering/frontend-architecture.md",
+    "title": "프런트엔드 구조 계약",
+    "group": "개발",
+    "state": "현재",
+    "summary": "FSD 폴더·import 경계, URL·서버·입력 상태의 책임."
+  },
+  {
+    "id": "api-requests",
+    "path": "docs/engineering/frontend-api-request-rules.md",
+    "title": "API 요청·중복 방지 규칙",
+    "group": "개발",
+    "state": "현재",
+    "summary": "진행 중 GET 공유, 취소·재조회·로그인 경계. API 명세와는 다릅니다."
+  },
+  {
+    "id": "backend",
+    "path": "docs/engineering/backend-architecture.md",
+    "title": "백엔드 구조와 구현 범위",
+    "group": "개발",
+    "state": "현재",
+    "summary": "Nest 모듈·가드·Controller·Service·Prisma와 실제 구현 한계."
+  },
+  {
+    "id": "api-reference",
+    "path": "docs/engineering/api-reference.md",
+    "title": "API 경로와 계약 읽기",
+    "group": "개발",
+    "state": "현재",
+    "summary": "현재 HTTP 경로·권한 목록과 입력·응답·오류를 확인할 원문."
+  },
+  {
+    "id": "database",
+    "path": "docs/engineering/database-overview.md",
+    "title": "데이터베이스 구조 읽기",
+    "group": "개발",
+    "state": "현재",
+    "summary": "실제 Prisma 모델·관계·수량·제약과 목표 도메인과의 차이."
+  },
+  {
+    "id": "local-operations",
+    "path": "docs/engineering/local-operations.md",
+    "title": "로컬 실행과 운영 준비",
+    "group": "개발",
+    "state": "현재",
+    "summary": "5173/3000/5432, 서버 중복·오류 확인 순서, 운영 전 남은 과제."
+  },
+  {
+    "id": "workflow",
+    "path": "docs/engineering/workflow.md",
+    "title": "개발 절차·포트폴리오 검토",
+    "group": "개발",
+    "state": "현재",
+    "summary": "Issue·PR·검증·완료 기준과 변경마다 따질 포트폴리오 적합성."
+  },
+  {
+    "id": "contributing",
+    "path": "CONTRIBUTING.md",
+    "title": "기여 방법",
+    "group": "개발",
+    "state": "현재",
+    "summary": "변경을 제안하고 검증·리뷰하는 짧은 안내."
+  },
+  {
+    "id": "adr-0001",
+    "path": "docs/adr/0001-trunk-based-development.md",
+    "title": "ADR 0001 · 개발 방식",
+    "group": "기술 결정",
+    "state": "결정",
+    "summary": "짧은 브랜치와 trunk 기반 개발 방식을 선택한 이유."
+  },
+  {
+    "id": "adr-0002",
+    "path": "docs/adr/0002-manufacturing-domain-model.md",
+    "title": "ADR 0002 · 제조 도메인",
+    "group": "기술 결정",
+    "state": "결정",
+    "summary": "제조 업무 모델을 선택한 배경과 경계."
+  },
+  {
+    "id": "adr-0003",
+    "path": "docs/adr/0003-full-stack-foundation.md",
+    "title": "ADR 0003 · 기술 기반",
+    "group": "기술 결정",
+    "state": "결정",
+    "summary": "웹·API·DB 기술 선택과 대안."
+  },
+  {
+    "id": "adr-0004",
+    "path": "docs/adr/0004-frontend-architecture-and-routing.md",
+    "title": "ADR 0004 · 화면 구조·라우팅",
+    "group": "기술 결정",
+    "state": "결정",
+    "summary": "프런트 구조와 URL·라우팅 책임을 나눈 이유."
+  },
+  {
+    "id": "adr-0005",
+    "path": "docs/adr/0005-code-owned-design-system.md",
+    "title": "ADR 0005 · 디자인 시스템",
+    "group": "기술 결정",
+    "state": "결정",
+    "summary": "코드 기반 토큰·공통 컴포넌트를 기준으로 삼은 이유."
+  },
+  {
+    "id": "adr-0006",
+    "path": "docs/adr/0006-same-origin-cookie-session.md",
+    "title": "ADR 0006 · 인증 세션",
+    "group": "기술 결정",
+    "state": "결정",
+    "summary": "same-origin cookie 세션과 권한 검증의 선택 배경."
+  },
+  {
+    "id": "adr-template",
+    "path": "docs/adr/0000-template.md",
+    "title": "ADR 작성 양식",
+    "group": "기술 결정",
+    "state": "양식",
+    "summary": "문제·대안·결정·검증·재검토 조건을 기록하는 양식."
+  },
+  {
+    "id": "design-history",
+    "path": "docs/engineering/frontend-design-history.md",
+    "title": "이전 디자인 이력",
+    "group": "변경 이력",
+    "state": "과거",
+    "summary": "이전 디자인 판단과 측정 기록. 현재 기준과 구분합니다."
+  },
+  {
+    "id": "handoff-original",
+    "path": "docs/engineering/handoff-2026-09-05.md",
+    "title": "초기 디자인 인수인계",
+    "group": "변경 이력",
+    "state": "과거",
+    "summary": "작성 시점의 PR·커밋·진행 기록. 현재 실행 상태를 보장하지 않습니다."
+  },
+  {
+    "id": "handoff-current",
+    "path": "docs/engineering/handoff-design-overhaul-2026-09-05.md",
+    "title": "인수인계 요약·변경 기록",
+    "group": "변경 이력",
+    "state": "기록",
+    "summary": "짧은 인수인계 요약과 다음 작업, 날짜·주제별 변경·검증 기록."
+  },
+  {
+    "id": "notices",
+    "path": "THIRD_PARTY_NOTICES.md",
+    "title": "외부 코드·라이선스 고지",
+    "group": "개발",
+    "state": "참고",
+    "summary": "이식한 외부 코드의 출처와 라이선스."
+  }
+]

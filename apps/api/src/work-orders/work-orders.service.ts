@@ -18,6 +18,8 @@ import {
 } from "./work-orders.contract.js";
 import type { WorkOrderPriority, WorkOrderStatus } from "../generated/prisma/enums.js";
 import { DEMO_PRODUCTS } from "./work-order-products.js";
+import { PRODUCT_ROUTES, productionTransaction } from "../process-executions/production-flow.js";
+import { auditSummary } from "../audit-events/audit-summary.js";
 
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 100;
@@ -156,7 +158,7 @@ export class WorkOrdersService {
   async detail(id: string) {
     const record = await this.prisma.workOrder.findUnique({
       where: { id },
-      include: { inspections: true, processSteps: true, inspectionRequirements: true },
+      include: { inspections: true, processSteps: true, inspectionRequirements: true, materialRequirements: { include: { material: true } } },
     });
     if (record === null) {
       throw new NotFoundException({
@@ -173,6 +175,10 @@ export class WorkOrdersService {
     return {
       ...toListItem(record),
       createdAt: record.createdAt.toISOString(),
+      materialRequirements: record.materialRequirements.map((row) => ({
+        materialCode: row.material.code, materialName: row.material.name,
+        requiredQuantity: Math.ceil(Number(row.requiredQuantity)), unit: row.unit,
+      })),
       steps: record.processSteps
         .sort((left, right) => left.sequence - right.sequence)
         .map((step) => ({
@@ -332,10 +338,23 @@ export class WorkOrdersService {
 
     let requirementCount = 0;
     let inspectionSnapshotCount = 0;
-    await this.prisma.$transaction(async (transaction) => {
+    await productionTransaction(this.prisma, async (transaction) => {
+      const current = await transaction.workOrder.findUnique({ where: { id } });
+      if (current?.status !== "DRAFT") {
+        throw new ConflictException({ code: "WORK_ORDER_NOT_DRAFT", message: "초안 상태의 작업지시만 발행할 수 있습니다." });
+      }
+      const route = PRODUCT_ROUTES[record.productCode];
+      if (!route) throw new ConflictException({ code: "WORK_ORDER_ROUTE_MISSING", message: "제품에 설정된 공정 경로가 없습니다." });
+      const selectedBom = record.bomRevisionId
+        ? await transaction.bomRevision.findUnique({ where: { id: record.bomRevisionId }, include: { product: true } })
+        : await transaction.bomRevision.findFirst({ where: { product: { code: record.productCode }, lifecycle: "PUBLISHED" }, orderBy: [{ createdAt: "desc" }, { revisionNumber: "desc" }], include: { product: true } });
+      if (!selectedBom || selectedBom.lifecycle !== "PUBLISHED" || selectedBom.product.code !== record.productCode) {
+        throw new ConflictException({ code: "WORK_ORDER_BOM_REVISION_NOT_PUBLISHED", message: "이 제품의 발행된 BOM을 확인한 뒤 다시 발행해 주세요." });
+      }
+      const productionLotNumber = `${record.orderNumber.replace(/^WO-/, "PL-")}A`;
       await transaction.workOrder.update({
         where: { id },
-        data: { status: "RELEASED" },
+        data: { status: "RELEASED", bomRevisionId: selectedBom.id, currentStepName: route[0] ?? null, blockedReason: "자재 예약 필요" },
       });
 
       const publishedSpecs = await transaction.inspectionSpecRevision.findMany({
@@ -343,7 +362,7 @@ export class WorkOrdersService {
         orderBy: { revisionNumber: "asc" },
       });
       for (const spec of publishedSpecs) {
-        if (spec.gate === "ROUTE_ADVANCE" && spec.processStepName === null) {
+        if (spec.gate === "ROUTE_ADVANCE" && (spec.processStepName === null || !route.includes(spec.processStepName))) {
           throw new ConflictException({
             code: "WORK_ORDER_INSPECTION_SPEC_INVALID",
             message: "공정 통과 검사 규격은 대상 공정을 지정해야 합니다.",
@@ -369,9 +388,9 @@ export class WorkOrdersService {
         inspectionSnapshotCount += 1;
       }
 
-      if (record.bomRevisionId !== null) {
+      if (selectedBom.id) {
         const revision = await transaction.bomRevision.findUnique({
-          where: { id: record.bomRevisionId },
+          where: { id: selectedBom.id },
           include: { items: { include: { material: true } } },
         });
         if (revision === null) {
@@ -416,54 +435,84 @@ export class WorkOrdersService {
           requirementCount += 1;
         }
       }
-    });
-    await this.recordAudit(record.orderNumber, "WORK_ORDER_RELEASED", actor, {
+      await transaction.processStepExecution.createMany({ data: route.map((processStepName, index) => ({
+        workOrderId: id, productionLotNumber, sequence: (index + 1) * 10, processStepName,
+        readiness: index === 0 ? requirementCount > 0 ? "BLOCKED" : "READY" : "WAITING",
+        blockedReasonCodes: index === 0 && requirementCount > 0 ? ["MATERIAL_SHORTAGE"] : [],
+      })) });
+      await transaction.traceNode.upsert({ where: { productionLotNumber }, create: { nodeType: "PRODUCTION_LOT", label: productionLotNumber, productionLotNumber }, update: {} });
+      await transaction.inspection.createMany({ data: publishedSpecs.map((spec, index) => ({
+        inspectionNumber: `IN-${record.orderNumber.slice(3)}-${String(index + 1).padStart(2, "0")}`,
+        workOrderId: id, productionLotNumber, processStepName: spec.processStepName ?? "최종 검사",
+        gate: spec.gate, specName: spec.specName, executionStatus: "PENDING",
+      })) });
+      await this.recordAudit(record.orderNumber, "WORK_ORDER_RELEASED", actor, {
       summary: `${record.productName} ${record.plannedQuantity}${record.unit} 작업지시 발행${requirementCount > 0 ? ` (BOM 스냅샷 ${requirementCount}항목)` : ""}${inspectionSnapshotCount > 0 ? ` (검사규격 스냅샷 ${inspectionSnapshotCount}항목)` : ""}`,
+      }, transaction);
     });
 
     return this.detail(id);
   }
 
   async cancel(id: string, reason: unknown, actor: CommandActor) {
-    const record = await this.prisma.workOrder.findUnique({
-      where: { id },
-      include: { processSteps: true },
-    });
-    if (record === null) {
-      throw new NotFoundException({
-        code: "WORK_ORDER_NOT_FOUND",
-        message: "작업지시를 찾을 수 없습니다.",
-      });
-    }
-    if (record.status !== "DRAFT" && record.status !== "RELEASED") {
-      throw new ConflictException({
-        code: "WORK_ORDER_NOT_CANCELLABLE",
-        message: "실적이 없는 초안·발행 상태만 취소할 수 있습니다.",
-        currentStatus: record.status,
-      });
-    }
-    const hasExecution = record.processSteps.some(
-      (step) => step.readiness === "IN_PROGRESS" || step.readiness === "COMPLETED",
-    );
-    if (hasExecution) {
-      throw new ConflictException({
-        code: "WORK_ORDER_HAS_EXECUTION",
-        message: "공정 실적이 있어 취소할 수 없습니다.",
-      });
-    }
     if (typeof reason !== "string" || reason.trim().length < 2 || reason.length > 500) {
       throw new BadRequestException({
         code: "INVALID_WORK_ORDER_INPUT",
         message: "취소 사유는 2자 이상 500자 이하여야 합니다.",
       });
     }
-
-    await this.prisma.workOrder.update({
-      where: { id },
-      data: { status: "CANCELLED", blockedReason: null },
-    });
-    await this.recordAudit(record.orderNumber, "WORK_ORDER_CANCELLED", actor, {
-      summary: `작업지시 취소: ${reason.trim()}`,
+    await productionTransaction(this.prisma, async (transaction) => {
+      const record = await transaction.workOrder.findUnique({
+        where: { id },
+        include: { processSteps: true },
+      });
+      if (record === null) {
+        throw new NotFoundException({
+          code: "WORK_ORDER_NOT_FOUND",
+          message: "작업지시를 찾을 수 없습니다.",
+        });
+      }
+      if (record.status !== "DRAFT" && record.status !== "RELEASED") {
+        throw new ConflictException({
+          code: "WORK_ORDER_NOT_CANCELLABLE",
+          message: "실적이 없는 초안·발행 상태만 취소할 수 있습니다.",
+          currentStatus: record.status,
+        });
+      }
+      const hasExecution = record.processSteps.some(
+        (step) => step.readiness === "IN_PROGRESS" || step.readiness === "COMPLETED",
+      );
+      if (hasExecution) {
+        throw new ConflictException({
+          code: "WORK_ORDER_HAS_EXECUTION",
+          message: "공정 실적이 있어 취소할 수 없습니다.",
+        });
+      }
+      const allocations = await transaction.materialAllocation.findMany({
+        where: { workOrderId: id, status: "ACTIVE" },
+      });
+      for (const allocation of allocations) {
+        await transaction.materialLot.update({
+          where: { id: allocation.materialLotId },
+          data: { reservedQuantity: { decrement: allocation.quantity } },
+        });
+        await transaction.materialAllocation.update({
+          where: { id: allocation.id },
+          data: { status: "CLOSED", closedReason: "CANCELLED", closedAt: new Date() },
+        });
+      }
+      await transaction.inspection.updateMany({
+        where: { workOrderId: id, executionStatus: { in: ["PENDING", "IN_PROGRESS"] } },
+        data: { executionStatus: "CANCELLED" },
+      });
+      await transaction.workOrder.update({
+        where: { id },
+        data: { status: "CANCELLED", blockedReason: null },
+      });
+      await this.recordAudit(record.orderNumber, "WORK_ORDER_CANCELLED", actor, {
+        summary: `작업지시 취소: ${reason.trim()}`,
+        details: { reason: reason.trim(), releasedAllocationCount: allocations.length },
+      }, transaction);
     });
 
     return this.detail(id);
@@ -495,9 +544,10 @@ export class WorkOrdersService {
       | "WORK_ORDER_RELEASED"
       | "WORK_ORDER_CANCELLED",
     actor: CommandActor,
-    { summary }: { summary: string },
+    { summary, details }: { summary: string; details?: Prisma.InputJsonObject },
+    client: Pick<Prisma.TransactionClient, "auditEvent"> = this.prisma,
   ) {
-    await this.prisma.auditEvent.create({
+    await client.auditEvent.create({
       data: {
         occurredAt: new Date(),
         actorId: actor.userId,
@@ -506,7 +556,8 @@ export class WorkOrdersService {
         action,
         entityType: "WORK_ORDER",
         entityId: orderNumber,
-        summary,
+        summary: auditSummary(summary),
+        ...(details ? { details } : {}),
         requestId: newRequestId(),
       },
     });
@@ -606,7 +657,7 @@ function toListItem(row: {
     progressPercent: row.progressPercent,
     currentStepName: row.currentStepName,
     blockedReason: row.blockedReason,
-    memo: row.memo,
+    memo: row.memo?.replace(/^\[PORTFOLIO-V1:[A-Z]+\]\s*/, "") ?? null,
   };
 }
 

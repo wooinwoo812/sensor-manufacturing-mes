@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import {
@@ -9,7 +9,8 @@ import { MaterialLotsPage } from "./MaterialLotsPage";
 import type { MaterialLotsListSearch } from "../model/material-lots-search";
 
 vi.mock("@/entities/material-lot", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/entities/material-lot")>();
+  const actual =
+    await importOriginal<typeof import("@/entities/material-lot")>();
   return {
     ...actual,
     fetchMaterialLots: vi.fn(),
@@ -18,7 +19,9 @@ vi.mock("@/entities/material-lot", async (importOriginal) => {
 
 const fetchMock = vi.mocked(fetchMaterialLots);
 
-function sampleResult(overrides: Partial<MaterialLotListResult> = {}): MaterialLotListResult {
+function sampleResult(
+  overrides: Partial<MaterialLotListResult> = {},
+): MaterialLotListResult {
   return {
     items: [
       {
@@ -81,9 +84,15 @@ describe("MaterialLotsPage", () => {
     renderPage();
 
     expect(await screen.findByText("ML-2026-0323")).toBeInTheDocument();
-    expect(screen.getByText("TE 쿨링 모듈")).toBeInTheDocument();
-    expect(screen.getByText("격리")).toBeInTheDocument();
-    expect(screen.getByText("허입")).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("table")).getByText("TE 쿨링 모듈"),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("table")).getByText("격리"),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("table")).getByText("허입"),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("table", { name: "자재 LOT 목록" }),
     ).toBeInTheDocument();
@@ -120,6 +129,8 @@ describe("MaterialLotsPage", () => {
 
     await user.click(screen.getByRole("combobox", { name: "가용성" }));
     await user.click(await screen.findByRole("option", { name: "가용 부족" }));
+    expect(onSearchChange).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: "조회" }));
 
     expect(onSearchChange).toHaveBeenCalledWith({ availability: "shortage" });
   });
@@ -156,7 +167,9 @@ describe("MaterialLotsPage", () => {
       />,
     );
 
-    await user.click(await screen.findByRole("button", { name: "ML-2026-0323" }));
+    await user.click(
+      await screen.findByRole("button", { name: "ML-2026-0323" }),
+    );
 
     expect(onOpenDetail).toHaveBeenCalledWith("lot-1");
   });

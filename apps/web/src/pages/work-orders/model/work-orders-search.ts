@@ -1,3 +1,4 @@
+import { getPageSize, readPageSize } from "@/shared/lib";
 import {
   WORK_ORDER_DUE_OPTIONS,
   WORK_ORDER_PRIORITIES,
@@ -14,6 +15,7 @@ export interface WorkOrdersListSearch {
   due?: WorkOrderDueFilter;
   blocked?: boolean;
   page?: number;
+  pageSize?: number;
 }
 
 function parseEnumList<T extends string>(
@@ -70,6 +72,7 @@ export function readWorkOrdersSearch(
     due,
     blocked,
     page,
+    pageSize: readPageSize(raw.pageSize),
   });
 }
 
@@ -118,5 +121,6 @@ export function toWorkOrdersSearchParams(
   if (search.page !== undefined && search.page > 1) {
     params.set("page", String(search.page));
   }
+  params.set("pageSize", String(getPageSize(search.pageSize)));
   return params;
 }

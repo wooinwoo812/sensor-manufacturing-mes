@@ -28,7 +28,8 @@ export function BomsRoute() {
         void navigate({
           to: "/materials/boms",
           search: next,
-          replace: true,
+          replace: false,
+          resetScroll: false,
         });
       }}
     />

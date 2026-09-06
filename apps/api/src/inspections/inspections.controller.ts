@@ -57,6 +57,15 @@ export class InspectionsController {
     return this.inspectionsService.detail(id);
   }
 
+  @Post(":id/review")
+  @HttpCode(200)
+  @Header("Cache-Control", "no-store")
+  @UseGuards(CsrfGuard)
+  @RequirePermissions(Permission.INSPECTION_CORRECT)
+  async review(@Req() request: HttpRequest, @Param("id") id: string, @Body() input: unknown) {
+    return this.inspectionVerdictService.review(id, (input ?? {}) as Record<string, unknown>, toActor(request));
+  }
+
   @Post(":id/verdict")
   @HttpCode(200)
   @Header("Cache-Control", "no-store")

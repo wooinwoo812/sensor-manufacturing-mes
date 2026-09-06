@@ -1,4 +1,5 @@
 import {
+  ChevronRight,
   ClipboardList,
   PackageSearch,
   ScanSearch,
@@ -16,31 +17,26 @@ interface AttentionQueueProps {
 interface ItemVisual {
   icon: LucideIcon;
   iconClassName: string;
-  railClassName: string;
 }
 
 const visualByStatus: Record<string, ItemVisual> = {
   차단: {
     icon: PackageSearch,
     iconClassName: "bg-danger-soft text-danger-strong",
-    railClassName: "border-danger",
   },
   "검사 대기": {
     icon: ScanSearch,
     iconClassName: "bg-warning-soft text-warning-strong",
-    railClassName: "border-warning",
   },
   "납기 임박": {
     icon: ClipboardList,
     iconClassName: "bg-warning-soft text-warning-strong",
-    railClassName: "border-warning",
   },
 };
 
 const fallbackVisual: ItemVisual = {
   icon: ClipboardList,
   iconClassName: "bg-surface-subtle text-text-muted",
-  railClassName: "border-border",
 };
 
 export function AttentionQueue({ items, onOpen }: AttentionQueueProps) {
@@ -56,15 +52,22 @@ export function AttentionQueue({ items, onOpen }: AttentionQueueProps) {
   }
 
   return (
-    <div className="grid h-full" style={{ gridTemplateRows: `repeat(${items.length}, minmax(0, 1fr))` }}>
+    <div
+      className="grid h-full divide-y divide-border"
+      style={{ gridTemplateRows: `repeat(${items.length}, minmax(0, 1fr))` }}
+    >
       {items.map(({ code, context, reason, status, tone }) => {
         const visual = visualByStatus[status] ?? fallbackVisual;
         const Icon = visual.icon;
         return (
           <article
-            className={`group flex h-full gap-3 border-s-2 py-4 pe-3 ps-3 ${visual.railClassName} ${onOpen ? "cursor-pointer transition-colors hover:bg-accent-soft/40 motion-reduce:transition-none" : ""}`}
+            className={`group flex h-full items-start gap-3 py-4 ${onOpen ? "cursor-pointer rounded-control transition-colors hover:bg-accent-soft/40 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-focus/40 motion-reduce:transition-none" : ""}`}
             key={`${status}-${code}`}
-            onClick={onOpen ? () => onOpen({ code, context, reason, status, tone }) : undefined}
+            onClick={
+              onOpen
+                ? () => onOpen({ code, context, reason, status, tone })
+                : undefined
+            }
             onKeyDown={
               onOpen
                 ? (event) => {
@@ -85,7 +88,7 @@ export function AttentionQueue({ items, onOpen }: AttentionQueueProps) {
             </span>
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-start justify-between gap-2">
-                <p className="text-xs font-semibold tabular-nums text-text-strong">
+                <p className="text-sm font-semibold tabular-nums text-text-strong">
                   {code}
                 </p>
                 <Badge tone={tone satisfies BadgeTone}>{status}</Badge>
@@ -93,6 +96,12 @@ export function AttentionQueue({ items, onOpen }: AttentionQueueProps) {
               <p className="mt-1 text-xs leading-5 text-text">{reason}</p>
               <p className="mt-1 text-xs text-text-muted">{context}</p>
             </div>
+            {onOpen ? (
+              <ChevronRight
+                className="mt-2 size-4 shrink-0 text-text-subtle"
+                aria-hidden="true"
+              />
+            ) : null}
           </article>
         );
       })}

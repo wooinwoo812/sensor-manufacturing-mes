@@ -1,3 +1,4 @@
+import { getPageSize, readPageSize } from "@/shared/lib";
 import {
   MATERIAL_LOT_AVAILABILITY_OPTIONS,
   MATERIAL_LOT_DISPOSITIONS,
@@ -10,6 +11,7 @@ export interface MaterialLotsListSearch {
   disposition?: readonly MaterialLotDisposition[];
   availability?: MaterialLotAvailability;
   page?: number;
+  pageSize?: number;
 }
 
 function parseDispositionList(
@@ -32,7 +34,8 @@ export function readMaterialLotsSearch(
   raw: Record<string, unknown>,
 ): MaterialLotsListSearch {
   const availability =
-    typeof raw.availability === "string" && raw.availability in MATERIAL_LOT_AVAILABILITY_OPTIONS
+    typeof raw.availability === "string" &&
+    raw.availability in MATERIAL_LOT_AVAILABILITY_OPTIONS
       ? (raw.availability as MaterialLotAvailability)
       : undefined;
 
@@ -53,6 +56,7 @@ export function readMaterialLotsSearch(
     disposition: parseDispositionList(raw.disposition),
     availability,
     page,
+    pageSize: readPageSize(raw.pageSize),
   });
 }
 
@@ -60,7 +64,9 @@ type MaterialLotsSearchPatch = {
   [K in keyof MaterialLotsListSearch]?: MaterialLotsListSearch[K] | undefined;
 };
 
-export function stripUndefinedSearch(value: MaterialLotsSearchPatch): MaterialLotsListSearch {
+export function stripUndefinedSearch(
+  value: MaterialLotsSearchPatch,
+): MaterialLotsListSearch {
   const result: Record<string, unknown> = {};
   for (const [key, entry] of Object.entries(value)) {
     if (entry !== undefined) {
@@ -93,5 +99,6 @@ export function toMaterialLotsSearchParams(
   if (search.page !== undefined && search.page > 1) {
     params.set("page", String(search.page));
   }
+  params.set("pageSize", String(getPageSize(search.pageSize)));
   return params;
 }

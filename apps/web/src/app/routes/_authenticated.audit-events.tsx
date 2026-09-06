@@ -28,7 +28,8 @@ export function AuditEventsRoute() {
         void navigate({
           to: "/audit-events",
           search: next,
-          replace: true,
+          replace: false,
+          resetScroll: false,
         });
       }}
     />

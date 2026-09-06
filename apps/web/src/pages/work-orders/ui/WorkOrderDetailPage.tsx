@@ -1,3 +1,4 @@
+import { useNavigationSafety } from "@/shared/lib";
 import { useState } from "react";
 import {
   cancelWorkOrder,
@@ -25,11 +26,16 @@ import {
   KeyValueGrid,
   PageHeading,
   Panel,
+  StatusStrip,
+  ContentGrid,
+  Timeline,
   PriorityBadge,
   Skeleton,
+  DataRegion,
   type BadgeTone,
 } from "@/shared/ui";
 import { useLoadState } from "@/shared/lib";
+import { BLOCKED_REASON_LABELS } from "@/entities/process-execution";
 import { AUDIT_ACTOR_ROLE_OPTIONS } from "@/entities/audit-event";
 import { Main, PageCrumb } from "@/widgets/app-shell";
 
@@ -61,10 +67,13 @@ interface WorkOrderDetailPageProps {
   canRelease: boolean;
   canCancel: boolean;
   canReserve: boolean;
+  canReadReservations?: boolean;
   canReleaseAllocation: boolean;
   onBack: () => void;
+  onOpenReservations?: () => void;
+  onOpenProcess?: (id: string, productionLotNumber: string) => void;
+  onOpenInspection?: (id: string) => void;
 }
-
 
 /** 감사 이력의 역할 코드는 사람이 읽는 라벨로 보여준다. 모르는 코드는 그대로 둔다. */
 function actorRoleLabel(role: string): string {
@@ -88,28 +97,47 @@ export function WorkOrderDetailPage({
   canRelease,
   canCancel,
   canReserve,
+  canReadReservations = false,
   canReleaseAllocation,
   onBack,
+  onOpenReservations,
+  onOpenProcess,
+  onOpenInspection,
 }: WorkOrderDetailPageProps) {
   const [commandError, setCommandError] = useState<string | null>(null);
-  const [commandPending, setCommandPending] = useState<"release" | "cancel" | null>(
-    null,
-  );
+  const [commandPending, setCommandPending] = useState<
+    "release" | "cancel" | null
+  >(null);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelOpen, setCancelOpen] = useState(false);
+  useNavigationSafety(cancelReason !== "", commandPending !== null);
   const { state, reload, replace } = useLoadState<{ detail: WorkOrderDetail }>(
     workOrderId,
-    (signal) => fetchWorkOrderDetail(workOrderId, signal).then((detail) => ({ detail })),
+    (signal) =>
+      fetchWorkOrderDetail(workOrderId, signal).then((detail) => ({ detail })),
     "작업지시를 불러오지 못했습니다.",
   );
 
   if (state.phase === "loading") {
     return (
       <Main id="main-content" tabIndex={-1}>
-        <div className="space-y-4" aria-label="작업지시 조회 중" role="status">
+        <PageHeading
+          key="detail-heading"
+          title="작업지시"
+          eyebrow="작업지시 상세"
+          back={{ label: "작업지시 목록", onClick: onBack }}
+          description="상세 정보를 불러오고 있습니다."
+        />
+        <DataRegion
+          name="detail"
+          loading
+          className="gap-4"
+          aria-label="작업지시 조회 중"
+          role="status"
+        >
           <Skeleton className="h-28 w-full" />
           <Skeleton className="h-64 w-full" />
-        </div>
+        </DataRegion>
       </Main>
     );
   }
@@ -117,13 +145,16 @@ export function WorkOrderDetailPage({
   if (state.phase === "error") {
     return (
       <Main id="main-content" tabIndex={-1}>
+        <PageHeading
+          key="detail-heading"
+          title="작업지시"
+          eyebrow="작업지시 상세"
+          back={{ label: "작업지시 목록", onClick: onBack }}
+          description="상세 정보를 확인하지 못했습니다. 다시 시도하거나 이전 화면으로 돌아가세요."
+        />
         <ErrorState
           description={state.message}
-          action={
-            <Button onClick={() => reload()}>
-              다시 시도
-            </Button>
-          }
+          action={<Button onClick={() => reload()}>다시 시도</Button>}
         />
       </Main>
     );
@@ -159,9 +190,17 @@ export function WorkOrderDetailPage({
       <PageCrumb value={detail.orderNumber} />
       {/* 주요 행동(발행·취소)은 화면 맨 아래가 아니라 제목 오른쪽에 둔다. 스크롤 없이 "여기서 할 일"이 보여야 한다. */}
       <PageHeading
+        key="detail-heading"
         actions={
-          canReleaseNow || canCancelNow ? (
+          canReleaseNow ||
+          canCancelNow ||
+          (canReadReservations && onOpenReservations !== undefined) ? (
             <>
+              {canReadReservations && onOpenReservations ? (
+                <Button variant="secondary" onClick={onOpenReservations}>
+                  자재 예약
+                </Button>
+              ) : null}
               {canCancelNow ? (
                 <Button
                   aria-expanded={cancelOpen}
@@ -177,10 +216,14 @@ export function WorkOrderDetailPage({
                   description="발행 후 이 작업지시는 실행 팀에 전달되며 초안으로 되돌릴 수 없습니다."
                   confirmLabel="발행 확정"
                   trigger={
-                    <Button loading={commandPending === "release"}>작업지시 발행</Button>
+                    <Button loading={commandPending === "release"}>
+                      작업지시 발행
+                    </Button>
                   }
                   onConfirm={() =>
-                    runCommand("release", () => releaseWorkOrder(workOrderId, csrfToken))
+                    runCommand("release", () =>
+                      releaseWorkOrder(workOrderId, csrfToken),
+                    )
                   }
                 />
               ) : null}
@@ -193,65 +236,82 @@ export function WorkOrderDetailPage({
         meta={<span>가상 데모 데이터</span>}
         title={detail.orderNumber}
       />
-
-      <div className="flex flex-wrap items-center gap-3">
-        <Badge tone={STATUS_TONES[detail.status] ?? "neutral"}>
-          {WORK_ORDER_STATUS_LABELS[detail.status]}
-        </Badge>
-        <PriorityBadge priority={toPriorityBadgeValue(detail.priority)} />
-        <span className="text-xs text-text-muted">
-          등록 {formatDateTime(detail.createdAt)}
-        </span>
-      </div>
-      {/* 취소 사유 패널은 버튼 바로 아래(제목 근처)에 펼친다. 화면 맨 아래에 열리면 눌렀는데 아무 일도 없는 것처럼 보인다. */}
-      {canCancelNow && cancelOpen ? (
-        <div className="rounded-panel border border-danger-border bg-danger-soft/30 p-4">
-        <p className="text-sm font-semibold">작업지시 취소</p>
-        <p className="mt-1 text-xs text-text-muted">
-          취소 사유를 남기면 감사 이력에 기록됩니다. 실적이 있는 지시는 취소할 수
-          없습니다.
-        </p>
-        <div className="mt-3 flex flex-wrap items-end gap-3">
-          <div className="min-w-64 flex-1">
-            <Input
-              id="cancel-reason"
-              label="취소 사유"
-              name="cancelReason"
-              onChange={(event) => setCancelReason(event.target.value)}
-              placeholder="예: 계획 변경으로 생산 제외"
-              value={cancelReason}
-            />
+      <DataRegion name="detail">
+        <StatusStrip>
+          <Badge tone={STATUS_TONES[detail.status] ?? "neutral"}>
+            {WORK_ORDER_STATUS_LABELS[detail.status]}
+          </Badge>
+          <PriorityBadge priority={toPriorityBadgeValue(detail.priority)} />
+          <span className="text-xs text-text-muted">
+            등록 {formatDateTime(detail.createdAt)}
+          </span>
+        </StatusStrip>
+        {/* 취소 사유 패널은 버튼 바로 아래(제목 근처)에 펼친다. 화면 맨 아래에 열리면 눌렀는데 아무 일도 없는 것처럼 보인다. */}
+        {canCancelNow && cancelOpen ? (
+          <div className="rounded-panel border border-danger-border bg-danger-soft/30 p-4">
+            <p className="text-sm font-semibold">작업지시 취소</p>
+            <p className="mt-1 text-xs text-text-muted">
+              취소 사유를 남기면 감사 이력에 기록됩니다. 실적이 있는 지시는
+              취소할 수 없습니다.
+            </p>
+            <div className="mt-3 flex flex-wrap items-end gap-3">
+              <div className="min-w-64 flex-1">
+                <Input
+                  id="cancel-reason"
+                  label="취소 사유"
+                  name="cancelReason"
+                  onChange={(event) => setCancelReason(event.target.value)}
+                  placeholder="예: 계획 변경으로 생산 제외"
+                  value={cancelReason}
+                />
+              </div>
+              <Button
+                variant="danger"
+                disabled={
+                  cancelReason.trim().length < 2 || commandPending !== null
+                }
+                loading={commandPending === "cancel"}
+                onClick={() =>
+                  runCommand("cancel", () =>
+                    cancelWorkOrder(
+                      workOrderId,
+                      cancelReason.trim(),
+                      csrfToken,
+                    ),
+                  )
+                }
+              >
+                취소 확정
+              </Button>
+            </div>
           </div>
-          <Button
-            variant="danger"
-            disabled={cancelReason.trim().length < 2 || commandPending !== null}
-            loading={commandPending === "cancel"}
-            onClick={() =>
-              runCommand("cancel", () =>
-                cancelWorkOrder(workOrderId, cancelReason.trim(), csrfToken),
-              )
-            }
-          >
-            취소 확정
-          </Button>
-        </div>
-        </div>
-      ) : null}
+        ) : null}
 
-      <Panel description="계획 수량과 납기, 진행 상태를 확인합니다." headingLevel="h2" title="요약">
+        <Panel
+          description="계획 수량과 납기, 진행 상태를 확인합니다."
+          headingLevel="h2"
+          title="요약"
+          tourAnchor="order-summary"
+        >
           <KeyValueGrid columns={4}>
             <KeyValue label="계획수량" size="lg">
               {detail.plannedQuantity.toLocaleString("ko-KR")} {detail.unit}
             </KeyValue>
-            <KeyValue label="납기">{isDueOverdue(detail.dueDate) && detail.status !== "COMPLETED" ? (
-                  <Badge tone="danger">{`${formatWorkOrderDueDate(detail.dueDate)} 지연`}</Badge>
-                ) : (
-                  <span className="text-lg font-semibold tabular-nums">
-                    {formatWorkOrderDueDate(detail.dueDate)}
-                  </span>
-                )}</KeyValue>
-            <KeyValue label="진행률" size="lg">{detail.progressPercent}%</KeyValue>
-            <KeyValue label="현재 공정" strong>{detail.currentStepName ?? "—"}</KeyValue>
+            <KeyValue label="납기">
+              {isDueOverdue(detail.dueDate) && detail.status !== "COMPLETED" ? (
+                <Badge tone="danger">{`${formatWorkOrderDueDate(detail.dueDate)} 지연`}</Badge>
+              ) : (
+                <span className="text-lg font-semibold tabular-nums">
+                  {formatWorkOrderDueDate(detail.dueDate)}
+                </span>
+              )}
+            </KeyValue>
+            <KeyValue label="진행률" size="lg">
+              {detail.progressPercent}%
+            </KeyValue>
+            <KeyValue label="현재 공정" strong>
+              {detail.currentStepName ?? "—"}
+            </KeyValue>
           </KeyValueGrid>
           {detail.blockedReason !== null ? (
             <p className="mt-4 rounded-panel border border-danger/40 bg-danger-soft/40 px-4 py-3 text-sm text-danger-strong">
@@ -266,11 +326,17 @@ export function WorkOrderDetailPage({
           ) : null}
         </Panel>
 
-      <div className="grid gap-4 xl:grid-cols-2">
-        <Panel description="생산 LOT별 공정 준비 상태입니다." headingLevel="h3" title="공정 흐름">
+        <ContentGrid>
+          <Panel
+            description="생산 LOT별 공정 준비 상태입니다."
+            headingLevel="h3"
+            title="공정 흐름"
+            tourAnchor="order-flow"
+          >
             {detail.steps.length === 0 ? (
               <p className="py-4 text-sm text-text-muted" role="status">
-                등록된 공정이 없습니다. 초안 상태 작업지시는 발행 후 공정이 구성됩니다.
+                등록된 공정이 없습니다. 초안 상태 작업지시는 발행 후 공정이
+                구성됩니다.
               </p>
             ) : (
               <ul className="divide-y divide-border">
@@ -283,7 +349,11 @@ export function WorkOrderDetailPage({
                       <span className="tabular-nums text-xs text-text-muted">
                         {String(step.sequence).padStart(2, "0")}
                       </span>
-                      <span className="text-sm font-semibold">{step.processStepName}</span>
+                      {onOpenProcess ? (
+                        <button type="button" className="text-sm font-semibold text-primary underline underline-offset-4" onClick={() => onOpenProcess(step.id, step.productionLotNumber)}>
+                          {step.processStepName}
+                        </button>
+                      ) : <span className="text-sm font-semibold">{step.processStepName}</span>}
                       <span className="text-xs tabular-nums text-text-muted">
                         {step.productionLotNumber}
                       </span>
@@ -291,10 +361,14 @@ export function WorkOrderDetailPage({
                     <span className="flex items-center gap-2">
                       {step.blockedReasonCodes.map((code) => (
                         <Badge key={code} tone="warning">
-                          {code}
+                          {BLOCKED_REASON_LABELS[
+                            code as keyof typeof BLOCKED_REASON_LABELS
+                          ] ?? "준비 조건 확인 필요"}
                         </Badge>
                       ))}
-                      <Badge tone={READINESS_TONES[step.readiness] ?? "neutral"}>
+                      <Badge
+                        tone={READINESS_TONES[step.readiness] ?? "neutral"}
+                      >
                         {WORK_ORDER_READINESS_LABELS[step.readiness]}
                       </Badge>
                     </span>
@@ -304,7 +378,12 @@ export function WorkOrderDetailPage({
             )}
           </Panel>
 
-        <Panel description="게이트별 검사와 판정 결과입니다." headingLevel="h3" title="검사">
+          <Panel
+            description="게이트별 검사와 판정 결과입니다."
+            headingLevel="h3"
+            title="검사"
+            tourAnchor="order-inspections"
+          >
             {detail.inspections.length === 0 ? (
               <p className="py-4 text-sm text-text-muted" role="status">
                 등록된 검사가 없습니다.
@@ -317,22 +396,38 @@ export function WorkOrderDetailPage({
                     key={inspection.id}
                   >
                     <span className="flex items-center gap-3">
-                      <span className="text-xs tabular-nums font-bold">
-                        {inspection.inspectionNumber}
+                      {onOpenInspection ? (
+                        <button type="button" className="text-xs tabular-nums font-bold text-primary underline underline-offset-4" onClick={() => onOpenInspection(inspection.id)}>
+                          {inspection.inspectionNumber}
+                        </button>
+                      ) : <span className="text-xs tabular-nums font-bold">{inspection.inspectionNumber}</span>}
+                      <span className="text-sm">
+                        {inspection.processStepName}
                       </span>
-                      <span className="text-sm">{inspection.processStepName}</span>
-                      <Badge tone={inspection.gate === "LOT_COMPLETE" ? "info" : "neutral"}>
+                      <Badge
+                        tone={
+                          inspection.gate === "LOT_COMPLETE"
+                            ? "info"
+                            : "neutral"
+                        }
+                      >
                         {WORK_ORDER_GATE_LABELS[inspection.gate]}
                       </Badge>
                     </span>
                     <span className="flex items-center gap-2">
                       <Badge tone="neutral">
-                        {WORK_ORDER_EXECUTION_STATUS_LABELS[inspection.executionStatus]}
+                        {
+                          WORK_ORDER_EXECUTION_STATUS_LABELS[
+                            inspection.executionStatus
+                          ]
+                        }
                       </Badge>
                       {inspection.verdict === null ? (
                         <Badge tone="neutral">미판정</Badge>
                       ) : (
-                        <Badge tone={VERDICT_TONES[inspection.verdict] ?? "neutral"}>
+                        <Badge
+                          tone={VERDICT_TONES[inspection.verdict] ?? "neutral"}
+                        >
                           {WORK_ORDER_VERDICT_LABELS[inspection.verdict]}
                         </Badge>
                       )}
@@ -342,52 +437,54 @@ export function WorkOrderDetailPage({
               </ul>
             )}
           </Panel>
-      </div>
+        </ContentGrid>
 
-      <Panel description="이 작업지시의 감사 기록입니다." headingLevel="h3" title="변경 이력">
-          {detail.recentAudits.length === 0 ? (
-            <p className="py-4 text-sm text-text-muted" role="status">
-              아직 기록된 변경이 없습니다.
-            </p>
-          ) : (
-            <ol className="space-y-3">
-              {detail.recentAudits.map((event) => (
-                <li className="flex flex-wrap items-baseline gap-2" key={event.id}>
-                  <time className="tabular-nums text-xs text-text-muted">
-                    {formatDateTime(event.occurredAt)}
-                  </time>
-                  <span className="text-sm font-semibold">{event.actorName}</span>
-                  <span className="text-xs text-text-muted">{actorRoleLabel(event.actorRole)}</span>
-                  <span className="text-sm text-text">{event.summary}</span>
-                </li>
-              ))}
-            </ol>
-          )}
+        <Panel
+          description="이 작업지시의 감사 기록입니다."
+          headingLevel="h3"
+          title="변경 이력"
+          tourAnchor="order-history"
+        >
+          <Timeline
+            emptyMessage="아직 기록된 변경이 없습니다."
+            items={detail.recentAudits.map((event) => ({
+              id: event.id,
+              dateTime: event.occurredAt,
+              timeLabel: formatDateTime(event.occurredAt),
+              title: event.summary,
+              description: `${event.actorName} · ${actorRoleLabel(event.actorRole)}`,
+            }))}
+          />
         </Panel>
 
-      <MaterialReservationPanel
-        canRelease={canReleaseAllocation}
-        canReserve={canReserve}
-        csrfToken={csrfToken}
-        isReleased={detail.status === "RELEASED"}
-        orderNumber={detail.orderNumber}
-        workOrderId={workOrderId}
-      />
+        {canReadReservations ? (
+          <MaterialReservationPanel
+            canRelease={canReleaseAllocation}
+            canReserve={canReserve}
+            csrfToken={csrfToken}
+            isReleased={detail.status === "RELEASED"}
+            orderNumber={detail.orderNumber}
+            workOrderId={workOrderId}
+            requirements={detail.materialRequirements}
+            onChanged={reload}
+          />
+        ) : null}
 
-      <section aria-label="작업지시 행동" className="space-y-3">
-        <h2 className="sr-only">작업지시 행동</h2>
-        {!canRelease && detail.status === "DRAFT" ? (
-          <p className="text-xs text-text-muted">
-            발행은 생산계획 담당자 권한(work-order:release)이 필요합니다. 현재 역할로는
-            이 작업지시의 상태와 이력을 조회할 수 있습니다.
-          </p>
-        ) : null}
-        {commandError !== null ? (
-          <p className="rounded-panel border border-danger/40 bg-danger-soft/40 px-4 py-3 text-sm text-danger-strong">
-            {commandError}
-          </p>
-        ) : null}
-      </section>
+        {(!canRelease && detail.status === "DRAFT") || commandError !== null ? <section aria-label="작업지시 행동" className="space-y-3">
+          <h2 className="sr-only">작업지시 행동</h2>
+          {!canRelease && detail.status === "DRAFT" ? (
+            <p className="text-xs text-text-muted">
+              발행은 생산계획 담당자가 처리합니다. 현재
+              역할로는 이 작업지시의 상태와 이력을 조회할 수 있습니다.
+            </p>
+          ) : null}
+          {commandError !== null ? (
+            <p className="rounded-panel border border-danger/40 bg-danger-soft/40 px-4 py-3 text-sm text-danger-strong">
+              {commandError}
+            </p>
+          ) : null}
+        </section> : null}
+      </DataRegion>
     </Main>
   );
 }

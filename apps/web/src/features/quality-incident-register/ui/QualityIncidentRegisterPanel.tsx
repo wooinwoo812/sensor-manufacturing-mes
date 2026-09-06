@@ -1,8 +1,17 @@
+import { useNavigationSafety } from "@/shared/lib";
 import { useState } from "react";
 import { registerQualityIncident } from "../api/quality-incident-register";
 import { QUALITY_INCIDENT_SOURCE_TYPE_LABELS } from "@/entities/quality-incident";
 import { ApiRequestError } from "@/shared/api";
-import { Button, Input, Select } from "@/shared/ui";
+import {
+  Button,
+  FormActions,
+  FormFields,
+  Input,
+  Notice,
+  Panel,
+  Select,
+} from "@/shared/ui";
 
 interface QualityIncidentRegisterPanelProps {
   csrfToken: string;
@@ -19,6 +28,8 @@ export function QualityIncidentRegisterPanel({
   const [description, setDescription] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useNavigationSafety(title !== "" || sourceType !== "MATERIAL_LOT" || sourceLotNumber !== "" || description !== "", pending);
 
   async function submit() {
     if (pending) {
@@ -38,9 +49,12 @@ export function QualityIncidentRegisterPanel({
       await registerQualityIncident(
         {
           title: title.trim(),
-          sourceType: sourceType as "MATERIAL_LOT" | "PRODUCTION_LOT" | "FINISHED_UNIT",
+          sourceType: sourceType as
+            "MATERIAL_LOT" | "PRODUCTION_LOT" | "FINISHED_UNIT",
           sourceLotNumber: sourceLotNumber.trim(),
-          ...(description.trim() === "" ? {} : { description: description.trim() }),
+          ...(description.trim() === ""
+            ? {}
+            : { description: description.trim() }),
         },
         csrfToken,
       );
@@ -56,17 +70,18 @@ export function QualityIncidentRegisterPanel({
   }
 
   return (
-    <div
-      className="rounded-panel border border-border bg-surface p-4"
-      aria-label="부적합 사건 등록"
+    <Panel
+      ariaLabel="부적합 사건 등록"
+      title="부적합 사건 등록"
+      description="발견한 문제와 영향 대상을 기록합니다."
+      bodyClassName="grid gap-5"
     >
-      <p className="text-sm font-semibold">부적합 사건 등록</p>
-      <p className="mt-1 text-xs text-text-muted">
-        자재 LOT 사건은 등록 즉시 격리(QUARANTINED)되어 예약·투입이 차단되며 감사
-        이력에 기록됩니다.
-      </p>
-      <div className="mt-3 grid gap-3 md:grid-cols-2">
-        <div className="md:col-span-2">
+      <Notice tone="warning">
+        자재 LOT 사건은 등록 즉시 격리되어 예약·투입이 차단되며 감사 이력에
+        기록됩니다.
+      </Notice>
+      <FormFields>
+        <div className="sm:col-span-2">
           <Input
             id="incident-title"
             label="사건 제목"
@@ -95,7 +110,7 @@ export function QualityIncidentRegisterPanel({
             value={sourceLotNumber}
           />
         </div>
-        <div className="md:col-span-2">
+        <div className="sm:col-span-2">
           <Input
             hint="선택 사항입니다."
             id="incident-description"
@@ -105,20 +120,20 @@ export function QualityIncidentRegisterPanel({
             value={description}
           />
         </div>
-      </div>
-      <div className="mt-3 flex items-center gap-2">
+      </FormFields>
+      <FormActions>
         <Button loading={pending} onClick={() => void submit()}>
           사건 등록
         </Button>
         <Button variant="ghost" onClick={onDone}>
           취소
         </Button>
-      </div>
+      </FormActions>
       {error !== null ? (
         <p className="mt-3 rounded-panel border border-danger/40 bg-danger-soft/40 px-4 py-3 text-sm text-danger-strong">
           {error}
         </p>
       ) : null}
-    </div>
+    </Panel>
   );
 }

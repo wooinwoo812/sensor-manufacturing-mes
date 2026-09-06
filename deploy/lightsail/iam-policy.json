@@ -1,0 +1,12 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Action": [
+      "lightsail:GetInstanceAccessDetails",
+      "lightsail:OpenInstancePublicPorts",
+      "lightsail:CloseInstancePublicPorts"
+    ],
+    "Resource": "arn:aws:lightsail:ap-northeast-2:017947000500:Instance/decd337b-9a78-4dbd-9b1b-cc2829b7ee67"
+  }]
+}

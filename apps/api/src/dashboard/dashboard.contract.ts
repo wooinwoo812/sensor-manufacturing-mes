@@ -40,6 +40,7 @@ export interface DashboardAttentionItem {
 }
 
 export interface DashboardSummary {
+  demoCases?: { scenario?: string; hasHeldInspection?: boolean; id: string; orderNumber: string; label: string; status: string; progressPercent: number; blockedReason: string | null }[];
   metrics: DashboardMetricSummary;
   weekly: DashboardWeeklyPoint[];
   weeklyTotals: { planned: number; progress: number; completionRate: number };

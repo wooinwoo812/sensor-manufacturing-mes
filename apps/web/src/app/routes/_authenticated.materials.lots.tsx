@@ -37,7 +37,8 @@ export function MaterialLotsRoute() {
         void navigate({
           to: "/materials/lots",
           search: next,
-          replace: true,
+          replace: false,
+          resetScroll: false,
         });
       }}
     />

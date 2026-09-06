@@ -11,6 +11,7 @@ export const ROLE_CODES = [
 export type RoleCode = (typeof ROLE_CODES)[number];
 
 export const LANDING_ROUTES = [
+  "/dashboard",
   "/work-orders",
   "/materials/lots",
   "/execution/queue",

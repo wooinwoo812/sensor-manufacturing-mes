@@ -136,7 +136,7 @@ class FakePrismaService {
       applyOrderBy(
         this.processSteps.filter((row) => matchesWhere(row, where)),
         orderBy,
-      ).slice(skip, skip + take),
+      ).slice(skip, skip + take).map((row) => ({ ...row, workOrder: { ...row.workOrder, processSteps: this.processSteps.filter((step) => step.workOrderId === row.workOrderId).map((step) => ({ ...step, goodQuantity: null })) } })),
     count: async ({ where = {} }: { where?: Record<string, unknown> }) =>
       this.processSteps.filter((row) => matchesWhere(row, where)).length,
   };
@@ -318,7 +318,7 @@ describe("process execution queue API", () => {
       .query({ readiness: "ready" })
       .set("Origin", allowedOrigin)
       .expect(200);
-    expect(ready.body.total).toBe(2);
+    expect(ready.body.total).toBe(1);
     for (const item of ready.body.items) {
       expect(item.readiness).toBe("READY");
     }
@@ -328,11 +328,11 @@ describe("process execution queue API", () => {
       .query({ readiness: "blocked" })
       .set("Origin", allowedOrigin)
       .expect(200);
-    expect(blocked.body.total).toBe(2);
+    expect(blocked.body.total).toBe(3);
     const blockedReasons = (blocked.body.items as { blockedReasonCodes: string[] }[])
       .flatMap((item) => item.blockedReasonCodes)
       .sort();
-    expect(blockedReasons).toEqual(["INSPECTION_HELD", "MATERIAL_SHORTAGE"]);
+    expect(blockedReasons).toEqual(["INSPECTION_FAILED", "INSPECTION_HELD", "MATERIAL_SHORTAGE"]);
 
     const completed = await agent
       .get("/api/process-executions")

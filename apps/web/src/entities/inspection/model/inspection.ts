@@ -55,6 +55,13 @@ export interface InspectionAuditView {
 }
 
 export interface InspectionDetail extends InspectionListItem {
+  workOrderId: string;
+  eligibility: { canVerdict: boolean; canReview: boolean; blockedReason: string | null };
+  decisions: {
+    id: string; sequence: number; phase: string; verdict: InspectionVerdict;
+    memo: string | null; actorName: string | null; actorRole: string | null; occurredAt: string;
+  }[];
+
   verdictMemo: string | null;
   recentAudits: InspectionAuditView[];
 }

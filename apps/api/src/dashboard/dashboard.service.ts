@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../database/prisma.service.js";
+import { dashboardCalendar } from "./dashboard-calendar.js";
 import type {
   DashboardAttentionItem,
   DashboardSummary,
@@ -8,27 +9,13 @@ import type {
 
 const WEEKDAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"] as const;
 
-function seoulStartOfToday(): Date {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Seoul",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-  return new Date(Date.parse(`${parts}T00:00:00+09:00`));
-}
-
-function seoulWeekStart(): Date {
-  const start = seoulStartOfToday().getTime();
-  const weekday = (new Date(start).getUTCDay() + 6) % 7;
-  return new Date(start - weekday * 86_400_000);
-}
-
 @Injectable()
 export class DashboardService {
   constructor(private readonly prisma: PrismaService) {}
 
   async summary(): Promise<DashboardSummary> {
+    const now = Date.now();
+    const { todayStart, tomorrowStart, weekStart, weekEnd } = dashboardCalendar(new Date(now));
     const [
       workOrders,
       lots,
@@ -42,6 +29,7 @@ export class DashboardService {
       });
       const inspections = await transaction.inspection.findMany({
         select: {
+          workOrderId: true,
           inspectionNumber: true,
           productionLotNumber: true,
           gate: true,
@@ -57,8 +45,6 @@ export class DashboardService {
           reservedQuantity: true,
         },
       });
-      const weekStart = seoulWeekStart();
-      const weekEnd = new Date(weekStart.getTime() + 7 * 86_400_000);
       const weekOrders = await transaction.workOrder.findMany({
         where: {
           status: { not: "CANCELLED" },
@@ -68,10 +54,6 @@ export class DashboardService {
       });
       return [workOrders, lots, inspections, materialLots, weekOrders] as const;
     });
-
-    const todayStart = seoulStartOfToday();
-    const tomorrowStart = new Date(todayStart.getTime() + 86_400_000);
-    const now = Date.now();
 
     const metrics = {
       workOrders: {
@@ -117,11 +99,17 @@ export class DashboardService {
       },
     };
 
-    const weekly = this.buildWeekly(weekOrders, seoulWeekStart());
+    const weekly = this.buildWeekly(weekOrders, weekStart);
     const planned = weekly.reduce((sum, point) => sum + point.plannedQuantity, 0);
     const progress = weekly.reduce((sum, point) => sum + point.progressQuantity, 0);
 
     return {
+      demoCases: workOrders.filter(order => order.memo?.startsWith("[PORTFOLIO-V1:")).map(order => ({
+        id: order.id, orderNumber: order.orderNumber, label: order.memo!.replace(/^\[PORTFOLIO-V1:[A-Z]+\]\s*/, ""),
+        scenario: /^\[PORTFOLIO-V1:([A-Z]+)\]/.exec(order.memo!)?.[1] ?? "",
+        hasHeldInspection: inspections.some(inspection => inspection.workOrderId === order.id && inspection.executionStatus === "COMPLETED" && inspection.verdict === "HOLD"),
+        status: order.status, progressPercent: order.progressPercent, blockedReason: order.blockedReason,
+      })).sort((a, b) => a.orderNumber.localeCompare(b.orderNumber)),
       metrics,
       weekly,
       weeklyTotals: {

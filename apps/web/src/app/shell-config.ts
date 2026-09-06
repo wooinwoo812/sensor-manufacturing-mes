@@ -1,7 +1,4 @@
-import type {
-  AppShellConfiguration,
-  AppShellProps,
-} from "@/widgets/app-shell";
+import type { AppShellConfiguration, AppShellProps } from "@/widgets/app-shell";
 import { sessionHasPermission, type Session } from "@/entities/session";
 
 type NavigationItem = AppShellProps["navigation"][number]["items"][number];
@@ -9,7 +6,7 @@ type ConfiguredNavigationItem = NavigationItem & { permission: string };
 
 const navigation: { label: string; items: ConfiguredNavigationItem[] }[] = [
   {
-    label: "운영",
+    label: "생산 운영",
     items: [
       {
         label: "대시보드",
@@ -17,11 +14,7 @@ const navigation: { label: string; items: ConfiguredNavigationItem[] }[] = [
         icon: "dashboard",
         permission: "dashboard:read",
       },
-    ],
-  },
-  {
-    label: "생산",
-    items: [
+
       {
         label: "작업지시",
         icon: "work-order",
@@ -37,7 +30,7 @@ const navigation: { label: string; items: ConfiguredNavigationItem[] }[] = [
     ],
   },
   {
-    label: "자재",
+    label: "자재·품질",
     items: [
       {
         label: "BOM 기준정보",
@@ -51,11 +44,7 @@ const navigation: { label: string; items: ConfiguredNavigationItem[] }[] = [
         to: "/materials/lots",
         permission: "material-lot:read",
       },
-    ],
-  },
-  {
-    label: "품질",
-    items: [
+
       {
         label: "검사",
         icon: "inspection",
@@ -71,7 +60,7 @@ const navigation: { label: string; items: ConfiguredNavigationItem[] }[] = [
     ],
   },
   {
-    label: "추적",
+    label: "추적·관리",
     items: [
       {
         label: "LOT 계보",
@@ -79,11 +68,7 @@ const navigation: { label: string; items: ConfiguredNavigationItem[] }[] = [
         to: "/traceability",
         permission: "trace:read",
       },
-    ],
-  },
-  {
-    label: "관리",
-    items: [
+
       {
         label: "감사이력",
         icon: "audit",
@@ -101,6 +86,7 @@ const navigation: { label: string; items: ConfiguredNavigationItem[] }[] = [
 ];
 
 const routeTitles: Record<string, { title: string }> = {
+  "/guide": { title: "업무 가이드" },
   "/dashboard": { title: "운영 대시보드" },
   "/work-orders": { title: "작업지시" },
   "/work-orders/new": { title: "작업지시 생성" },

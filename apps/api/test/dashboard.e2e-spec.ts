@@ -193,11 +193,11 @@ describe("dashboard summary API", () => {
     const { metrics, weekly, weeklyTotals, attentionQueue } = response.body;
 
     expect(metrics.workOrders.inProgress).toBe(3);
-    expect(metrics.workOrders.blocked).toBe(2);
+    expect(metrics.workOrders.blocked).toBe(3);
     expect(metrics.workOrders.overdue).toBe(1);
     expect(metrics.productionLots.distinct).toBe(6);
     expect(metrics.productionLots.inProgress).toBe(2);
-    expect(metrics.inspections.pending).toBe(3);
+    expect(metrics.inspections.pending).toBe(4);
     expect(metrics.inspections.failed).toBe(1);
     expect(metrics.inspections.hold).toBe(1);
     expect(metrics.materialLots.quarantined).toBe(1);
@@ -217,6 +217,7 @@ describe("dashboard summary API", () => {
     const blockedItems = attentionQueue.filter((item: { status: string }) => item.status === "차단");
     expect(blockedItems.map((item: { code: string }) => item.code).sort()).toEqual([
       "WO-2026-092",
+      "WO-2026-094",
       "WO-2026-098",
     ]);
     expect(attentionQueue.length).toBeLessThanOrEqual(5);

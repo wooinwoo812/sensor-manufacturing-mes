@@ -1,16 +1,22 @@
-import { PROCESS_READINESS_FILTER_OPTIONS, type ProcessReadinessFilterOption } from "@/entities/process-execution";
+import { getPageSize, readPageSize } from "@/shared/lib";
+import {
+  PROCESS_READINESS_FILTER_OPTIONS,
+  type ProcessReadinessFilterOption,
+} from "@/entities/process-execution";
 
 export interface ExecutionQueueSearch {
   q?: string;
   readiness?: ProcessReadinessFilterOption;
   page?: number;
+  pageSize?: number;
 }
 
 export function readExecutionQueueSearch(
   raw: Record<string, unknown>,
 ): ExecutionQueueSearch {
   const readiness =
-    typeof raw.readiness === "string" && raw.readiness in PROCESS_READINESS_FILTER_OPTIONS
+    typeof raw.readiness === "string" &&
+    raw.readiness in PROCESS_READINESS_FILTER_OPTIONS
       ? (raw.readiness as ProcessReadinessFilterOption)
       : undefined;
 
@@ -26,14 +32,21 @@ export function readExecutionQueueSearch(
   const q =
     typeof raw.q === "string" && raw.q.trim() !== "" ? raw.q.trim() : undefined;
 
-  return stripUndefinedSearch({ q, readiness, page });
+  return stripUndefinedSearch({
+    q,
+    readiness,
+    page,
+    pageSize: readPageSize(raw.pageSize),
+  });
 }
 
 type ExecutionQueueSearchPatch = {
   [K in keyof ExecutionQueueSearch]?: ExecutionQueueSearch[K] | undefined;
 };
 
-export function stripUndefinedSearch(value: ExecutionQueueSearchPatch): ExecutionQueueSearch {
+export function stripUndefinedSearch(
+  value: ExecutionQueueSearchPatch,
+): ExecutionQueueSearch {
   const result: Record<string, unknown> = {};
   for (const [key, entry] of Object.entries(value)) {
     if (entry !== undefined) {
@@ -50,7 +63,9 @@ export function mergeExecutionQueueSearch(
   return stripUndefinedSearch({ ...base, ...patch });
 }
 
-export function toExecutionQueueParams(search: ExecutionQueueSearch): URLSearchParams {
+export function toExecutionQueueParams(
+  search: ExecutionQueueSearch,
+): URLSearchParams {
   const params = new URLSearchParams();
   if (search.q !== undefined) {
     params.set("q", search.q);
@@ -61,5 +76,6 @@ export function toExecutionQueueParams(search: ExecutionQueueSearch): URLSearchP
   if (search.page !== undefined && search.page > 1) {
     params.set("page", String(search.page));
   }
+  params.set("pageSize", String(getPageSize(search.pageSize)));
   return params;
 }

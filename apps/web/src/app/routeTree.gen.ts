@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteImport } from "./routes/_authenticated";
 import { Route as IndexRouteImport } from "./routes/index";
 import { Route as AuthenticatedWorkOrdersRouteImport } from "./routes/_authenticated.work-orders";
 import { Route as AuthenticatedTraceabilityRouteImport } from "./routes/_authenticated.traceability";
+import { Route as AuthenticatedGuideRouteImport } from "./routes/_authenticated.guide";
 import { Route as AuthenticatedForbiddenRouteImport } from "./routes/_authenticated.forbidden";
 import { Route as AuthenticatedDashboardRouteImport } from "./routes/_authenticated.dashboard";
 import { Route as AuthenticatedAuditEventsRouteImport } from "./routes/_authenticated.audit-events";
@@ -58,6 +59,11 @@ const AuthenticatedTraceabilityRoute =
     path: "/traceability",
     getParentRoute: () => AuthenticatedRoute,
   } as any);
+const AuthenticatedGuideRoute = AuthenticatedGuideRouteImport.update({
+  id: "/guide",
+  path: "/guide",
+  getParentRoute: () => AuthenticatedRoute,
+} as any);
 const AuthenticatedForbiddenRoute = AuthenticatedForbiddenRouteImport.update({
   id: "/forbidden",
   path: "/forbidden",
@@ -171,6 +177,7 @@ export interface FileRoutesByFullPath {
   "/audit-events": typeof AuthenticatedAuditEventsRoute;
   "/dashboard": typeof AuthenticatedDashboardRoute;
   "/forbidden": typeof AuthenticatedForbiddenRoute;
+  "/guide": typeof AuthenticatedGuideRoute;
   "/traceability": typeof AuthenticatedTraceabilityRoute;
   "/work-orders": typeof AuthenticatedWorkOrdersRoute;
   "/admin/users": typeof AuthenticatedAdminUsersRoute;
@@ -195,6 +202,7 @@ export interface FileRoutesByTo {
   "/audit-events": typeof AuthenticatedAuditEventsRoute;
   "/dashboard": typeof AuthenticatedDashboardRoute;
   "/forbidden": typeof AuthenticatedForbiddenRoute;
+  "/guide": typeof AuthenticatedGuideRoute;
   "/traceability": typeof AuthenticatedTraceabilityRoute;
   "/work-orders": typeof AuthenticatedWorkOrdersRoute;
   "/admin/users": typeof AuthenticatedAdminUsersRoute;
@@ -221,6 +229,7 @@ export interface FileRoutesById {
   "/_authenticated/audit-events": typeof AuthenticatedAuditEventsRoute;
   "/_authenticated/dashboard": typeof AuthenticatedDashboardRoute;
   "/_authenticated/forbidden": typeof AuthenticatedForbiddenRoute;
+  "/_authenticated/guide": typeof AuthenticatedGuideRoute;
   "/_authenticated/traceability": typeof AuthenticatedTraceabilityRoute;
   "/_authenticated/work-orders": typeof AuthenticatedWorkOrdersRoute;
   "/_authenticated/admin/users": typeof AuthenticatedAdminUsersRoute;
@@ -247,6 +256,7 @@ export interface FileRouteTypes {
     | "/audit-events"
     | "/dashboard"
     | "/forbidden"
+    | "/guide"
     | "/traceability"
     | "/work-orders"
     | "/admin/users"
@@ -271,6 +281,7 @@ export interface FileRouteTypes {
     | "/audit-events"
     | "/dashboard"
     | "/forbidden"
+    | "/guide"
     | "/traceability"
     | "/work-orders"
     | "/admin/users"
@@ -296,6 +307,7 @@ export interface FileRouteTypes {
     | "/_authenticated/audit-events"
     | "/_authenticated/dashboard"
     | "/_authenticated/forbidden"
+    | "/_authenticated/guide"
     | "/_authenticated/traceability"
     | "/_authenticated/work-orders"
     | "/_authenticated/admin/users"
@@ -356,6 +368,13 @@ declare module "@tanstack/react-router" {
       path: "/traceability";
       fullPath: "/traceability";
       preLoaderRoute: typeof AuthenticatedTraceabilityRouteImport;
+      parentRoute: typeof AuthenticatedRoute;
+    };
+    "/_authenticated/guide": {
+      id: "/_authenticated/guide";
+      path: "/guide";
+      fullPath: "/guide";
+      preLoaderRoute: typeof AuthenticatedGuideRouteImport;
       parentRoute: typeof AuthenticatedRoute;
     };
     "/_authenticated/forbidden": {
@@ -506,6 +525,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedAuditEventsRoute: typeof AuthenticatedAuditEventsRoute;
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute;
   AuthenticatedForbiddenRoute: typeof AuthenticatedForbiddenRoute;
+  AuthenticatedGuideRoute: typeof AuthenticatedGuideRoute;
   AuthenticatedTraceabilityRoute: typeof AuthenticatedTraceabilityRoute;
   AuthenticatedWorkOrdersRoute: typeof AuthenticatedWorkOrdersRoute;
   AuthenticatedAdminUsersRoute: typeof AuthenticatedAdminUsersRoute;
@@ -528,6 +548,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAuditEventsRoute: AuthenticatedAuditEventsRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedForbiddenRoute: AuthenticatedForbiddenRoute,
+  AuthenticatedGuideRoute: AuthenticatedGuideRoute,
   AuthenticatedTraceabilityRoute: AuthenticatedTraceabilityRoute,
   AuthenticatedWorkOrdersRoute: AuthenticatedWorkOrdersRoute,
   AuthenticatedAdminUsersRoute: AuthenticatedAdminUsersRoute,

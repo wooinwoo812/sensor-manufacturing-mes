@@ -1,4 +1,5 @@
 export const AUDIT_ACTION_LABELS = {
+  USER_ACCESS_CHANGED: "사용자 역할·상태 변경",
   SESSION_LOGIN: "세션 로그인",
   SESSION_LOGOUT: "세션 종료",
   WORK_ORDER_CREATED: "작업지시 생성",
@@ -16,6 +17,7 @@ export const AUDIT_ACTION_LABELS = {
 export type AuditAction = keyof typeof AUDIT_ACTION_LABELS;
 
 export const AUDIT_ENTITY_TYPE_LABELS = {
+  USER: "사용자",
   WORK_ORDER: "작업지시",
   MATERIAL_LOT: "자재 LOT",
   INSPECTION: "검사",
@@ -28,7 +30,7 @@ export const AUDIT_ACTOR_ROLE_OPTIONS = {
   MATERIAL_MANAGER: "자재 담당자",
   SHOP_FLOOR_OPERATOR: "현장 작업자",
   QUALITY_ENGINEER: "품질 담당자",
-  SYSTEM_ADMIN: "시스템 관리자",
+  SYSTEM_ADMIN: "최고관리자",
 } as const;
 
 export type AuditActorRole = keyof typeof AUDIT_ACTOR_ROLE_OPTIONS;

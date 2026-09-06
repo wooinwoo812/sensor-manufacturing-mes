@@ -1,12 +1,12 @@
 import { Module } from "@nestjs/common";
 import { AuthModule } from "../auth/auth.module.js";
-import { PrismaService } from "../database/prisma.service.js";
+import { DatabaseModule } from "../database/database.module.js";
 import { QualityIncidentsController } from "./quality-incidents.controller.js";
 import { QualityIncidentsService } from "./quality-incidents.service.js";
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, DatabaseModule],
   controllers: [QualityIncidentsController],
-  providers: [PrismaService, QualityIncidentsService],
+  providers: [QualityIncidentsService],
 })
 export class QualityIncidentsModule {}

@@ -9,6 +9,7 @@
     "pnpm": "11.25.0"
   },
   "scripts": {
+    "start": "corepack pnpm --filter @sensor-mes/api start",
     "dev": "corepack pnpm --parallel --stream --filter @sensor-mes/web --filter @sensor-mes/api dev",
     "db:up": "docker compose up -d --wait postgres",
     "db:down": "docker compose down",
@@ -21,6 +22,7 @@
     "lint": "eslint .",
     "typecheck": "corepack pnpm --filter @sensor-mes/web typecheck && corepack pnpm --filter @sensor-mes/api typecheck",
     "test": "node --test scripts/*.test.mjs && corepack pnpm --filter @sensor-mes/web test && corepack pnpm --filter @sensor-mes/api test",
+    "test:postgres": "corepack pnpm --filter @sensor-mes/api test:postgres",
     "build": "corepack pnpm --filter @sensor-mes/web build && corepack pnpm --filter @sensor-mes/api build",
     "docs:check": "markdownlint-cli2 \"README.md\" \"CONTRIBUTING.md\" \".github/**/*.md\" \"docs/**/*.md\" && node scripts/check-internal-links.mjs",
     "check": "corepack pnpm lint && corepack pnpm typecheck && corepack pnpm test && corepack pnpm build && corepack pnpm docs:check"

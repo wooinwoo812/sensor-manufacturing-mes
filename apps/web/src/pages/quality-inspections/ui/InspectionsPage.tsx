@@ -1,3 +1,4 @@
+import { getPageSize } from "@/shared/lib";
 import { useMemo, useState } from "react";
 import {
   fetchInspections,
@@ -8,6 +9,7 @@ import {
 } from "@/entities/inspection";
 import { InspectionVerdictPanel } from "@/features/inspection-verdict";
 import {
+  ActionSheet,
   Badge,
   Button,
   DataTable,
@@ -22,7 +24,7 @@ import {
   type BadgeTone,
   type DataTableColumn,
 } from "@/shared/ui";
-import { useLoadState } from "@/shared/lib";
+import { useLoadState, useQueryDraft } from "@/shared/lib";
 import { Main } from "@/widgets/app-shell";
 import {
   mergeInspectionsSearch,
@@ -43,9 +45,6 @@ const VERDICT_TONES: Record<string, BadgeTone> = {
   HOLD: "warning",
 };
 
-const PAGE_SIZE = 20;
-
-
 interface InspectionsPageProps {
   search: InspectionsSearch;
   onSearchChange: (next: InspectionsSearch) => void;
@@ -62,28 +61,41 @@ export function InspectionsPage({
   canVerdict,
 }: InspectionsPageProps) {
   const searchKey = JSON.stringify(search);
-  const [verdictTarget, setVerdictTarget] = useState<InspectionListItem | null>(null);
+  const [verdictTarget, setVerdictTarget] = useState<InspectionListItem | null>(
+    null,
+  );
   const { state, isRefreshing, reload } = useLoadState<{
     items: InspectionListItem[];
     total: number;
     page: number;
+    pageSize: number;
   }>(
     searchKey,
     (signal) => {
       const searchValue = JSON.parse(searchKey) as InspectionsSearch;
-      return fetchInspections(toInspectionsParams(searchValue), signal).then((response) => ({
-        items: response.items,
-        total: response.total,
-        page: response.page,
-      }));
+      return fetchInspections(toInspectionsParams(searchValue), signal).then(
+        (response) => ({
+          items: response.items,
+          total: response.total,
+          page: response.page,
+          pageSize: response.pageSize,
+        }),
+      );
     },
     "검사 목록을 불러오지 못했습니다.",
+  );
+
+  const { draft, setDraft, submit, reset, hasPendingChanges } = useQueryDraft(
+    search,
+    onSearchChange,
+    reload,
   );
 
   const columns = useMemo<DataTableColumn<InspectionListItem>[]>(
     () => [
       {
         key: "inspectionNumber",
+        align: "left",
         header: "검사",
         cell: (row) => (
           <button
@@ -97,6 +109,7 @@ export function InspectionsPage({
       },
       {
         key: "productionLotNumber",
+        align: "left",
         header: "생산 LOT",
         cell: (row) => (
           <span className="text-xs tabular-nums text-text-muted">
@@ -106,11 +119,13 @@ export function InspectionsPage({
       },
       {
         key: "processStepName",
+        align: "left",
         header: "공정",
         cell: (row) => row.processStepName,
       },
       {
         key: "gate",
+        align: "center",
         header: "게이트",
         cell: (row) => (
           <Badge tone={row.gate === "LOT_COMPLETE" ? "info" : "neutral"}>
@@ -120,6 +135,7 @@ export function InspectionsPage({
       },
       {
         key: "specName",
+        align: "left",
         wrap: true,
         header: "검사 규격",
         cell: (row) => (
@@ -130,6 +146,7 @@ export function InspectionsPage({
       },
       {
         key: "workOrderNumber",
+        align: "left",
         header: "작업지시",
         cell: (row) => (
           <span className="text-xs tabular-nums text-text-muted">
@@ -139,6 +156,7 @@ export function InspectionsPage({
       },
       {
         key: "executionStatus",
+        align: "center",
         header: "실행 상태",
         cell: (row) => (
           <Badge tone={EXECUTION_TONES[row.executionStatus] ?? "neutral"}>
@@ -148,6 +166,7 @@ export function InspectionsPage({
       },
       {
         key: "verdict",
+        align: "center",
         header: "판정",
         cell: (row) =>
           row.verdict === null ? (
@@ -162,11 +181,15 @@ export function InspectionsPage({
         ? [
             {
               key: "actions",
+              align: "center",
               header: "행동",
               cell: (row: InspectionListItem) =>
                 row.executionStatus === "PENDING" ||
                 row.executionStatus === "IN_PROGRESS" ? (
-                  <Button variant="secondary" onClick={() => setVerdictTarget(row)}>
+                  <Button
+                    variant="secondary"
+                    onClick={() => setVerdictTarget(row)}
+                  >
                     판정
                   </Button>
                 ) : (
@@ -185,11 +208,37 @@ export function InspectionsPage({
     search.verdict !== undefined ||
     search.gate !== undefined;
 
-  const currentPage = state.phase === "success" ? state.page : search.page ?? 1;
+  const pageSize =
+    state.phase === "success" ? state.pageSize : getPageSize(search.pageSize);
+  const currentPage =
+    state.phase === "success" ? state.page : (search.page ?? 1);
   const totalPages =
     state.phase === "success"
-      ? Math.max(1, Math.ceil(state.total / PAGE_SIZE))
+      ? Math.max(1, Math.ceil(state.total / pageSize))
       : 1;
+
+  const pagination =
+    state.phase === "success" ? (
+      <Pagination
+        currentPage={currentPage}
+        totalItems={state.total}
+        pageSize={pageSize}
+        onPageSizeChange={(size) =>
+          onSearchChange(
+            mergeInspectionsSearch(search, {
+              pageSize: size === 10 ? undefined : size,
+              page: undefined,
+            }),
+          )
+        }
+        busy={isRefreshing}
+        label="검사 목록 페이지 탐색"
+        onPageChange={(page) =>
+          onSearchChange(mergeInspectionsSearch(search, { page }))
+        }
+        totalPages={totalPages}
+      />
+    ) : null;
 
   return (
     <Main id="main-content" tabIndex={-1}>
@@ -200,6 +249,10 @@ export function InspectionsPage({
       />
 
       <FilterBar
+        onSearch={submit}
+        onReset={reset}
+        busy={state.phase === "loading" || isRefreshing}
+        hasPendingChanges={hasPendingChanges}
         resultLabel={
           state.phase === "success"
             ? `총 ${state.total.toLocaleString("ko-KR")}건 중 ${state.items.length.toLocaleString("ko-KR")}건 표시 (등록 순서)`
@@ -207,18 +260,13 @@ export function InspectionsPage({
         }
       >
         <Input
+          data-tour="list-search"
           aria-label="검사 검색"
-          defaultValue={search.q}
+          value={draft.q ?? ""}
+          onChange={(event) => setDraft({ ...draft, q: event.target.value })}
           id="inspection-q"
           label="검색"
           name="q"
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              const value = event.currentTarget.value.trim();
-              onSearchChange(mergeInspectionsSearch(search, {q: value === "" ? undefined : value,
-                page: undefined,}));
-            }
-          }}
           placeholder="검사 번호·생산 LOT·규격"
         />
         <Select
@@ -230,36 +278,48 @@ export function InspectionsPage({
             ),
           ]}
           value={
-            search.executionStatus?.length === 1
-              ? (search.executionStatus[0] ?? "all")
+            draft.executionStatus?.length === 1
+              ? (draft.executionStatus[0] ?? "all")
               : "all"
           }
           onValueChange={(value) =>
-            onSearchChange(mergeInspectionsSearch(search, {executionStatus:
-                value === "all"
-                  ? undefined
-                  : [
-                      value as keyof typeof INSPECTION_EXECUTION_STATUS_LABELS,
-                    ],
-              page: undefined,}))
+            setDraft(
+              mergeInspectionsSearch(draft, {
+                executionStatus:
+                  value === "all"
+                    ? undefined
+                    : [
+                        value as keyof typeof INSPECTION_EXECUTION_STATUS_LABELS,
+                      ],
+                page: undefined,
+              }),
+            )
           }
         />
         <Select
           label="판정"
           options={[
             { label: "전체 판정", value: "all" },
-            ...Object.entries(INSPECTION_VERDICT_LABELS).map(([value, label]) => ({
-              label,
-              value,
-            })),
+            ...Object.entries(INSPECTION_VERDICT_LABELS).map(
+              ([value, label]) => ({
+                label,
+                value,
+              }),
+            ),
           ]}
-          value={search.verdict?.length === 1 ? (search.verdict[0] ?? "all") : "all"}
+          value={
+            draft.verdict?.length === 1 ? (draft.verdict[0] ?? "all") : "all"
+          }
           onValueChange={(value) =>
-            onSearchChange(mergeInspectionsSearch(search, {verdict:
-                value === "all"
-                  ? undefined
-                  : [value as keyof typeof INSPECTION_VERDICT_LABELS],
-              page: undefined,}))
+            setDraft(
+              mergeInspectionsSearch(draft, {
+                verdict:
+                  value === "all"
+                    ? undefined
+                    : [value as keyof typeof INSPECTION_VERDICT_LABELS],
+                page: undefined,
+              }),
+            )
           }
         />
         <Select
@@ -271,29 +331,27 @@ export function InspectionsPage({
               value,
             })),
           ]}
-          value={search.gate?.length === 1 ? (search.gate[0] ?? "all") : "all"}
+          value={draft.gate?.length === 1 ? (draft.gate[0] ?? "all") : "all"}
           onValueChange={(value) =>
-            onSearchChange(mergeInspectionsSearch(search, {gate: value === "all" ? undefined : [value as keyof typeof INSPECTION_GATE_LABELS],
-              page: undefined,}))
+            setDraft(
+              mergeInspectionsSearch(draft, {
+                gate:
+                  value === "all"
+                    ? undefined
+                    : [value as keyof typeof INSPECTION_GATE_LABELS],
+                page: undefined,
+              }),
+            )
           }
         />
-        {hasActiveFilter ? (
-          <Button variant="ghost" onClick={() => onSearchChange({})}>
-            조건 초기화
-          </Button>
-        ) : null}
       </FilterBar>
 
       {state.phase === "loading" ? (
-        <TableSkeleton label="검사 목록 조회 중" />
+        <TableSkeleton label="검사 목록 조회 중" rows={pageSize} />
       ) : state.phase === "error" ? (
         <ErrorState
           description={state.message}
-          action={
-            <Button onClick={() => reload()}>
-              다시 시도
-            </Button>
-          }
+          action={<Button onClick={() => reload()}>다시 시도</Button>}
         />
       ) : state.items.length === 0 ? (
         <EmptyState
@@ -301,7 +359,7 @@ export function InspectionsPage({
           description="조회 조건을 초기화하거나 다른 조건으로 확인해 주세요."
           action={
             hasActiveFilter ? (
-              <Button variant="secondary" onClick={() => onSearchChange({})}>
+              <Button variant="secondary" onClick={reset}>
                 조건 초기화
               </Button>
             ) : undefined
@@ -309,38 +367,53 @@ export function InspectionsPage({
         />
       ) : (
         <>
-          {verdictTarget !== null ? (
-            <InspectionVerdictPanel
-              csrfToken={csrfToken}
-              onDone={() => {
-                setVerdictTarget(null);
-                reload();
-              }}
-              target={{
-                inspectionId: verdictTarget.id,
-                inspectionNumber: verdictTarget.inspectionNumber,
-                specName: verdictTarget.specName,
-                productionLotNumber: verdictTarget.productionLotNumber,
-              }}
-            />
-          ) : null}
+          <ActionSheet
+            open={verdictTarget !== null}
+            onOpenChange={(open) => {
+              if (!open) setVerdictTarget(null);
+            }}
+            title="검사 판정 입력"
+            description="대상과 규격을 확인하고 판정을 기록하세요."
+          >
+            {verdictTarget !== null ? (
+              <InspectionVerdictPanel
+                csrfToken={csrfToken}
+                onDone={() => {
+                  setVerdictTarget(null);
+                  reload();
+                }}
+                target={{
+                  inspectionId: verdictTarget.id,
+                  inspectionNumber: verdictTarget.inspectionNumber,
+                  specName: verdictTarget.specName,
+                  productionLotNumber: verdictTarget.productionLotNumber,
+                }}
+              />
+            ) : null}
+          </ActionSheet>
           <DataTable
+            footer={pagination}
+            rowNumberStart={state.total - (currentPage - 1) * pageSize}
             onRowClick={(row) => onOpenDetail(row.id)}
             busy={isRefreshing}
             caption="품질 검사 목록"
             columns={columns}
             emptyMessage="조건에 맞는 검사가 없습니다."
             getRowKey={(row) => row.id}
+            tourRecord="inspection"
+            isTourPreferred={(row) =>
+              row.executionStatus === "PENDING" ||
+              row.executionStatus === "IN_PROGRESS"
+            }
             rows={state.items}
-          />
-          <Pagination
-            currentPage={currentPage}
-            label="검사 목록 페이지 탐색"
-            onPageChange={(page) => onSearchChange(mergeInspectionsSearch(search, { page }))}
-            totalPages={totalPages}
           />
         </>
       )}
+      {state.phase === "success" && state.items.length === 0 ? (
+        <div className="rounded-panel border border-border bg-surface">
+          {pagination}
+        </div>
+      ) : null}
     </Main>
   );
 }

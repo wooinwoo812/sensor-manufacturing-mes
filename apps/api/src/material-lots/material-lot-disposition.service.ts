@@ -6,6 +6,7 @@ import {
 } from "@nestjs/common";
 import type { QualityDisposition } from "../generated/prisma/enums.js";
 import { PrismaService } from "../database/prisma.service.js";
+import { auditSummary } from "../audit-events/audit-summary.js";
 import type { CommandActor } from "../work-orders/work-orders.service.js";
 import { computeAvailableQuantity } from "./material-lots.service.js";
 
@@ -130,7 +131,8 @@ export class MaterialLotDispositionService {
           action: "MATERIAL_LOT_DISPOSITION_DECIDED",
           entityType: "MATERIAL_LOT",
           entityId: lot.lotNumber,
-          summary: `${lot.material.name} ${lot.lotNumber} 품질 처분 ${DISPOSITION_LABELS[current]} → ${DISPOSITION_LABELS[next]}${next === "REJECTED" ? ` (잔여 ${lot.onHand}${lot.material.unit} 폐기 이관)` : ""}${memo === undefined ? "" : ` — ${memo}`}`,
+          summary: auditSummary(`${lot.material.name} ${lot.lotNumber} 품질 처분 ${DISPOSITION_LABELS[current]} → ${DISPOSITION_LABELS[next]}${next === "REJECTED" ? ` (잔여 ${lot.onHand}${lot.material.unit} 폐기 이관)` : ""}${memo === undefined ? "" : ` — ${memo}`}`),
+          ...(memo === undefined ? {} : { details: { reason: memo } }),
           requestId: `req-${Date.now().toString(36)}-${Math.random()
             .toString(36)
             .slice(2, 8)}`,

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   createWorkOrder,
   fetchWorkOrderProducts,
@@ -10,12 +10,21 @@ import { ApiRequestError } from "@/shared/api";
 import {
   Button,
   ErrorState,
+  ContentGrid,
+  FormFields,
+  FormActions,
+  KeyValue,
+  KeyValueGrid,
+  Notice,
+  Panel,
   Input,
   PageHeading,
   Select,
   Skeleton,
 } from "@/shared/ui";
 import { Main } from "@/widgets/app-shell";
+import { useNavigationSafety } from "@/shared/lib";
+import { useLoadState } from "@/shared/lib";
 
 interface WorkOrderCreatePageProps {
   csrfToken: string;
@@ -38,37 +47,37 @@ export function WorkOrderCreatePage({
   onCreated,
   onCancel,
 }: WorkOrderCreatePageProps) {
-  const [products, setProducts] = useState<WorkOrderProduct[] | null>(null);
-  const [productCode, setProductCode] = useState<string>("");
+  const { state, reload } = useLoadState<{ products: WorkOrderProduct[] }>(
+    "work-order-products",
+    (signal) =>
+      fetchWorkOrderProducts(signal).then((response) => ({
+        products: response.items,
+      })),
+    "제품 목록을 불러오지 못했습니다.",
+  );
+  const [selectedProductCode, setProductCode] = useState<string>("");
+  const products = state.phase === "success" ? state.products : [];
+  const productCode = selectedProductCode || products[0]?.code || "";
   const [plannedQuantity, setPlannedQuantity] = useState("100");
-  const [dueDate, setDueDate] = useState(todayPlus(7));
+  const [initialDueDate] = useState(() => todayPlus(7));
+  const [dueDate, setDueDate] = useState(initialDueDate);
   const [priority, setPriority] = useState("NORMAL");
   const [memo, setMemo] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const controller = new AbortController();
-    let active = true;
-    fetchWorkOrderProducts(controller.signal)
-      .then((response) => {
-        if (!active) {
-          return;
-        }
-        setProducts(response.items);
-        setProductCode((current) => current || (response.items[0]?.code ?? ""));
-      })
-      .catch(() => {
-        if (!active) {
-          return;
-        }
-        setProducts([]);
-      });
-    return () => {
-      active = false;
-      controller.abort();
-    };
-  }, []);
+  useNavigationSafety(
+    selectedProductCode !== "" ||
+      plannedQuantity !== "100" ||
+      dueDate !== initialDueDate ||
+      priority !== "NORMAL" ||
+      memo !== "",
+    submitting,
+  );
+
+  const selectedProduct = products.find(
+    (product) => product.code === productCode,
+  );
 
   return (
     <Main id="main-content" tabIndex={-1}>
@@ -80,109 +89,170 @@ export function WorkOrderCreatePage({
         title="작업지시 생성"
       />
 
-      {products === null ? (
+      {state.phase === "loading" ? (
         <div className="space-y-2" aria-label="제품 목록 조회 중" role="status">
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-10 w-full" />
         </div>
+      ) : state.phase === "error" ? (
+        <ErrorState
+          title="제품 목록을 불러오지 못했습니다"
+          description={state.message}
+          action={<Button onClick={reload}>다시 시도</Button>}
+        />
+      ) : products.length === 0 ? (
+        <ErrorState
+          title="등록된 제품이 없습니다"
+          description="제품 기준정보가 등록된 후 작업지시를 생성할 수 있습니다."
+        />
       ) : (
-        <form
-          className="max-w-xl space-y-4"
-          noValidate
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (submitting) {
-              return;
-            }
-            setSubmitting(true);
-            setError(null);
-            createWorkOrder(
-              {
-                productCode,
-                plannedQuantity: Number(plannedQuantity),
-                dueDate,
-                priority: priority as "LOW" | "NORMAL" | "HIGH" | "URGENT",
-                ...(memo.trim() === "" ? {} : { memo: memo.trim() }),
-              },
-              csrfToken,
-            )
-              .then((detail) => {
-                onCreated(detail.id);
-              })
-              .catch((cause: unknown) => {
-                setError(
-                  cause instanceof ApiRequestError
-                    ? cause.message
-                    : "작업지시를 생성하지 못했습니다.",
-                );
-                setSubmitting(false);
-              });
-          }}
-        >
-          <Select
-            label="제품"
-            options={products.map((product) => ({
-              label: `${product.name} (${product.code})`,
-              value: product.code,
-            }))}
-            value={productCode}
-            onValueChange={setProductCode}
-          />
-          <Input
-            id="work-order-quantity"
-            label="계획수량"
-            min={1}
-            name="plannedQuantity"
-            onChange={(event) => setPlannedQuantity(event.target.value)}
-            required
-            type="number"
-            value={plannedQuantity}
-          />
-          <Input
-            id="work-order-due"
-            label="납기 (서울 기준)"
-            min={todayPlus(0)}
-            name="dueDate"
-            onChange={(event) => setDueDate(event.target.value)}
-            required
-            type="date"
-            value={dueDate}
-          />
-          <Select
-            label="우선순위"
-            options={WORK_ORDER_PRIORITIES.map((value) => ({
-              label: WORK_ORDER_PRIORITY_LABELS[value],
-              value,
-            }))}
-            value={priority}
-            onValueChange={setPriority}
-          />
-          <Input
-            hint="선택 사항입니다."
-            id="work-order-memo"
-            label="메모"
-            name="memo"
-            onChange={(event) => setMemo(event.target.value)}
-            value={memo}
-          />
-          {error !== null ? (
-            <p className="rounded-panel border border-danger/40 bg-danger-soft/40 px-4 py-3 text-sm text-danger-strong">
-              {error}
-            </p>
-          ) : null}
-          <div className="flex items-center gap-3">
-            <Button disabled={submitting} loading={submitting} type="submit">
-              초안 생성
-            </Button>
-            <p className="text-xs text-text-muted">
-              생성 즉시 감사 이력이 기록됩니다. 발행은 상세 화면에서 별도 확정합니다.
-            </p>
-          </div>
-        </form>
+        <ContentGrid aside>
+          <Panel
+            title="생산 계획 입력"
+            description="필수 정보를 입력하고 초안으로 저장하세요."
+          >
+            <form
+              className="min-w-0"
+              noValidate
+              onSubmit={(event) => {
+                event.preventDefault();
+                if (submitting) {
+                  return;
+                }
+                setSubmitting(true);
+                setError(null);
+                createWorkOrder(
+                  {
+                    productCode,
+                    plannedQuantity: Number(plannedQuantity),
+                    dueDate,
+                    priority: priority as "LOW" | "NORMAL" | "HIGH" | "URGENT",
+                    ...(memo.trim() === "" ? {} : { memo: memo.trim() }),
+                  },
+                  csrfToken,
+                )
+                  .then((detail) => {
+                    onCreated(detail.id);
+                  })
+                  .catch((cause: unknown) => {
+                    setError(
+                      cause instanceof ApiRequestError
+                        ? cause.message
+                        : "작업지시를 생성하지 못했습니다.",
+                    );
+                    setSubmitting(false);
+                  });
+              }}
+            >
+              <FormFields>
+                <div className="sm:col-span-2">
+                  <Select
+                    label="제품"
+                    tourAnchor="plan-product"
+                    options={products.map((product) => ({
+                      label: `${product.name} (${product.code})`,
+                      value: product.code,
+                    }))}
+                    value={productCode}
+                    onValueChange={setProductCode}
+                  />
+                </div>
+                <Input
+                  id="work-order-quantity"
+                  data-tour="plan-quantity"
+                  label="계획수량"
+                  min={1}
+                  name="plannedQuantity"
+                  onChange={(event) => setPlannedQuantity(event.target.value)}
+                  required
+                  type="number"
+                  value={plannedQuantity}
+                />
+                <Input
+                  id="work-order-due"
+                  data-tour="plan-due"
+                  label="납기 (서울 기준)"
+                  min={todayPlus(0)}
+                  name="dueDate"
+                  onChange={(event) => setDueDate(event.target.value)}
+                  required
+                  type="date"
+                  value={dueDate}
+                />
+                <Select
+                  label="우선순위"
+                  tourAnchor="plan-priority"
+                  options={WORK_ORDER_PRIORITIES.map((value) => ({
+                    label: WORK_ORDER_PRIORITY_LABELS[value],
+                    value,
+                  }))}
+                  value={priority}
+                  onValueChange={setPriority}
+                />
+                <div className="sm:col-span-2">
+                  <Input
+                    hint="선택 사항입니다."
+                    id="work-order-memo"
+                    label="메모"
+                    name="memo"
+                    onChange={(event) => setMemo(event.target.value)}
+                    value={memo}
+                  />
+                </div>
+              </FormFields>
+              {error !== null ? (
+                <p
+                  role="alert"
+                  className="mt-4 rounded-panel border border-danger/40 bg-danger-soft/40 px-4 py-3 text-sm text-danger-strong"
+                >
+                  {error}
+                </p>
+              ) : null}
+              <FormActions>
+                <Button
+                  disabled={submitting}
+                  loading={submitting}
+                  type="submit"
+                >
+                  초안 생성
+                </Button>
+                <p className="text-xs text-text-muted">
+                  생성 즉시 감사 이력이 기록됩니다. 발행은 상세 화면에서 별도
+                  확정합니다.
+                </p>
+              </FormActions>
+            </form>
+          </Panel>
+          <Panel
+            title="입력 내용 확인"
+            tourAnchor="plan-review"
+            description="저장 전 계획을 한 번 더 확인하세요."
+            bodyClassName="grid gap-6"
+          >
+            <KeyValueGrid columns={2}>
+              <KeyValue label="선택 제품" strong>
+                {selectedProduct?.name ?? "제품을 선택하세요"}
+              </KeyValue>
+              <KeyValue label="계획수량" size="lg">
+                {Number(plannedQuantity).toLocaleString("ko-KR")}{" "}
+                {selectedProduct?.unit}
+              </KeyValue>
+              <KeyValue label="납기">{dueDate || "미입력"}</KeyValue>
+              <KeyValue label="우선순위">
+                {
+                  WORK_ORDER_PRIORITY_LABELS[
+                    priority as keyof typeof WORK_ORDER_PRIORITY_LABELS
+                  ]
+                }
+              </KeyValue>
+            </KeyValueGrid>
+            <Notice>
+              초안은 생산 실행 전의 준비 단계입니다. 생성 후 상세 화면에서
+              내용을 검토하고 발행을 확정합니다.
+            </Notice>
+          </Panel>
+        </ContentGrid>
       )}
-      {products !== null && products.length === 0 ? (
-        <ErrorState title="제품 목록을 불러오지 못했습니다" />
-      ) : null}
     </Main>
   );
 }

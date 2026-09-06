@@ -1,6 +1,7 @@
 import { AuditAction, RoleCode } from "../generated/prisma/enums.js";
 
 export const AUDIT_ACTIONS = [
+  "USER_ACCESS_CHANGED",
   "SESSION_LOGIN",
   "SESSION_LOGOUT",
   "WORK_ORDER_CREATED",

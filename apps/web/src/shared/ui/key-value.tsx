@@ -14,9 +14,9 @@ const columnClasses: Record<NonNullable<KeyValueGridProps["columns"]>, string> =
   5: "sm:grid-cols-2 xl:grid-cols-5",
 };
 
-/** 상세 요약 지표를 담는 정의 목록. 항목 간격 16px 하나로 고정한다. */
+/** 상세 요약 정의 목록. 가로 24px·세로 20px 간격을 소유한다. */
 export function KeyValueGrid({ children, className, columns = 4 }: KeyValueGridProps) {
-  return <dl className={cn("grid gap-4", columnClasses[columns], className)}>{children}</dl>;
+  return <dl className={cn("grid gap-x-6 gap-y-5", columnClasses[columns], className)}>{children}</dl>;
 }
 
 interface KeyValueProps {
@@ -28,16 +28,16 @@ interface KeyValueProps {
 }
 
 /**
- * 라벨 12px muted 위에 값이 4px 간격으로 붙는다. 큰 수치는 18px semibold tabular-nums 로
+ * 라벨 12px muted 아래에 값이 8px 간격으로 붙는다. 큰 수치는 18px semibold tabular-nums 로
  * 자릿수를 맞추고, 식별자·상태 badge 는 children 으로 그대로 넣는다.
  */
 export function KeyValue({ children, label, size = "sm", strong = false }: KeyValueProps) {
   return (
-    <div className="min-w-0">
+    <div className="min-w-0 border-l-2 border-border pl-3">
       <dt className="text-xs font-medium text-text-muted">{label}</dt>
       <dd
         className={cn(
-          "mt-1",
+          "mt-2 text-text-strong",
           size === "lg" ? "text-lg font-semibold tabular-nums" : "text-sm",
           size === "sm" && strong && "font-semibold",
         )}

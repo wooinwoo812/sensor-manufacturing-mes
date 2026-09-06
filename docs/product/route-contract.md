@@ -2,12 +2,12 @@
 
 > `SCR-01A`~`SCR-07B`의 URL, parameter, permission, navigation과 실패 상태를 구현 전에 고정하는 계약
 
-| 항목 | 내용 |
-|---|---|
-| 상태 | 사전설계 v1.0 |
-| 관련 Issue | [#28](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/28) |
+| 항목         | 내용                                                                                                                        |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| 상태         | 사전설계 v1.0                                                                                                               |
+| 관련 Issue   | [#28](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/28)                                                       |
 | Architecture | [ADR-0004](../adr/0004-frontend-architecture-and-routing.md), [Frontend 구조 계약](../engineering/frontend-architecture.md) |
-| 화면 기준 | [UI 레이아웃·상태 계약](ui-layout-contracts.md) |
+| 화면 기준    | [UI 레이아웃·상태 계약](ui-layout-contracts.md)                                                                             |
 
 ## 1. URL 원칙
 
@@ -61,31 +61,32 @@
 
 1024 지원 수준은 route 차단 조건이 아니라 해당 viewport에서 보존할 정보·행동 계약이다.
 
-| Route ID | Path | 화면 | 최소 permission | 1024px 계약 |
-|---|---|---|---|---|
-| `ROUTE-ROOT` | `/` | 역할별 시작점 | 없음 | 역할별 redirect |
-| `ROUTE-LOGIN` | `/login` | `FLOW-AUTH-01` | public | 원클릭 역할 로그인 |
-| `ROUTE-DASHBOARD` | `/dashboard` | `SCR-01A` | `dashboard:read` | 핵심 예외 읽기 |
-| `ROUTE-WORK-ORDER-LIST` | `/work-orders` | `SCR-02A` | `work-order:read` | 관리 표 비대상 |
-| `ROUTE-WORK-ORDER-CREATE` | `/work-orders/new` | `SCR-02B` | `work-order:create` | 비대상 |
-| `ROUTE-WORK-ORDER-DETAIL` | `/work-orders/$workOrderId` | `SCR-02C` | `work-order:read` | 핵심 요약 읽기 |
-| `ROUTE-MATERIAL-RESERVATION` | `/work-orders/$workOrderId/material-reservations` | `SCR-03D` | `material-allocation:read` | 비대상 |
-| `ROUTE-BOM-LIST` | `/materials/boms` | `SCR-03A` | `master-data:read` | 비대상 |
-| `ROUTE-MATERIAL-LOT-LIST` | `/materials/lots` | `SCR-03B` | `material-lot:read` | 관리 표 비대상 |
-| `ROUTE-MATERIAL-LOT-DETAIL` | `/materials/lots/$materialLotId` | `SCR-03C` | `material-lot:read` | 핵심 요약 읽기 |
-| `ROUTE-EXECUTION-QUEUE` | `/execution/queue` | `SCR-04A` | `process-execution:read` | 현장 최적화 |
-| `ROUTE-PROCESS-EXECUTION` | `/execution/lots/$productionLotId/steps/$processStepRevisionId` | `SCR-04B` | `process-execution:read` | 완전 지원 |
-| `ROUTE-INSPECTION-LIST` | `/quality/inspections` | `SCR-05A` | `inspection:read` | 관리 표 비대상 |
-| `ROUTE-INSPECTION-DETAIL` | `/quality/inspections/$inspectionId` | `SCR-05B` | `inspection:read` | 비대상 |
-| `ROUTE-INCIDENT-LIST` | `/quality/incidents` | `SCR-05C` 목록 상태 | `quality-incident:read` | 비대상 |
-| `ROUTE-INCIDENT-DETAIL` | `/quality/incidents/$qualityIncidentId` | `SCR-05C` 상세 상태 | `quality-incident:read` | 핵심 요약 읽기 |
-| `ROUTE-TRACE-SEARCH` | `/traceability` | `SCR-06A` | `trace:read` | 검색·읽기 |
-| `ROUTE-TRACE-DETAIL` | `/traceability/$traceNodeId` | `SCR-06B` | `trace:read` | table 중심 읽기 |
-| `ROUTE-AUDIT-EVENT-LIST` | `/audit-events` | `SCR-07A` | `audit-event:read` | 비대상 |
-| `ROUTE-USER-LIST` | `/admin/users` | `SCR-07B` | `user:manage` | 비대상·MVP 후순위 |
-| `ROUTE-UI-SHOWCASE` | `/dev/ui-kit` | #9 내부 component showcase | development only | viewport fixture |
-| `ROUTE-FORBIDDEN` | `/forbidden` | 권한 없음 | authenticated | 요청 위치·필요 권한 안내 |
-| `ROUTE-NOT-FOUND` | `*` | 찾을 수 없음 | 없음 | 동일 shell에서 복구 링크 |
+| Route ID                     | Path                                                            | 화면                          | 최소 permission            | 1024px 계약              |
+| ---------------------------- | --------------------------------------------------------------- | ----------------------------- | -------------------------- | ------------------------ |
+| `ROUTE-ROOT`                 | `/`                                                             | 역할별 시작점                 | 없음                       | 역할별 redirect          |
+| `ROUTE-LOGIN`                | `/login`                                                        | `FLOW-AUTH-01`                | public                     | 원클릭 역할 로그인       |
+| `ROUTE-DASHBOARD`            | `/dashboard`                                                    | `SCR-01A`                     | `dashboard:read`           | 핵심 예외 읽기           |
+| `ROUTE-WORK-ORDER-LIST`      | `/work-orders`                                                  | `SCR-02A`                     | `work-order:read`          | 관리 표 비대상           |
+| `ROUTE-WORK-ORDER-CREATE`    | `/work-orders/new`                                              | `SCR-02B`                     | `work-order:create`        | 비대상                   |
+| `ROUTE-WORK-ORDER-DETAIL`    | `/work-orders/$workOrderId`                                     | `SCR-02C`                     | `work-order:read`          | 핵심 요약 읽기           |
+| `ROUTE-MATERIAL-RESERVATION` | `/work-orders/$workOrderId/material-reservations`               | `SCR-03D`                     | `material-allocation:read` | 비대상                   |
+| `ROUTE-BOM-LIST`             | `/materials/boms`                                               | `SCR-03A`                     | `master-data:read`         | 비대상                   |
+| `ROUTE-MATERIAL-LOT-LIST`    | `/materials/lots`                                               | `SCR-03B`                     | `material-lot:read`        | 관리 표 비대상           |
+| `ROUTE-MATERIAL-LOT-DETAIL`  | `/materials/lots/$materialLotId`                                | `SCR-03C`                     | `material-lot:read`        | 핵심 요약 읽기           |
+| `ROUTE-EXECUTION-QUEUE`      | `/execution/queue`                                              | `SCR-04A`                     | `process-execution:read`   | 현장 최적화              |
+| `ROUTE-PROCESS-EXECUTION`    | `/execution/lots/$productionLotId/steps/$processStepRevisionId` | `SCR-04B`                     | `process-execution:read`   | 완전 지원                |
+| `ROUTE-INSPECTION-LIST`      | `/quality/inspections`                                          | `SCR-05A`                     | `inspection:read`          | 관리 표 비대상           |
+| `ROUTE-INSPECTION-DETAIL`    | `/quality/inspections/$inspectionId`                            | `SCR-05B`                     | `inspection:read`          | 비대상                   |
+| `ROUTE-INCIDENT-LIST`        | `/quality/incidents`                                            | `SCR-05C` 목록 상태           | `quality-incident:read`    | 비대상                   |
+| `ROUTE-INCIDENT-DETAIL`      | `/quality/incidents/$qualityIncidentId`                         | `SCR-05C` 상세 상태           | `quality-incident:read`    | 핵심 요약 읽기           |
+| `ROUTE-TRACE-SEARCH`         | `/traceability`                                                 | `SCR-06A`                     | `trace:read`               | 검색·읽기                |
+| `ROUTE-TRACE-DETAIL`         | `/traceability/$traceNodeId`                                    | `SCR-06B`                     | `trace:read`               | table 중심 읽기          |
+| `ROUTE-AUDIT-EVENT-LIST`     | `/audit-events`                                                 | `SCR-07A`                     | `audit-event:read`         | 비대상                   |
+| `ROUTE-USER-LIST`            | `/admin/users`                                                  | `SCR-07B`                     | `user:manage`              | 비대상·MVP 후순위        |
+| `ROUTE-GUIDE`                | `/guide`                                                        | 시작 안내·화면 규칙·전체 문서 | authenticated              | 전체 읽기 지원           |
+| `ROUTE-UI-SHOWCASE`          | `/dev/ui-kit`                                                   | #9 내부 component showcase    | development only           | viewport fixture         |
+| `ROUTE-FORBIDDEN`            | `/forbidden`                                                    | 권한 없음                     | authenticated              | 요청 위치·필요 권한 안내 |
+| `ROUTE-NOT-FOUND`            | `*`                                                             | 찾을 수 없음                  | 없음                       | 동일 shell에서 복구 링크 |
 
 `ROUTE-UI-SHOWCASE`는 `import.meta.env.DEV`가 아니면 `ROUTE-NOT-FOUND`로 처리하고 navigation·production screenshot에 노출하지 않는다.
 
@@ -101,16 +102,16 @@
 
 Route inventory의 permission은 화면에 진입해 최소 data를 읽는 조건이다. 상태변경 feature는 아래 permission을 별도로 검사하고 API가 최종 강제한다.
 
-| 행동 | Action permission |
-|---|---|
-| 작업지시 생성·릴리스·취소 | `work-order:create`, `work-order:release`, `work-order:cancel` |
-| 자재 LOT 품질 결정 | `material-lot:decide-quality` |
-| 자재 예약·해제 | `material-allocation:create`, `material-allocation:release` |
-| 공정 시작·완료·미사용 자재 반납 | `process-execution:execute` |
-| 검사 입력·판정·허용된 정정 | `inspection:execute`, `inspection:correct` |
-| 생산 LOT 품질 disposition 결정 | `production-lot:decide-quality` |
-| 부적합 사건 등록·격리 대상 처분 | `quality-incident:create`, `quarantine-target:decide` |
-| 사용자 역할 변경 | `user:manage` |
+| 행동                            | Action permission                                              |
+| ------------------------------- | -------------------------------------------------------------- |
+| 작업지시 생성·릴리스·취소       | `work-order:create`, `work-order:release`, `work-order:cancel` |
+| 자재 LOT 품질 결정              | `material-lot:decide-quality`                                  |
+| 자재 예약·해제                  | `material-allocation:create`, `material-allocation:release`    |
+| 공정 시작·완료·미사용 자재 반납 | `process-execution:execute`                                    |
+| 검사 입력·판정·허용된 정정      | `inspection:execute`, `inspection:correct`                     |
+| 생산 LOT 품질 disposition 결정  | `production-lot:decide-quality`                                |
+| 부적합 사건 등록·격리 대상 처분 | `quality-incident:create`, `quarantine-target:decide`          |
+| 사용자 역할 변경                | `user:manage`                                                  |
 
 action permission이 없으면 위험 행동을 숨기기만 하지 않고 필요한 권한과 읽기 가능한 현재 상태를 설명한다.
 
@@ -118,32 +119,34 @@ action permission이 없으면 위험 행동을 숨기기만 하지 않고 필�
 
 `읽기`는 route 진입, `실행`은 해당 업무 action permission까지 가진다는 뜻이다. API와 #10의 parameterized permission test는 이 표와 같아야 한다.
 
-| Route group | 생산계획 | 자재 | 현장 | 품질 | 관리자 |
-|---|---|---|---|---|---|
+| Route group | 생산계획 | 자재 | 현장 | 품질 | 최고관리자 |
+| --- | --- | --- | --- | --- | --- |
 | dashboard | 읽기 | — | — | — | 읽기 |
-| work-orders | 실행 | 읽기 | 읽기 | 읽기 | 읽기 |
+| work-orders | 실행 | 읽기 | 읽기 | 읽기 | 실행 |
 | materials/boms | 읽기 | 읽기 | — | 읽기 | 읽기 |
-| materials/lots | 읽기 | 예약·해제 실행 | — | 품질 결정 실행 | 읽기 |
-| execution | 읽기 | — | 실행 | 읽기 | 읽기 |
-| quality/inspections | 읽기 | — | — | 실행 | 읽기 |
-| quality/incidents | 읽기 | 읽기 | — | 실행 | 읽기 |
+| materials/lots | 읽기 | 예약·해제 실행 | — | 품질 결정 실행 | 예약·해제·품질 결정 실행 |
+| execution | 읽기 | — | 실행 | 읽기 | 실행 |
+| quality/inspections | 읽기 | — | — | 실행 | 실행 |
+| quality/incidents | 읽기 | 읽기 | — | 실행 | 실행 |
 | traceability | 읽기 | 읽기 | — | 읽기 | 읽기 |
 | audit-events 통합 검색 | — | — | — | — | 읽기 |
 | admin/users | — | — | — | — | 실행 |
 
-일반 역할의 entity별 감사 timeline은 자신이 읽을 수 있는 상세 route 안에서만 제공한다. `SYSTEM_ADMIN`은 업무 data를 읽을 수 있지만 제조 command permission을 자동으로 얻지 않는다.
+일반 역할의 entity별 감사 timeline은 자신이 읽을 수 있는 상세 route 안에서만 제공한다. 2026-09-06 사용자 승인으로 기존 `SYSTEM_ADMIN`을 최고관리자로 변경했다. 모든 정의된 permission을 명시적으로 부여하되 API의 공통 권한·CSRF·Origin·업무 상태 검증을 그대로 거친다. 역할 코드·기존 계정 배정은 유지하고 새 역할이나 권한 검사 우회 분기는 만들지 않는다. 신규 permission은 최고관리자의 명시 목록과 회귀 검사를 함께 갱신한다.
+
+최고관리자도 구현 예정 기능을 실행할 수 있는 것은 아니다. 검사 정정·생산 LOT 품질 결정·격리 대상 처분은 권한표의 구현 예정 표시를 유지한다. 업무 데이터 삭제·감사 기록 삭제·검사 게이트 강제 통과 기능은 제공하지 않는다.
 
 ## 4. Path parameter 계약
 
-| Parameter | 소유 대상 | 규칙 |
-|---|---|---|
-| `$workOrderId` | `WorkOrder.id` | 불변 내부 ID; 작업지시 번호를 URL ID로 사용하지 않음 |
-| `$materialLotId` | `MaterialLot.id` | 불변 내부 ID; LOT 표시번호는 breadcrumb에 사용 |
-| `$productionLotId` | `ProductionLot.id` | 현재 공정 대상 LOT |
-| `$processStepRevisionId` | 릴리스 snapshot의 `ProcessStepRevision.id` | 최신 route definition으로 치환하지 않음 |
-| `$inspectionId` | `Inspection.id` | 대기 상태부터 존재하는 검사 실행 ID |
-| `$qualityIncidentId` | `QualityIncident.id` | 영향평가·격리의 원천 사건 ID |
-| `$traceNodeId` | `TraceNode.id` | 자재 LOT·생산 LOT·완제품 공통 추적 root |
+| Parameter                | 소유 대상                                  | 규칙                                                 |
+| ------------------------ | ------------------------------------------ | ---------------------------------------------------- |
+| `$workOrderId`           | `WorkOrder.id`                             | 불변 내부 ID; 작업지시 번호를 URL ID로 사용하지 않음 |
+| `$materialLotId`         | `MaterialLot.id`                           | 불변 내부 ID; LOT 표시번호는 breadcrumb에 사용       |
+| `$productionLotId`       | `ProductionLot.id`                         | 현재 공정 대상 LOT                                   |
+| `$processStepRevisionId` | 릴리스 snapshot의 `ProcessStepRevision.id` | 최신 route definition으로 치환하지 않음              |
+| `$inspectionId`          | `Inspection.id`                            | 대기 상태부터 존재하는 검사 실행 ID                  |
+| `$qualityIncidentId`     | `QualityIncident.id`                       | 영향평가·격리의 원천 사건 ID                         |
+| `$traceNodeId`           | `TraceNode.id`                             | 자재 LOT·생산 LOT·완제품 공통 추적 root              |
 
 - ID 형식은 API schema의 단일 validator를 따른다. frontend가 UUID·ULID를 임의 추측하지 않는다.
 - path decode 실패는 route not-found, 형식은 맞지만 resource가 없으면 resource-not-found state다.
@@ -154,13 +157,13 @@ action permission이 없으면 위험 행동을 숨기기만 하지 않고 필�
 
 목록 route는 필요한 항목만 아래 공통 schema에서 선택한다.
 
-| Key | Type·default | 규칙 |
-|---|---|---|
-| `q` | string, `''` | trim, 최대 100자, 업무 식별자·이름 검색 |
-| `page` | integer, `1` | 1 이상; filter 변경 시 1로 reset |
-| `pageSize` | `25 \| 50 \| 100`, `25` | route에서 허용한 값만 사용 |
-| `sort` | route별 enum | 허용 column 외 값은 default |
-| `order` | `asc \| desc` | route별 기본 정렬과 함께 사용 |
+| Key        | Type·default                  | 규칙                                            |
+| ---------- | ----------------------------- | ----------------------------------------------- |
+| `q`        | string, `''`                  | trim, 최대 100자, 업무 식별자·이름 검색         |
+| `page`     | integer, `1`                  | 1 이상; filter 변경 시 1로 reset                |
+| `pageSize` | `10 \| 20 \| 50 \| 100`, `10` | 9개 목록 공통, 변경 시 적용 조건 유지·첫 페이지 |
+| `sort`     | route별 enum                  | 허용 column 외 값은 default                     |
+| `order`    | `asc \| desc`                 | route별 기본 정렬과 함께 사용                   |
 
 - 기본값은 canonical link에서 생략한다.
 - unknown key는 제거한다.
@@ -174,110 +177,122 @@ action permission이 없으면 위험 행동을 숨기기만 하지 않고 필�
 
 ### 6.1 인증과 대시보드
 
-| Route | Search | 허용값·의미 |
-|---|---|---|
-| `ROUTE-LOGIN` | `redirect` | 검증된 app-relative path와 search; 외부 origin 금지 |
-| `ROUTE-LOGIN` | `reason` | `required \| session-expired \| role-changed` |
-| `ROUTE-DASHBOARD` | `range` | `today \| 7d \| 30d`, 기본 `today` |
-| `ROUTE-FORBIDDEN` | `from` | 거부된 app-relative path; 외부 origin·민감 query 금지 |
+| Route             | Search     | 허용값·의미                                                                |
+| ----------------- | ---------- | -------------------------------------------------------------------------- |
+| `ROUTE-LOGIN`     | `redirect` | 검증된 app-relative path와 search; 외부 origin 금지                        |
+| `ROUTE-LOGIN`     | `reason`   | `required \| session-expired \| role-changed`                              |
+| `ROUTE-DASHBOARD` | `range`    | `today \| 7d \| 30d`, 기본 `today`                                         |
+| `ROUTE-GUIDE`     | `tab`      | `overview \| rules \| system \| engineering`, 기본 overview는 URL에서 생략 |
+| `ROUTE-GUIDE`     | `doc`      | 개발 규약의 `architecture`만 허용, 기본은 API 요청 규칙                    |
+| `ROUTE-FORBIDDEN` | `from`     | 거부된 app-relative path; 외부 origin·민감 query 금지                      |
 
 Dashboard drill-down은 별도 결과 화면을 만들지 않고 typed search와 함께 근거 route로 이동한다.
 
-| 예외 | 근거 route search |
-|---|---|
-| 납기 지연 작업 | `/work-orders` + `due=overdue` |
-| 차단 작업 | `/work-orders` + `blocked=true` |
-| 검사 대기 | `/quality/inspections` + `executionStatus=[PENDING]` |
-| 격리 자재 | `/materials/lots` + `disposition=[QUARANTINED]` |
+| 예외           | 근거 route search                                    |
+| -------------- | ---------------------------------------------------- |
+| 납기 지연 작업 | `/work-orders` + `due=overdue`                       |
+| 차단 작업      | `/work-orders` + `blocked=true`                      |
+| 검사 대기      | `/quality/inspections` + `executionStatus=[PENDING]` |
+| 격리 자재      | `/materials/lots` + `disposition=[QUARANTINED]`      |
 
 ### 6.2 작업지시
 
-| Route | Search | 허용값·의미 |
-|---|---|---|
-| `ROUTE-WORK-ORDER-LIST` | 공통 목록 | `q`, `page`, `pageSize`, `sort`, `order` |
-|  | `status` | WorkOrder 진행 상태 enum array |
-|  | `due` | `overdue \| today \| 7d \| all` |
-|  | `blocked` | boolean |
-|  | `priority` | 작업지시 우선순위 enum array |
-| `ROUTE-WORK-ORDER-DETAIL` | `tab` | `overview \| materials \| processes \| inspections \| trace \| audit` |
-| `ROUTE-MATERIAL-RESERVATION` | `requirementId` | 화면 진입 시 강조할 `WorkOrderMaterialRequirement.id` |
+| Route                        | Search          | 허용값·의미                                                           |
+| ---------------------------- | --------------- | --------------------------------------------------------------------- |
+| `ROUTE-WORK-ORDER-LIST`      | 공통 목록       | `q`, `page`, `pageSize`, `sort`, `order`                              |
+|                              | `status`        | WorkOrder 진행 상태 enum array                                        |
+|                              | `due`           | `overdue \| today \| 7d \| all`                                       |
+|                              | `blocked`       | boolean                                                               |
+|                              | `priority`      | 작업지시 우선순위 enum array                                          |
+| `ROUTE-WORK-ORDER-DETAIL`    | `tab`           | `overview \| materials \| processes \| inspections \| trace \| audit` |
+| `ROUTE-MATERIAL-RESERVATION` | `requirementId` | 화면 진입 시 강조할 `WorkOrderMaterialRequirement.id`                 |
 
 생성 form 값, 계획수량, 선택 revision과 사용자 메모는 URL에 넣지 않는다.
 
 ### 6.3 BOM·자재 LOT
 
-| Route | Search | 허용값·의미 |
-|---|---|---|
-| `ROUTE-BOM-LIST` | 공통 목록 | `q`, `page`, `pageSize`, `sort`, `order` |
-|  | `productId` | 제품 filter |
-|  | `lifecycle` | `draft \| published \| inactive` array |
-|  | `effectiveAt` | `YYYY-MM-DD` |
-| `ROUTE-MATERIAL-LOT-LIST` | 공통 목록 | `q`, `page`, `pageSize`, `sort`, `order` |
-|  | `materialId` | 자재 filter |
-|  | `disposition` | `PENDING \| ACCEPTED \| HOLD \| QUARANTINED \| REJECTED` array |
-|  | `availability` | `available \| shortage \| expired \| all` |
-| `ROUTE-MATERIAL-LOT-DETAIL` | `tab` | `overview \| inventory \| allocations \| consumption \| quality \| trace` |
+| Route                       | Search         | 허용값·의미                                                               |
+| --------------------------- | -------------- | ------------------------------------------------------------------------- |
+| `ROUTE-BOM-LIST`            | 공통 목록      | `q`, `page`, `pageSize`, `sort`, `order`                                  |
+|                             | `productId`    | 제품 filter                                                               |
+|                             | `lifecycle`    | `draft \| published \| inactive` array                                    |
+|                             | `effectiveAt`  | `YYYY-MM-DD`                                                              |
+| `ROUTE-MATERIAL-LOT-LIST`   | 공통 목록      | `q`, `page`, `pageSize`, `sort`, `order`                                  |
+|                             | `materialId`   | 자재 filter                                                               |
+|                             | `disposition`  | `PENDING \| ACCEPTED \| HOLD \| QUARANTINED \| REJECTED` array            |
+|                             | `availability` | `available \| shortage \| expired \| all`                                 |
+| `ROUTE-MATERIAL-LOT-DETAIL` | `tab`          | `overview \| inventory \| allocations \| consumption \| quality \| trace` |
 
 ### 6.4 공정 실행
 
-| Route | Search | 허용값·의미 |
-|---|---|---|
-| `ROUTE-EXECUTION-QUEUE` | 공통 목록 | `q`, `page`, `pageSize`, `sort`, `order` |
-|  | `readiness` | `ready \| in-progress \| blocked \| completed` array |
-| `ROUTE-PROCESS-EXECUTION` | `section` | `work \| materials \| quality`, 기본 `work` |
+| Route                     | Search      | 허용값·의미                                          |
+| ------------------------- | ----------- | ---------------------------------------------------- |
+| `ROUTE-EXECUTION-QUEUE`   | 공통 목록   | `q`, `page`, `pageSize`, `sort`, `order`             |
+|                           | `readiness` | `ready \| in-progress \| blocked \| completed` array |
+| `ROUTE-PROCESS-EXECUTION` | `section`   | `work \| materials \| quality`, 기본 `work`          |
 
 투입·양품·불량 수량과 불량유형은 form state이며 URL에 보존하지 않는다.
 
 ### 6.5 품질
 
-| Route | Search | 허용값·의미 |
-|---|---|---|
-| `ROUTE-INSPECTION-LIST` | 공통 목록 | `q`, `page`, `pageSize`, `sort`, `order` |
-|  | `executionStatus` | `PENDING \| IN_PROGRESS \| COMPLETED \| CANCELLED` array |
-|  | `verdict` | `PASS \| FAIL \| HOLD` array; 미판정은 key 부재와 별도 status로 구분 |
-|  | `gate` | `ROUTE_ADVANCE \| LOT_COMPLETE` array |
-| `ROUTE-INSPECTION-DETAIL` | `view` | `execute \| history`, 기본은 현재 상태에 따라 결정 후 URL 명시 |
-| `ROUTE-INCIDENT-LIST` | 공통 목록 | `q`, `page`, `pageSize`, `sort`, `order` |
-|  | `status` | `OPEN \| ASSESSED \| CONTAINED \| CLOSED` array |
-|  | `sourceType` | `MATERIAL_LOT \| PRODUCTION_LOT \| FINISHED_UNIT` array |
-| `ROUTE-INCIDENT-DETAIL` | `tab` | `overview \| impact \| containment \| history` |
+| Route                     | Search            | 허용값·의미                                                          |
+| ------------------------- | ----------------- | -------------------------------------------------------------------- |
+| `ROUTE-INSPECTION-LIST`   | 공통 목록         | `q`, `page`, `pageSize`, `sort`, `order`                             |
+|                           | `executionStatus` | `PENDING \| IN_PROGRESS \| COMPLETED \| CANCELLED` array             |
+|                           | `verdict`         | `PASS \| FAIL \| HOLD` array; 미판정은 key 부재와 별도 status로 구분 |
+|                           | `gate`            | `ROUTE_ADVANCE \| LOT_COMPLETE` array                                |
+| `ROUTE-INSPECTION-DETAIL` | `view`            | `execute \| history`, 기본은 현재 상태에 따라 결정 후 URL 명시       |
+| `ROUTE-INCIDENT-LIST`     | 공통 목록         | `q`, `page`, `pageSize`, `sort`, `order`                             |
+|                           | `status`          | `OPEN \| ASSESSED \| CONTAINED \| CLOSED` array                      |
+|                           | `sourceType`      | `MATERIAL_LOT \| PRODUCTION_LOT \| FINISHED_UNIT` array              |
+| `ROUTE-INCIDENT-DETAIL`   | `tab`             | `overview \| impact \| containment \| history`                       |
 
 검사 측정값, 정정 사유와 격리 처분 사유는 URL에 넣지 않는다.
 
 ### 6.6 추적·감사·관리
 
-| Route | Search | 허용값·의미 |
-|---|---|---|
-| `ROUTE-TRACE-SEARCH` | `q` | LOT·일련번호 검색어 |
-|  | `type` | `MATERIAL_LOT \| PRODUCTION_LOT \| FINISHED_UNIT` array |
-| `ROUTE-TRACE-DETAIL` | `direction` | `downstream \| upstream`, 기본 `downstream` |
-|  | `view` | `auto \| tree \| table`, 기본 `auto` |
-|  | `depth` | integer `1..5`, 기본 `2` |
-|  | `selected` | 현재 root 아래 선택한 `TraceNode.id` |
-| `ROUTE-AUDIT-EVENT-LIST` | 공통 목록 | `q`, `page`, `pageSize`, `sort`, `order` |
-|  | `actorId` | 행위자 ID |
-|  | `actorRole` | demo role enum array |
-|  | `action` | audit action enum |
-|  | `entityType`, `entityId` | 대상 식별 |
-|  | `requestId` | 한 transaction·request 추적 |
-|  | `from`, `to` | ISO 8601 시각 범위 |
-| `ROUTE-USER-LIST` | 공통 목록 | `q`, `page`, `pageSize`, `sort`, `order` |
-|  | `role` | demo role enum array |
-|  | `status` | `active \| inactive` array |
+| Route                    | Search                   | 허용값·의미                                             |
+| ------------------------ | ------------------------ | ------------------------------------------------------- |
+| `ROUTE-TRACE-SEARCH`     | `q`                      | LOT·일련번호 검색어                                     |
+|                          | `type`                   | `MATERIAL_LOT \| PRODUCTION_LOT \| FINISHED_UNIT` array |
+| `ROUTE-TRACE-DETAIL`     | `direction`              | `downstream \| upstream`, 기본 `downstream`             |
+|                          | `view`                   | `auto \| tree \| table`, 기본 `auto`                    |
+|                          | `depth`                  | integer `1..5`, 기본 `2`                                |
+|                          | `selected`               | 현재 root 아래 선택한 `TraceNode.id`                    |
+| `ROUTE-AUDIT-EVENT-LIST` | 공통 목록                | `q`, `page`, `pageSize`, `sort`, `order`                |
+|                          | `actorId`                | 행위자 ID                                               |
+|                          | `actorRole`              | demo role enum array                                    |
+|                          | `action`                 | audit action enum                                       |
+|                          | `entityType`, `entityId` | 대상 식별                                               |
+|                          | `requestId`              | 한 transaction·request 추적                             |
+|                          | `from`, `to`             | ISO 8601 시각 범위                                      |
+| `ROUTE-USER-LIST`        | 공통 목록                | `q`, `page`, `pageSize`, `sort`, `order`                |
+|                          | `role`                   | demo role enum array                                    |
+|                          | `status`                 | `active \| inactive` array                              |
 
 `view=auto`는 1280px 이상에서 tree+detail, 현장 1024px에서 동등한 table을 우선한다. 사용자가 `tree` 또는 `table`을 명시하면 가능한 범위에서 선택을 유지한다.
+
+### 6.7 업무 가이드
+
+진입 링크는 사이드바의 안내 영역에 둔다. 상단 사용 안내는 실제 화면 투어이며 문서 탐색과 구분한다.
+
+- 기본 `/guide`는 시작 행동과 읽는 순서를 표시한다. `tab=rules`, `tab=system`, `tab=engineering`은 화면 규칙·디자인 시스템·전체 문서 목록을 연다.
+- `doc`는 docs/catalog.json에 등록된 ID만 허용한다. 예: `/guide?tab=engineering&doc=backend`. `/guide?doc=operations`는 시작하기 탭의 업무 안내 본문이다.
+- 과거 `doc=architecture`와 `doc=requests` 링크도 해석한다. 알 수 없는 doc은 버리고 선택된 유효 탭의 기본 화면으로 복귀한다. rules/system에서는 관계없는 doc을 버린다.
+- 제목·설명·경로·상태 검색과 분류는 페이지 내 local state다. 본문 전체 검색, 업무 목록 조회조건, 별도 서버 API로 취급하지 않는다.
+- 모든 로그인 역할은 문서를 읽을 수 있지만 첫 업무 링크·업무 메뉴는 기존 역할 권한을 따른다. 문서 화면은 업무 명령 권한을 추가하지 않는다.
 
 ## 7. 인증·권한과 시작 route
 
 ### 7.1 역할별 기본 route
 
-| Active role | 로그인 직후 route |
-|---|---|
-| `PRODUCTION_PLANNER` | `/work-orders` |
-| `MATERIAL_MANAGER` | `/materials/lots` |
-| `SHOP_FLOOR_OPERATOR` | `/execution/queue` |
-| `QUALITY_ENGINEER` | `/quality/inspections` |
-| `SYSTEM_ADMIN` | `/audit-events` |
+| Active role           | 로그인 직후 route      |
+| --------------------- | ---------------------- |
+| `PRODUCTION_PLANNER`  | `/work-orders`         |
+| `MATERIAL_MANAGER`    | `/materials/lots`      |
+| `SHOP_FLOOR_OPERATOR` | `/execution/queue`     |
+| `QUALITY_ENGINEER`    | `/quality/inspections` |
+| `SYSTEM_ADMIN`        | `/dashboard`           |
 
 `redirect`가 있고 현재 role이 접근 가능하면 기본 route보다 우선한다. 접근할 수 없거나 외부 URL이면 폐기하고 역할별 기본 route로 이동한다.
 
@@ -311,18 +326,18 @@ session 확인 중
 
 ## 8. Redirect와 canonicalization
 
-| 입력 | 결과 | History |
-|---|---|---|
-| `/` 미인증 | `/login` | replace |
-| `/` 인증 | 역할별 기본 route | replace |
-| `/materials` | `/materials/lots` | replace |
-| `/execution` | `/execution/queue` | replace |
-| `/quality` | `/quality/inspections` | replace |
-| `/admin` + `user:manage` | `/admin/users` | replace |
-| `/admin` + 권한 없음 | `/forbidden` | replace |
-| trailing slash | slash 없는 canonical URL | replace |
-| 잘못된 search | safe default로 정규화 | replace |
-| 존재하지 않는 path | `ROUTE-NOT-FOUND` | 유지 |
+| 입력                     | 결과                     | History |
+| ------------------------ | ------------------------ | ------- |
+| `/` 미인증               | `/login`                 | replace |
+| `/` 인증                 | 역할별 기본 route        | replace |
+| `/materials`             | `/materials/lots`        | replace |
+| `/execution`             | `/execution/queue`       | replace |
+| `/quality`               | `/quality/inspections`   | replace |
+| `/admin` + `user:manage` | `/admin/users`           | replace |
+| `/admin` + 권한 없음     | `/forbidden`             | replace |
+| trailing slash           | slash 없는 canonical URL | replace |
+| 잘못된 search            | safe default로 정규화    | replace |
+| 존재하지 않는 path       | `ROUTE-NOT-FOUND`        | 유지    |
 
 과거 URL alias는 실제 공개 배포 뒤 URL 변경이 있을 때만 추가한다. 구현 전에 이름을 바꾼 route에는 alias를 쌓지 않는다.
 
@@ -332,16 +347,17 @@ session 확인 중
 
 ```ts
 type RouteMeta = {
-  routeId: RouteId
-  screenId?: ScreenId
-  label: string
-  requiredPermissions: readonly Permission[]
-  navigationGroup?: 'operations' | 'materials' | 'quality' | 'traceability' | 'admin'
-}
+  routeId: RouteId;
+  screenId?: ScreenId;
+  label: string;
+  requiredPermissions: readonly Permission[];
+  navigationGroup?:
+    "operations" | "materials" | "quality" | "traceability" | "admin";
+};
 ```
 
 - metadata에 path 문자열을 중복 저장하지 않는다. 실제 matched route에서 path를 얻는다.
-- static breadcrumb는 route label, dynamic breadcrumb는 loader가 받은 업무 식별자를 사용한다.
+- static breadcrumb는 route label, dynamic breadcrumb는 본문이 받은 업무 식별자를 `PageCrumb`로 재사용한다. 제목용 중복 GET을 추가하지 않는다.
 - 예: `작업지시 / WO-2026-0002 / 자재 예약`
 - dynamic label load 실패 시 내부 ID를 노출하지 않고 `상세` 같은 안전한 fallback을 쓴다.
 - sidebar는 permission이 있는 업무영역만 보이되 권한의 보안 근거로 사용하지 않는다.
@@ -349,18 +365,18 @@ type RouteMeta = {
 
 ## 10. Loading·error·not-found·conflict
 
-| 상태 | 표현과 복구 |
-|---|---|
-| session loading | AppShell을 확정하기 전 root skeleton; 보호 화면 flash 금지 |
-| route chunk loading | shell 유지, content header와 본문 skeleton |
-| list loading | table header·filter 위치 유지, row skeleton |
-| resource not found | 현재 업무영역 shell에서 목록 복귀·검색 제공 |
-| permission denied | 필요한 permission·역할 안내, 허용된 시작 화면 링크 |
-| server error | request ID가 있으면 표시, retry와 안전한 이전 화면 제공 |
-| validation error | field 옆 메시지와 form summary |
-| `409 Conflict` | 사용자 입력 보존, 최신 상태·차이·재조회 행동 제공 |
-| session expired | `/login`으로 replace, 현재 상대 URL 보존 |
-| unknown path | 전역 not-found와 역할별 시작 화면 링크 |
+| 상태                | 표현과 복구                                                |
+| ------------------- | ---------------------------------------------------------- |
+| session loading     | AppShell을 확정하기 전 root skeleton; 보호 화면 flash 금지 |
+| route chunk loading | shell 유지, content header와 본문 skeleton                 |
+| list loading        | table header·filter 위치 유지, row skeleton                |
+| resource not found  | 현재 업무영역 shell에서 목록 복귀·검색 제공                |
+| permission denied   | 필요한 permission·역할 안내, 허용된 시작 화면 링크         |
+| server error        | request ID가 있으면 표시, retry와 안전한 이전 화면 제공    |
+| validation error    | field 옆 메시지와 form summary                             |
+| `409 Conflict`      | 사용자 입력 보존, 최신 상태·차이·재조회 행동 제공          |
+| session expired     | `/login`으로 replace, 현재 상대 URL 보존                   |
+| unknown path        | 전역 not-found와 역할별 시작 화면 링크                     |
 
 생산·재고·품질 command 실패 뒤 성공 route로 이동하지 않는다. audit 또는 resource detail link는 server가 성공 response를 반환한 뒤에만 제공한다.
 
@@ -396,18 +412,18 @@ type RouteMeta = {
 
 ## 13. 구현 handoff
 
-| 구현 Issue | 먼저 추가할 route |
-|---|---|
-| #9 | root, authenticated layout, forbidden, not-found, development showcase와 AppShell |
-| #10 | login, session redirect, role landing·switch |
-| #11 | work-order list·new·detail |
-| #12 | BOM, material LOT list·detail, material reservation |
-| #13 | execution queue·process execution |
-| #14 | inspection list·detail |
-| #15 | trace search·detail |
-| #16 | incident list·detail |
-| #17 | audit-event list, 필요 시 user list |
-| #18 | dashboard |
+| 구현 Issue | 먼저 추가할 route                                                                 |
+| ---------- | --------------------------------------------------------------------------------- |
+| #9         | root, authenticated layout, forbidden, not-found, development showcase와 AppShell |
+| #10        | login, session redirect, role landing·switch                                      |
+| #11        | work-order list·new·detail                                                        |
+| #12        | BOM, material LOT list·detail, material reservation                               |
+| #13        | execution queue·process execution                                                 |
+| #14        | inspection list·detail                                                            |
+| #15        | trace search·detail                                                               |
+| #16        | incident list·detail                                                              |
+| #17        | audit-event list, 필요 시 user list                                               |
+| #18        | dashboard                                                                         |
 
 첫 route implementation PR에서 전체 placeholder route를 생성하지 않는다. 각 Issue는 이 문서의 path와 parameter를 유지하고 해당 route의 page·API·test를 수직으로 완성한다.
 

@@ -1,3 +1,4 @@
+import { getPageSize } from "@/shared/lib";
 import { useMemo, useState } from "react";
 import {
   BLOCKED_REASON_LABELS,
@@ -6,8 +7,12 @@ import {
   PROCESS_READINESS_LABELS,
   type ProcessExecutionListItem,
 } from "@/entities/process-execution";
-import { ProcessExecutionPanel, StartProcessAction } from "@/features/process-execution";
 import {
+  ProcessExecutionPanel,
+  StartProcessAction,
+} from "@/features/process-execution";
+import {
+  ActionSheet,
   Badge,
   Button,
   DataTable,
@@ -18,16 +23,11 @@ import {
   PageHeading,
   Pagination,
   Select,
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
   TableSkeleton,
   type BadgeTone,
   type DataTableColumn,
 } from "@/shared/ui";
-import { useLoadState } from "@/shared/lib";
+import { useLoadState, useQueryDraft } from "@/shared/lib";
 import { Main } from "@/widgets/app-shell";
 import {
   mergeExecutionQueueSearch,
@@ -42,9 +42,6 @@ const READINESS_TONES: Record<string, BadgeTone> = {
   COMPLETED: "success",
   BLOCKED: "danger",
 };
-
-const PAGE_SIZE = 20;
-
 
 interface ExecutionQueuePageProps {
   search: ExecutionQueueSearch;
@@ -75,23 +72,35 @@ export function ExecutionQueuePage({
     items: ProcessExecutionListItem[];
     total: number;
     page: number;
+    pageSize: number;
   }>(
     searchKey,
     (signal) => {
       const searchValue = JSON.parse(searchKey) as ExecutionQueueSearch;
-      return fetchProcessExecutions(toExecutionQueueParams(searchValue), signal).then((response) => ({
+      return fetchProcessExecutions(
+        toExecutionQueueParams(searchValue),
+        signal,
+      ).then((response) => ({
         items: response.items,
         total: response.total,
         page: response.page,
+        pageSize: response.pageSize,
       }));
     },
     "공정 실행 대기열을 불러오지 못했습니다.",
+  );
+
+  const { draft, setDraft, submit, reset, hasPendingChanges } = useQueryDraft(
+    search,
+    onSearchChange,
+    reload,
   );
 
   const columns = useMemo<DataTableColumn<ProcessExecutionListItem>[]>(
     () => [
       {
         key: "workOrderNumber",
+        align: "left",
         header: "작업지시",
         cell: (row) => (
           <span className="text-xs tabular-nums font-bold text-text-strong">
@@ -101,6 +110,7 @@ export function ExecutionQueuePage({
       },
       {
         key: "productionLotNumber",
+        align: "left",
         header: "생산 LOT",
         cell: (row) => (
           <span className="text-xs tabular-nums text-text-muted">
@@ -110,24 +120,30 @@ export function ExecutionQueuePage({
       },
       {
         key: "processStepName",
+        align: "left",
         header: "공정",
         cell: (row) => (
           <span className="flex items-center gap-2">
             <span className="tabular-nums text-xs text-text-muted">
               {String(row.sequence).padStart(2, "0")}
             </span>
-            <span className="text-sm text-text-strong">{row.processStepName}</span>
+            <span className="text-sm text-text-strong">
+              {row.processStepName}
+            </span>
           </span>
         ),
       },
       {
         key: "product",
+        align: "left",
         wrap: true,
         header: "제품",
         cell: (row) => (
-          <span className="block min-w-32">
-            <span className="block text-sm text-text-strong">{row.productName}</span>
-            <span className="block text-xs tabular-nums text-text-muted">
+          <span className="block min-w-48 max-w-72 space-y-0.5">
+            <span className="block text-sm font-medium leading-5 text-text-strong">
+              {row.productName}
+            </span>
+            <span className="block text-sm leading-5 tabular-nums text-text-muted">
               {row.productCode}
             </span>
           </span>
@@ -135,8 +151,9 @@ export function ExecutionQueuePage({
       },
       {
         key: "plannedQuantity",
+        align: "center",
         header: "계획수량",
-        align: "right",
+
         cell: (row) => (
           <span className="tabular-nums">
             {row.plannedQuantity.toLocaleString("ko-KR")} {row.unit}
@@ -145,6 +162,7 @@ export function ExecutionQueuePage({
       },
       {
         key: "readiness",
+        align: "center",
         header: "준비 상태",
         cell: (row) => (
           <Badge tone={READINESS_TONES[row.readiness] ?? "neutral"}>
@@ -154,6 +172,7 @@ export function ExecutionQueuePage({
       },
       {
         key: "blockedReasonCodes",
+        align: "left",
         wrap: true,
         header: "차단 사유",
         cell: (row) =>
@@ -173,6 +192,7 @@ export function ExecutionQueuePage({
         ? [
             {
               key: "actions",
+              align: "center",
               header: "행동",
               cell: (row: ProcessExecutionListItem) =>
                 row.readiness === "READY" ? (
@@ -185,6 +205,7 @@ export function ExecutionQueuePage({
                       processStepName: row.processStepName,
                       productionLotNumber: row.productionLotNumber,
                       plannedQuantity: row.plannedQuantity,
+                      outputQuantityLimit: row.outputQuantityLimit,
                     }}
                   />
                 ) : row.readiness === "IN_PROGRESS" ? (
@@ -204,13 +225,40 @@ export function ExecutionQueuePage({
     [canExecute, csrfToken, reload],
   );
 
-  const hasActiveFilter = search.q !== undefined || search.readiness !== undefined;
+  const hasActiveFilter =
+    search.q !== undefined || search.readiness !== undefined;
 
-  const currentPage = state.phase === "success" ? state.page : search.page ?? 1;
+  const pageSize =
+    state.phase === "success" ? state.pageSize : getPageSize(search.pageSize);
+  const currentPage =
+    state.phase === "success" ? state.page : (search.page ?? 1);
   const totalPages =
     state.phase === "success"
-      ? Math.max(1, Math.ceil(state.total / PAGE_SIZE))
+      ? Math.max(1, Math.ceil(state.total / pageSize))
       : 1;
+
+  const pagination =
+    state.phase === "success" ? (
+      <Pagination
+        currentPage={currentPage}
+        totalItems={state.total}
+        pageSize={pageSize}
+        onPageSizeChange={(size) =>
+          onSearchChange(
+            mergeExecutionQueueSearch(search, {
+              pageSize: size === 10 ? undefined : size,
+              page: undefined,
+            }),
+          )
+        }
+        busy={isRefreshing}
+        label="공정 대기열 페이지 탐색"
+        onPageChange={(page) =>
+          onSearchChange(mergeExecutionQueueSearch(search, { page }))
+        }
+        totalPages={totalPages}
+      />
+    ) : null;
 
   return (
     <Main id="main-content" tabIndex={-1}>
@@ -221,6 +269,10 @@ export function ExecutionQueuePage({
       />
 
       <FilterBar
+        onSearch={submit}
+        onReset={reset}
+        busy={state.phase === "loading" || isRefreshing}
+        hasPendingChanges={hasPendingChanges}
         resultLabel={
           state.phase === "success"
             ? `총 ${state.total.toLocaleString("ko-KR")}건 중 ${state.items.length.toLocaleString("ko-KR")}건 표시 (작업지시·공정 순서)`
@@ -228,18 +280,13 @@ export function ExecutionQueuePage({
         }
       >
         <Input
+          data-tour="list-search"
           aria-label="공정 대기열 검색"
-          defaultValue={search.q}
+          value={draft.q ?? ""}
+          onChange={(event) => setDraft({ ...draft, q: event.target.value })}
           id="execution-q"
           label="검색"
           name="q"
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              const value = event.currentTarget.value.trim();
-              onSearchChange(mergeExecutionQueueSearch(search, {q: value === "" ? undefined : value,
-                page: undefined,}));
-            }
-          }}
           placeholder="작업지시·공정·생산 LOT"
         />
         <Select
@@ -247,32 +294,27 @@ export function ExecutionQueuePage({
           options={Object.entries(PROCESS_READINESS_FILTER_OPTIONS).map(
             ([value, label]) => ({ label, value }),
           )}
-          value={search.readiness ?? "all"}
+          value={draft.readiness ?? "all"}
           onValueChange={(value) =>
-            onSearchChange(mergeExecutionQueueSearch(search, {readiness:
-                value === "all"
-                  ? undefined
-                  : (value as keyof typeof PROCESS_READINESS_FILTER_OPTIONS),
-              page: undefined,}))
+            setDraft(
+              mergeExecutionQueueSearch(draft, {
+                readiness:
+                  value === "all"
+                    ? undefined
+                    : (value as keyof typeof PROCESS_READINESS_FILTER_OPTIONS),
+                page: undefined,
+              }),
+            )
           }
         />
-        {hasActiveFilter ? (
-          <Button variant="ghost" onClick={() => onSearchChange({})}>
-            조건 초기화
-          </Button>
-        ) : null}
       </FilterBar>
 
       {state.phase === "loading" ? (
-        <TableSkeleton label="공정 대기열 조회 중" />
+        <TableSkeleton label="공정 대기열 조회 중" rows={pageSize} />
       ) : state.phase === "error" ? (
         <ErrorState
           description={state.message}
-          action={
-            <Button onClick={() => reload()}>
-              다시 시도
-            </Button>
-          }
+          action={<Button onClick={() => reload()}>다시 시도</Button>}
         />
       ) : state.items.length === 0 ? (
         <EmptyState
@@ -280,7 +322,7 @@ export function ExecutionQueuePage({
           description="조회 조건을 초기화하거나 다른 준비 상태로 확인해 주세요."
           action={
             hasActiveFilter ? (
-              <Button variant="secondary" onClick={() => onSearchChange({})}>
+              <Button variant="secondary" onClick={reset}>
                 조건 초기화
               </Button>
             ) : undefined
@@ -289,58 +331,55 @@ export function ExecutionQueuePage({
       ) : (
         <>
           <DataTable
+            footer={pagination}
+            rowNumberStart={state.total - (currentPage - 1) * pageSize}
             busy={isRefreshing}
             onRowClick={onOpenDetail}
             caption="공정 실행 대기열"
             columns={columns}
             emptyMessage="조건에 맞는 공정이 없습니다."
             getRowKey={(row) => row.id}
+            tourRecord="execution"
+            getTourContext={(row) => row.productionLotNumber}
+            isTourPreferred={(row) => row.readiness === "IN_PROGRESS"}
             rows={state.items}
-          />
-          <Pagination
-            currentPage={currentPage}
-            label="공정 대기열 페이지 탐색"
-            onPageChange={(page) => onSearchChange(mergeExecutionQueueSearch(search, { page }))}
-            totalPages={totalPages}
           />
         </>
       )}
 
-      <Sheet
-        onOpenChange={(open) => {
-          if (!open) {
-            setCompletionTarget(null);
-          }
-        }}
+      <ActionSheet
         open={completionTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setCompletionTarget(null);
+        }}
+        title="공정 완료 실적 입력"
+        description="선택한 공정의 양품·불량 수량을 기록합니다. 저장하면 대기열이 갱신됩니다."
       >
-        <SheetContent className="w-full overflow-y-auto sm:max-w-xl" side="right">
-          <SheetHeader>
-            <SheetTitle>공정 완료 실적 입력</SheetTitle>
-            <SheetDescription>
-              선택한 공정의 양품·불량 수량을 기록합니다. 저장하면 대기열이 갱신됩니다.
-            </SheetDescription>
-          </SheetHeader>
-          {completionTarget !== null ? (
-            <div className="px-4 pb-4">
-              <ProcessExecutionPanel
-                csrfToken={csrfToken}
-                onDone={() => {
-                  setCompletionTarget(null);
-                  reload();
-                }}
-                target={{
-                  stepId: completionTarget.id,
-                  workOrderNumber: completionTarget.workOrderNumber,
-                  processStepName: completionTarget.processStepName,
-                  productionLotNumber: completionTarget.productionLotNumber,
-                  plannedQuantity: completionTarget.plannedQuantity,
-                }}
-              />
-            </div>
-          ) : null}
-        </SheetContent>
-      </Sheet>
+        {completionTarget !== null ? (
+          <>
+            <ProcessExecutionPanel
+              csrfToken={csrfToken}
+              onDone={() => {
+                setCompletionTarget(null);
+                reload();
+              }}
+              target={{
+                stepId: completionTarget.id,
+                workOrderNumber: completionTarget.workOrderNumber,
+                processStepName: completionTarget.processStepName,
+                productionLotNumber: completionTarget.productionLotNumber,
+                plannedQuantity: completionTarget.plannedQuantity,
+                outputQuantityLimit: completionTarget.outputQuantityLimit,
+              }}
+            />
+          </>
+        ) : null}
+      </ActionSheet>
+      {state.phase === "success" && state.items.length === 0 ? (
+        <div className="rounded-panel border border-border bg-surface">
+          {pagination}
+        </div>
+      ) : null}
     </Main>
   );
 }

@@ -1,3 +1,4 @@
+import { getPageSize, readPageSize } from "@/shared/lib";
 import {
   AUDIT_ACTION_LABELS,
   AUDIT_ACTOR_ROLE_OPTIONS,
@@ -10,9 +11,13 @@ export interface AuditEventsSearch {
   actorRole?: readonly AuditActorRole[];
   action?: readonly AuditAction[];
   page?: number;
+  pageSize?: number;
 }
 
-function parseList<T extends string>(raw: unknown, allowed: readonly T[]): readonly T[] | undefined {
+function parseList<T extends string>(
+  raw: unknown,
+  allowed: readonly T[],
+): readonly T[] | undefined {
   if (typeof raw !== "string" || raw === "") {
     return undefined;
   }
@@ -20,11 +25,15 @@ function parseList<T extends string>(raw: unknown, allowed: readonly T[]): reado
     .split(",")
     .map((value) => value.trim())
     .filter((value) => value !== "");
-  const valid = values.filter((value): value is T => allowed.includes(value as T));
+  const valid = values.filter((value): value is T =>
+    allowed.includes(value as T),
+  );
   return valid.length > 0 ? valid : undefined;
 }
 
-export function readAuditEventsSearch(raw: Record<string, unknown>): AuditEventsSearch {
+export function readAuditEventsSearch(
+  raw: Record<string, unknown>,
+): AuditEventsSearch {
   let page: number | undefined;
   if (
     typeof raw.page === "string" &&
@@ -43,8 +52,12 @@ export function readAuditEventsSearch(raw: Record<string, unknown>): AuditEvents
       raw.actorRole,
       Object.keys(AUDIT_ACTOR_ROLE_OPTIONS) as AuditActorRole[],
     ),
-    action: parseList(raw.action, Object.keys(AUDIT_ACTION_LABELS) as AuditAction[]),
+    action: parseList(
+      raw.action,
+      Object.keys(AUDIT_ACTION_LABELS) as AuditAction[],
+    ),
     page,
+    pageSize: readPageSize(raw.pageSize),
   });
 }
 
@@ -52,7 +65,9 @@ type AuditEventsSearchPatch = {
   [K in keyof AuditEventsSearch]?: AuditEventsSearch[K] | undefined;
 };
 
-export function stripUndefinedSearch(value: AuditEventsSearchPatch): AuditEventsSearch {
+export function stripUndefinedSearch(
+  value: AuditEventsSearchPatch,
+): AuditEventsSearch {
   const result: Record<string, unknown> = {};
   for (const [key, entry] of Object.entries(value)) {
     if (entry !== undefined) {
@@ -69,7 +84,9 @@ export function mergeAuditEventsSearch(
   return stripUndefinedSearch({ ...base, ...patch });
 }
 
-export function toAuditEventsParams(search: AuditEventsSearch): URLSearchParams {
+export function toAuditEventsParams(
+  search: AuditEventsSearch,
+): URLSearchParams {
   const params = new URLSearchParams();
   if (search.q !== undefined) {
     params.set("q", search.q);
@@ -83,5 +100,6 @@ export function toAuditEventsParams(search: AuditEventsSearch): URLSearchParams 
   if (search.page !== undefined && search.page > 1) {
     params.set("page", String(search.page));
   }
+  params.set("pageSize", String(getPageSize(search.pageSize)));
   return params;
 }

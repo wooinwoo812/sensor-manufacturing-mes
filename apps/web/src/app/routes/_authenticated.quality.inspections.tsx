@@ -37,7 +37,8 @@ export function InspectionsRoute() {
         void navigate({
           to: "/quality/inspections",
           search: next,
-          replace: true,
+          replace: false,
+          resetScroll: false,
         });
       }}
     />

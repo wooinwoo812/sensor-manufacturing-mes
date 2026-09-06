@@ -31,7 +31,8 @@ export function ExecutionQueueRoute() {
         void navigate({
           to: "/execution/queue",
           search: next,
-          replace: true,
+          replace: false,
+          resetScroll: false,
         });
       }}
       onOpenDetail={(row) => {

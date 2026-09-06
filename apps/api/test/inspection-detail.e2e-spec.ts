@@ -16,6 +16,7 @@ import { DEMO_ACCOUNTS, DEMO_PASSWORD } from "../src/auth/demo-accounts.js";
 import { hashPassword } from "../src/auth/password.js";
 import { PrismaService } from "../src/database/prisma.service.js";
 import { DEMO_INSPECTIONS } from "../prisma/demo-inspections.js";
+import { DEMO_PROCESS_STEPS } from "../prisma/demo-process-steps.js";
 import { DEMO_WORK_ORDERS } from "../prisma/demo-work-orders.js";
 
 const allowedOrigin = "http://localhost:5173";
@@ -57,10 +58,11 @@ class FakePrismaService {
     id: `inspection-${index + 1}`,
     verdictMemo: inspection.verdict === "PASS" ? "전 항목 기준 내" : null,
     createdAt: new Date(),
-    workOrder:
-      DEMO_WORK_ORDERS.find(
-        (order) => order.orderNumber === inspection.workOrderNumber,
-      ) ?? DEMO_WORK_ORDERS[0],
+    workOrderId: `work-order-${DEMO_WORK_ORDERS.findIndex(order => order.orderNumber === inspection.workOrderNumber) + 1}`,
+    decisions: [],
+    workOrder: { ...DEMO_WORK_ORDERS.find(order => order.orderNumber === inspection.workOrderNumber),
+      processSteps: DEMO_PROCESS_STEPS.filter(step => step.workOrderNumber === inspection.workOrderNumber),
+    },
   }));
 
   constructor() {

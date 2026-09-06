@@ -17,6 +17,7 @@ apps/api/src/generated/prisma/
 .vscode/
 
 Thumbs.db
+*.lnk
 *.log
 *.tsbuildinfo
 .DS_Store

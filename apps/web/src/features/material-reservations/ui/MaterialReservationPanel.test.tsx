@@ -113,7 +113,7 @@ describe("MaterialReservationPanel", () => {
     renderPanel({ canReserve: false, canRelease: false });
 
     expect(
-      await screen.findByText(/자재 담당자 권한\(material-allocation:create\/release\)이/),
+      await screen.findByText(/예약·해제는 자재 담당자가 처리합니다/),
     ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "예약" })).not.toBeInTheDocument();
   });

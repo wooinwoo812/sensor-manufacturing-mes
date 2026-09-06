@@ -37,7 +37,8 @@ export function IncidentsRoute() {
         void navigate({
           to: "/quality/incidents",
           search: next,
-          replace: true,
+          replace: false,
+          resetScroll: false,
         });
       }}
     />

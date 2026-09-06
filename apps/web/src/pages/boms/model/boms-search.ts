@@ -1,9 +1,11 @@
+import { getPageSize, readPageSize } from "@/shared/lib";
 import { BOM_LIFECYCLES, type BomLifecycle } from "@/entities/bom";
 
 export interface BomsSearch {
   q?: string;
   lifecycle?: readonly BomLifecycle[];
   page?: number;
+  pageSize?: number;
 }
 
 export type BomsSearchPatch = {
@@ -21,8 +23,8 @@ function parseLifecycleList(
     .split(",")
     .map((value) => value.trim())
     .filter((value) => value !== "");
-  const valid = values.filter(
-    (value): value is BomLifecycle => allowed.includes(value as BomLifecycle),
+  const valid = values.filter((value): value is BomLifecycle =>
+    allowed.includes(value as BomLifecycle),
   );
   return valid.length > 0 ? valid : undefined;
 }
@@ -54,6 +56,7 @@ export function readBomsSearch(raw: Record<string, unknown>): BomsSearch {
     q,
     lifecycle: parseLifecycleList(raw.lifecycle, BOM_LIFECYCLES),
     page,
+    pageSize: readPageSize(raw.pageSize),
   });
 }
 
@@ -75,5 +78,6 @@ export function toBomsParams(search: BomsSearch): URLSearchParams {
   if (search.page !== undefined && search.page > 1) {
     params.set("page", String(search.page));
   }
+  params.set("pageSize", String(getPageSize(search.pageSize)));
   return params;
 }

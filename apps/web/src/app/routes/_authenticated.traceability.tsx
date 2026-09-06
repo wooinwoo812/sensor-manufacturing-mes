@@ -28,7 +28,8 @@ export function TraceabilityRoute() {
         void navigate({
           to: "/traceability",
           search: next,
-          replace: true,
+          replace: false,
+          resetScroll: false,
         });
       }}
       onOpenDetail={(traceNodeId) => {

@@ -18,7 +18,7 @@ interface PageHeadingProps {
  * 페이지 제목 영역.
  * - 목록 화면: 제목 + 설명 + 오른쪽 주요 행동
  * - 상세 화면: 돌아가기 링크 → 상세 표식(eyebrow) → 식별자 제목. 목록과 같은 자리에서
- *   시작하되 위 두 줄이 "여기는 상세"라는 신호를 준다. 왼쪽 막대·밑줄 같은 장식은 쓰지 않는다.
+ *   시작하되 위 두 줄이 상세 위치를 알린다. 본문과의 간격은 Main이 소유한다.
  */
 export function PageHeading({
   actions,
@@ -32,14 +32,14 @@ export function PageHeading({
   return (
     <header
       className={cn(
-        "flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between",
+        "flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between",
         className,
       )}
     >
       <div className="min-w-0">
         {back ? (
           <button
-            className="mb-2 inline-flex items-center gap-1 text-[13px] font-medium text-text-muted transition-colors hover:text-text-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/40 motion-reduce:transition-none"
+            className="mb-3 inline-flex min-h-11 items-center sm:min-h-8 gap-2 text-xs font-medium text-text-muted transition-colors hover:text-text-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/40 motion-reduce:transition-none"
             onClick={back.onClick}
             type="button"
           >
@@ -48,19 +48,35 @@ export function PageHeading({
           </button>
         ) : null}
         {eyebrow ? (
-          <p className="text-xs font-semibold tracking-wide text-accent-strong">{eyebrow}</p>
+          <p className="mb-1 text-xs font-semibold tracking-wide text-accent-strong">
+            {eyebrow}
+          </p>
         ) : null}
-        <h1 className="text-2xl font-semibold leading-8 tracking-tight text-text-strong">
+        <h1
+          data-tour="page-title"
+          className="text-2xl font-bold leading-8 tracking-tight text-text-strong"
+        >
           {title}
         </h1>
         <p className="mt-1 max-w-2xl text-sm leading-6 text-text-muted">
           {description}
         </p>
       </div>
-      <div className="flex shrink-0 items-center gap-3">
-        {meta ? <div className="text-xs text-text-muted">{meta}</div> : null}
-        {actions}
-      </div>
+      {actions || meta ? (
+        <div className="flex min-w-0 flex-col gap-3 sm:max-w-[45%] sm:items-end">
+          {actions ? (
+            <div
+              data-tour="page-actions"
+              className="flex flex-wrap items-center gap-2"
+            >
+              {actions}
+            </div>
+          ) : null}
+          {meta ? (
+            <div className="text-xs leading-5 text-text-muted">{meta}</div>
+          ) : null}
+        </div>
+      ) : null}
     </header>
   );
 }

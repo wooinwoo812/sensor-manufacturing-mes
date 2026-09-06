@@ -1,4 +1,4 @@
-@import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
+@import "./fonts.css";
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "./tokens.css";

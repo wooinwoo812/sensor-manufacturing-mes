@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import {
@@ -17,7 +17,9 @@ vi.mock("@/entities/inspection", async (importOriginal) => {
 
 const fetchMock = vi.mocked(fetchInspections);
 
-function sampleResult(overrides: Partial<InspectionListResult> = {}): InspectionListResult {
+function sampleResult(
+  overrides: Partial<InspectionListResult> = {},
+): InspectionListResult {
   return {
     items: [
       {
@@ -79,10 +81,20 @@ describe("InspectionsPage", () => {
     renderPage();
 
     expect(await screen.findByText("INSP-2026-0101")).toBeInTheDocument();
-    expect(screen.getByText("LOT 완료")).toBeInTheDocument();
-    expect(screen.getByText("미판정")).toBeInTheDocument();
-    expect(screen.getByText("불합격")).toBeInTheDocument();
-    expect(screen.getByText("적외선 모듈 최종검사 규격 v3")).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("table")).getByText("LOT 완료"),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("table")).getByText("미판정"),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("table")).getByText("불합격"),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("table")).getByText(
+        "적외선 모듈 최종검사 규격 v3",
+      ),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("table", { name: "품질 검사 목록" }),
     ).toBeInTheDocument();
@@ -119,6 +131,8 @@ describe("InspectionsPage", () => {
 
     await user.click(screen.getByRole("combobox", { name: "판정" }));
     await user.click(await screen.findByRole("option", { name: "불합격" }));
+    expect(onSearchChange).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: "조회" }));
 
     expect(onSearchChange).toHaveBeenCalledWith({ verdict: ["FAIL"] });
   });
