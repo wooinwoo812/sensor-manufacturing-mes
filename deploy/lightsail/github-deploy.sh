@@ -13,8 +13,12 @@ rule="$RUNNER_TEMP/lightsail-ssh-rule.json"
 cleanup() {
   status=$?
   if [ -s "$rule" ]; then
-    aws lightsail close-instance-public-ports --instance-name "$LIGHTSAIL_INSTANCE" \
-      --port-info "file://$rule" --output json > /dev/null || status=1
+    if aws lightsail close-instance-public-ports --instance-name "$LIGHTSAIL_INSTANCE" \
+      --port-info "file://$rule" --output json > /dev/null; then
+      rm -f "$rule"
+    else
+      status=1
+    fi
   fi
   rm -f "$connection/access.json" "$connection/key" "$connection/key-cert.pub"
   exit "$status"

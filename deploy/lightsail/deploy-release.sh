@@ -33,6 +33,7 @@ recover() {
       -f "$previous/deploy/lightsail/compose.yaml" \
       up -d --no-deps --wait --wait-timeout 90 api caddy </dev/null || \
       echo 'Automatic application recovery failed; operator attention is required.' >&2
+    ln -sfn "$previous" "$root/current"
   fi
   exit "$status"
 }
@@ -46,9 +47,10 @@ dc --profile tools build api maintenance </dev/null
 
 mkdir -p "$root/backups"
 backup="$root/backups/before-$release.dump"
-dc exec -T postgres pg_dump -U sensor_mes -d sensor_mes -Fc </dev/null > "$backup"
-dc exec -T postgres pg_restore --list < "$backup" > "$backup.contents"
-test -s "$backup"
+dc exec -T postgres pg_dump -U sensor_mes -d sensor_mes -Fc </dev/null > "$backup.partial"
+dc exec -T postgres pg_restore --list < "$backup.partial" > "$backup.contents"
+test -s "$backup.partial"
+mv "$backup.partial" "$backup"
 # Seed is deliberately excluded: visitors share the existing demo database.
 dc --profile tools run -T --rm maintenance \
   node node_modules/prisma/build/index.js migrate deploy </dev/null
