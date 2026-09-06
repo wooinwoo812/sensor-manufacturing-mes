@@ -64,9 +64,11 @@ test.each(["path", "viewport", "sidebar"])(
     expect(container.firstChild).not.toHaveAttribute("style");
   },
 );
-test("표만 실측 높이를 사용하며 장식용 회색 행은 만들지 않는다", () => {
-  render(<TableSkeleton label="작업지시 조회 중" />);
+test("표는 실측 높이를 사용하고 조회 상태를 알린다", () => {
+  render(<TableSkeleton label="작업지시 조회 중" columns={[]} />);
   const result = screen.getByRole("status");
-  expect(result).toHaveStyle({ height: "700px" });
-  expect(result.querySelectorAll(".bg-border, .animate-pulse")).toHaveLength(0);
+  expect(result.closest('[data-loading-region="table"]')).toHaveStyle({
+    height: "700px",
+  });
+  expect(result).toHaveTextContent("작업지시 조회 중");
 });

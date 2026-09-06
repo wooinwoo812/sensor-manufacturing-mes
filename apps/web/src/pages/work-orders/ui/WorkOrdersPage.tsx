@@ -92,6 +92,8 @@ export function WorkOrdersPage({
     () => [
       {
         key: "orderNumber",
+        width: 128,
+        sortKey: "orderNumber",
         align: "left",
         header: "작업지시",
         cell: (row) => (
@@ -106,11 +108,12 @@ export function WorkOrdersPage({
       },
       {
         key: "product",
+        width: 216,
         align: "left",
         wrap: true,
         header: "제품",
         cell: (row) => (
-          <span className="block min-w-48 max-w-72 space-y-0.5">
+          <span className="block w-full space-y-0.5">
             <span className="block text-sm font-medium leading-5 text-text-strong">
               {row.productName}
             </span>
@@ -122,6 +125,7 @@ export function WorkOrdersPage({
       },
       {
         key: "priority",
+        width: 88,
         align: "center",
         header: "우선순위",
 
@@ -131,6 +135,8 @@ export function WorkOrdersPage({
       },
       {
         key: "plannedQuantity",
+        width: 96,
+        sortKey: "plannedQuantity",
         align: "center",
         header: "계획수량",
 
@@ -142,6 +148,8 @@ export function WorkOrdersPage({
       },
       {
         key: "dueDate",
+        width: 136,
+        sortKey: "dueDate",
         align: "center",
         header: "납기",
         cell: (row) =>
@@ -163,6 +171,8 @@ export function WorkOrdersPage({
       },
       {
         key: "progressPercent",
+        width: 104,
+        sortKey: "progressPercent",
         align: "center",
         header: "진행률",
         cell: (row) => (
@@ -184,12 +194,14 @@ export function WorkOrdersPage({
       },
       {
         key: "currentStepName",
+        width: 112,
         align: "left",
         header: "현재 공정",
         cell: (row) => row.currentStepName ?? "—",
       },
       {
         key: "status",
+        width: 104,
         align: "center",
         header: "상태",
         cell: (row) => (
@@ -200,6 +212,7 @@ export function WorkOrdersPage({
       },
       {
         key: "blockedReason",
+        width: 144,
         align: "left",
         wrap: true,
         header: "차단 사유",
@@ -275,7 +288,7 @@ export function WorkOrdersPage({
         hasPendingChanges={hasPendingChanges}
         resultLabel={
           state.phase === "success"
-            ? `총 ${state.total.toLocaleString("ko-KR")}건 중 ${state.items.length.toLocaleString("ko-KR")}건 표시 (납기 임박 순서)`
+            ? `총 ${state.total.toLocaleString("ko-KR")}건 중 ${state.items.length.toLocaleString("ko-KR")}건 표시`
             : "조회 조건을 선택하면 작업지시를 확인합니다."
         }
       >
@@ -378,7 +391,20 @@ export function WorkOrdersPage({
       </FilterBar>
 
       {state.phase === "loading" ? (
-        <TableSkeleton label="작업지시 조회 중" rows={pageSize} />
+        <TableSkeleton
+          columns={columns}
+          caption="작업지시 목록"
+          clickable
+          sort={{
+            sort: search.sort ?? "dueDate",
+            order: search.order ?? "asc",
+          }}
+          onSortChange={(next) =>
+            onSearchChange({ ...search, ...next, page: 1 })
+          }
+          label="작업지시 조회 중"
+          rows={pageSize}
+        />
       ) : state.phase === "error" ? (
         <ErrorState
           description={state.message}
@@ -399,6 +425,13 @@ export function WorkOrdersPage({
       ) : (
         <>
           <DataTable
+            sort={{
+              sort: search.sort ?? "dueDate",
+              order: search.order ?? "asc",
+            }}
+            onSortChange={(next) =>
+              onSearchChange({ ...search, ...next, page: 1 })
+            }
             footer={pagination}
             rowNumberStart={state.total - (currentPage - 1) * pageSize}
             onRowClick={(row) => onOpenDetail(row.id)}

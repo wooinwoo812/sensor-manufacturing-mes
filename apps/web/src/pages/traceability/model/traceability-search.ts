@@ -1,7 +1,8 @@
+import { readListSort, appendListSort, type ListSort } from "@/shared/lib";
 import { getPageSize, readPageSize } from "@/shared/lib";
 import { TRACE_NODE_TYPES, type TraceNodeType } from "@/entities/trace-node";
 
-export interface TraceabilitySearch {
+export interface TraceabilitySearch extends ListSort {
   q?: string;
   nodeType?: readonly TraceNodeType[];
   page?: number;
@@ -57,6 +58,12 @@ export function readTraceabilitySearch(
     typeof raw.q === "string" && raw.q.trim() !== "" ? raw.q.trim() : undefined;
 
   return stripUndefinedSearch({
+    ...readListSort(raw, [
+      "label",
+      "createdAt",
+      "upstreamCount",
+      "downstreamCount",
+    ]),
     q,
     nodeType: parseNodeTypeList(raw.nodeType, TRACE_NODE_TYPES),
     page,
@@ -85,5 +92,6 @@ export function toTraceabilityParams(
     params.set("page", String(search.page));
   }
   params.set("pageSize", String(getPageSize(search.pageSize)));
+  appendListSort(params, search);
   return params;
 }

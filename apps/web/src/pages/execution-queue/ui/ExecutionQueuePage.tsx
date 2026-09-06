@@ -100,6 +100,8 @@ export function ExecutionQueuePage({
     () => [
       {
         key: "workOrderNumber",
+        width: 128,
+        sortKey: "orderNumber",
         align: "left",
         header: "작업지시",
         cell: (row) => (
@@ -110,6 +112,8 @@ export function ExecutionQueuePage({
       },
       {
         key: "productionLotNumber",
+        width: 160,
+        sortKey: "productionLotNumber",
         align: "left",
         header: "생산 LOT",
         cell: (row) => (
@@ -120,6 +124,8 @@ export function ExecutionQueuePage({
       },
       {
         key: "processStepName",
+        width: 144,
+        sortKey: "sequence",
         align: "left",
         header: "공정",
         cell: (row) => (
@@ -135,11 +141,12 @@ export function ExecutionQueuePage({
       },
       {
         key: "product",
+        width: 216,
         align: "left",
         wrap: true,
         header: "제품",
         cell: (row) => (
-          <span className="block min-w-48 max-w-72 space-y-0.5">
+          <span className="block w-full space-y-0.5">
             <span className="block text-sm font-medium leading-5 text-text-strong">
               {row.productName}
             </span>
@@ -151,6 +158,7 @@ export function ExecutionQueuePage({
       },
       {
         key: "plannedQuantity",
+        width: 96,
         align: "center",
         header: "계획수량",
 
@@ -162,6 +170,7 @@ export function ExecutionQueuePage({
       },
       {
         key: "readiness",
+        width: 104,
         align: "center",
         header: "준비 상태",
         cell: (row) => (
@@ -172,6 +181,7 @@ export function ExecutionQueuePage({
       },
       {
         key: "blockedReasonCodes",
+        width: 160,
         align: "left",
         wrap: true,
         header: "차단 사유",
@@ -192,6 +202,7 @@ export function ExecutionQueuePage({
         ? [
             {
               key: "actions",
+              width: 104,
               align: "center",
               header: "행동",
               cell: (row: ProcessExecutionListItem) =>
@@ -275,7 +286,7 @@ export function ExecutionQueuePage({
         hasPendingChanges={hasPendingChanges}
         resultLabel={
           state.phase === "success"
-            ? `총 ${state.total.toLocaleString("ko-KR")}건 중 ${state.items.length.toLocaleString("ko-KR")}건 표시 (작업지시·공정 순서)`
+            ? `총 ${state.total.toLocaleString("ko-KR")}건 중 ${state.items.length.toLocaleString("ko-KR")}건 표시`
             : "조회 조건을 선택하면 공정 실행 대기열을 확인합니다."
         }
       >
@@ -310,7 +321,20 @@ export function ExecutionQueuePage({
       </FilterBar>
 
       {state.phase === "loading" ? (
-        <TableSkeleton label="공정 대기열 조회 중" rows={pageSize} />
+        <TableSkeleton
+          columns={columns}
+          caption="공정 실행 대기열"
+          clickable
+          sort={{
+            sort: search.sort ?? "orderNumber",
+            order: search.order ?? "asc",
+          }}
+          onSortChange={(next) =>
+            onSearchChange({ ...search, ...next, page: 1 })
+          }
+          label="공정 대기열 조회 중"
+          rows={pageSize}
+        />
       ) : state.phase === "error" ? (
         <ErrorState
           description={state.message}
@@ -331,6 +355,13 @@ export function ExecutionQueuePage({
       ) : (
         <>
           <DataTable
+            sort={{
+              sort: search.sort ?? "orderNumber",
+              order: search.order ?? "asc",
+            }}
+            onSortChange={(next) =>
+              onSearchChange({ ...search, ...next, page: 1 })
+            }
             footer={pagination}
             rowNumberStart={state.total - (currentPage - 1) * pageSize}
             busy={isRefreshing}

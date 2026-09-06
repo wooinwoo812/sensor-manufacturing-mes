@@ -1,5 +1,10 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { PrismaService } from "../database/prisma.service.js";
+import type { Prisma } from "../generated/prisma/client.js";
 import {
   TRACE_NODE_TYPES,
   type TraceEdgeView,
@@ -11,12 +16,20 @@ import {
 
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 100;
+const TRACE_SORT_FIELDS = [
+  "label",
+  "createdAt",
+  "upstreamCount",
+  "downstreamCount",
+] as const;
 
 interface TraceNodeQuery {
   q?: string;
   nodeType: readonly TraceNodeType[];
   page: number;
   pageSize: number;
+  sort: (typeof TRACE_SORT_FIELDS)[number];
+  order: "asc" | "desc";
 }
 
 function invalidQuery(detail: string) {
@@ -49,6 +62,12 @@ export function parseTraceNodeQuery(
   }
 
   const q = read("q");
+  const sort = (read("sort") ?? "label") as TraceNodeQuery["sort"];
+  if (!TRACE_SORT_FIELDS.includes(sort))
+    throw invalidQuery("허용되지 않는 정렬 필드입니다.");
+  const order = read("order") ?? "asc";
+  if (order !== "asc" && order !== "desc")
+    throw invalidQuery("order는 asc 또는 desc여야 합니다.");
   if (q !== undefined && q.length > 24) {
     throw invalidQuery("검색어는 24자 이하여야 합니다.");
   }
@@ -67,12 +86,21 @@ export function parseTraceNodeQuery(
   if (pageSizeRaw !== undefined) {
     const size = Number(pageSizeRaw);
     if (!Number.isInteger(size) || size < 1 || size > MAX_PAGE_SIZE) {
-      throw invalidQuery(`pageSize는 1 이상 ${MAX_PAGE_SIZE} 이하 정수여야 합니다.`);
+      throw invalidQuery(
+        `pageSize는 1 이상 ${MAX_PAGE_SIZE} 이하 정수여야 합니다.`,
+      );
     }
     pageSize = size;
   }
 
-  return { ...(q === undefined ? {} : { q }), nodeType, page, pageSize };
+  return {
+    ...(q === undefined ? {} : { q }),
+    nodeType,
+    page,
+    pageSize,
+    sort,
+    order,
+  };
 }
 
 function toListItem(row: {
@@ -121,6 +149,13 @@ export class TraceabilityService {
   constructor(private readonly prisma: PrismaService) {}
 
   async search(query: TraceNodeQuery): Promise<TraceNodeListResult> {
+    // childRelations의 peer가 원천, parentRelations의 peer가 산출이다(toListItem과 동일).
+    const primary: Prisma.TraceNodeOrderByWithRelationInput =
+      query.sort === "upstreamCount"
+        ? { childRelations: { _count: query.order } }
+        : query.sort === "downstreamCount"
+          ? { parentRelations: { _count: query.order } }
+          : { [query.sort]: query.order };
     const where = {
       AND: [
         ...(query.q === undefined
@@ -136,7 +171,7 @@ export class TraceabilityService {
       this.prisma.traceNode.count({ where }),
       this.prisma.traceNode.findMany({
         where,
-        orderBy: [{ label: "asc" }],
+        orderBy: [primary, { id: "asc" }],
         skip: (query.page - 1) * query.pageSize,
         take: query.pageSize,
         include: {

@@ -1,3 +1,4 @@
+import { readListSort, appendListSort, type ListSort } from "@/shared/lib";
 import { getPageSize, readPageSize } from "@/shared/lib";
 import {
   AUDIT_ACTION_LABELS,
@@ -6,7 +7,7 @@ import {
   type AuditActorRole,
 } from "@/entities/audit-event";
 
-export interface AuditEventsSearch {
+export interface AuditEventsSearch extends ListSort {
   q?: string;
   actorRole?: readonly AuditActorRole[];
   action?: readonly AuditAction[];
@@ -47,6 +48,7 @@ export function readAuditEventsSearch(
     typeof raw.q === "string" && raw.q.trim() !== "" ? raw.q.trim() : undefined;
 
   return stripUndefinedSearch({
+    ...readListSort(raw, ["occurredAt", "entityId"]),
     q,
     actorRole: parseList(
       raw.actorRole,
@@ -101,5 +103,6 @@ export function toAuditEventsParams(
     params.set("page", String(search.page));
   }
   params.set("pageSize", String(getPageSize(search.pageSize)));
+  appendListSort(params, search);
   return params;
 }

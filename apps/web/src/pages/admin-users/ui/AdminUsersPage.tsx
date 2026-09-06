@@ -52,6 +52,7 @@ export function AdminUsersPage({
     () => [
       {
         key: "actions",
+        width: 100,
         header: "관리",
         align: "center",
         cell: (row) => (
@@ -71,6 +72,8 @@ export function AdminUsersPage({
       },
       {
         key: "user",
+        width: 320,
+        sortKey: "displayName",
         align: "left",
         header: "사용자",
         cell: (row) => (
@@ -84,6 +87,7 @@ export function AdminUsersPage({
       },
       {
         key: "roles",
+        width: 200,
         align: "left",
         header: "역할",
         cell: (row) => (
@@ -98,6 +102,7 @@ export function AdminUsersPage({
       },
       {
         key: "status",
+        width: 160,
         align: "center",
         header: "상태",
         cell: (row) => (
@@ -111,6 +116,8 @@ export function AdminUsersPage({
       },
       {
         key: "createdAt",
+        width: 144,
+        sortKey: "createdAt",
         align: "center",
         header: "등록",
         cell: (row) => (
@@ -129,6 +136,19 @@ export function AdminUsersPage({
   const pageSize = getPageSize(search.pageSize);
   const page = search.page ?? 1;
   const total = state.phase === "success" ? state.items.length : 0;
+  const sortedItems = useMemo(() => {
+    if (state.phase !== "success") return [];
+    const field =
+      search.sort === "email" || search.sort === "createdAt"
+        ? search.sort
+        : "displayName";
+    const direction = search.order === "desc" ? -1 : 1;
+    return [...state.items].sort(
+      (a, b) =>
+        direction * a[field].localeCompare(b[field], "ko-KR") ||
+        a.id.localeCompare(b.id),
+    );
+  }, [state, search.sort, search.order]);
   const pagination =
     state.phase === "success" ? (
       <Pagination
@@ -141,7 +161,9 @@ export function AdminUsersPage({
           onSearchChange(readAdminUsersSearch({ ...search, page: next }))
         }
         onPageSizeChange={(size) =>
-          onSearchChange(readAdminUsersSearch({ pageSize: size }))
+          onSearchChange(
+            readAdminUsersSearch({ ...search, page: 1, pageSize: size }),
+          )
         }
       />
     ) : null;
@@ -178,6 +200,15 @@ export function AdminUsersPage({
           </div>
           {state.phase === "loading" ? (
             <TableSkeleton
+              columns={columns}
+              caption="사용자 목록"
+              sort={{
+                sort: search.sort ?? "displayName",
+                order: search.order ?? "asc",
+              }}
+              onSortChange={(next) =>
+                onSearchChange({ ...search, ...next, page: 1 })
+              }
               rows={getPageSize(search.pageSize)}
               label="사용자 조회 중"
             />
@@ -198,15 +229,21 @@ export function AdminUsersPage({
             />
           ) : (
             <DataTable
+              sort={{
+                sort: search.sort ?? "displayName",
+                order: search.order ?? "asc",
+              }}
+              onSortChange={(next) =>
+                onSearchChange({ ...search, ...next, page: 1 })
+              }
               caption="사용자 목록"
               busy={isRefreshing}
               columns={columns}
-              rows={state.items.slice((page - 1) * pageSize, page * pageSize)}
+              rows={sortedItems.slice((page - 1) * pageSize, page * pageSize)}
               rowNumberStart={total - (page - 1) * pageSize}
               footer={pagination}
               getRowKey={(row) => row.id}
               tourRecord="user"
-
               emptyMessage="사용자가 없습니다."
             />
           )}

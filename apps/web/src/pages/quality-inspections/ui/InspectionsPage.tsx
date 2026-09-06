@@ -95,6 +95,8 @@ export function InspectionsPage({
     () => [
       {
         key: "inspectionNumber",
+        width: 144,
+        sortKey: "inspectionNumber",
         align: "left",
         header: "검사",
         cell: (row) => (
@@ -109,6 +111,7 @@ export function InspectionsPage({
       },
       {
         key: "productionLotNumber",
+        width: 160,
         align: "left",
         header: "생산 LOT",
         cell: (row) => (
@@ -119,12 +122,14 @@ export function InspectionsPage({
       },
       {
         key: "processStepName",
+        width: 104,
         align: "left",
         header: "공정",
         cell: (row) => row.processStepName,
       },
       {
         key: "gate",
+        width: 104,
         align: "center",
         header: "게이트",
         cell: (row) => (
@@ -135,6 +140,7 @@ export function InspectionsPage({
       },
       {
         key: "specName",
+        width: 176,
         align: "left",
         wrap: true,
         header: "검사 규격",
@@ -146,6 +152,7 @@ export function InspectionsPage({
       },
       {
         key: "workOrderNumber",
+        width: 128,
         align: "left",
         header: "작업지시",
         cell: (row) => (
@@ -156,6 +163,7 @@ export function InspectionsPage({
       },
       {
         key: "executionStatus",
+        width: 104,
         align: "center",
         header: "실행 상태",
         cell: (row) => (
@@ -166,6 +174,7 @@ export function InspectionsPage({
       },
       {
         key: "verdict",
+        width: 88,
         align: "center",
         header: "판정",
         cell: (row) =>
@@ -181,6 +190,7 @@ export function InspectionsPage({
         ? [
             {
               key: "actions",
+              width: 88,
               align: "center",
               header: "행동",
               cell: (row: InspectionListItem) =>
@@ -255,7 +265,7 @@ export function InspectionsPage({
         hasPendingChanges={hasPendingChanges}
         resultLabel={
           state.phase === "success"
-            ? `총 ${state.total.toLocaleString("ko-KR")}건 중 ${state.items.length.toLocaleString("ko-KR")}건 표시 (등록 순서)`
+            ? `총 ${state.total.toLocaleString("ko-KR")}건 중 ${state.items.length.toLocaleString("ko-KR")}건 표시`
             : "조회 조건을 선택하면 검사 목록을 확인합니다."
         }
       >
@@ -347,7 +357,20 @@ export function InspectionsPage({
       </FilterBar>
 
       {state.phase === "loading" ? (
-        <TableSkeleton label="검사 목록 조회 중" rows={pageSize} />
+        <TableSkeleton
+          columns={columns}
+          caption="품질 검사 목록"
+          clickable
+          sort={{
+            sort: search.sort ?? "createdAt",
+            order: search.order ?? "asc",
+          }}
+          onSortChange={(next) =>
+            onSearchChange({ ...search, ...next, page: 1 })
+          }
+          label="검사 목록 조회 중"
+          rows={pageSize}
+        />
       ) : state.phase === "error" ? (
         <ErrorState
           description={state.message}
@@ -392,6 +415,13 @@ export function InspectionsPage({
             ) : null}
           </ActionSheet>
           <DataTable
+            sort={{
+              sort: search.sort ?? "createdAt",
+              order: search.order ?? "asc",
+            }}
+            onSortChange={(next) =>
+              onSearchChange({ ...search, ...next, page: 1 })
+            }
             footer={pagination}
             rowNumberStart={state.total - (currentPage - 1) * pageSize}
             onRowClick={(row) => onOpenDetail(row.id)}

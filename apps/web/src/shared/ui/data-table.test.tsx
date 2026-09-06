@@ -12,6 +12,33 @@ const columns = [
     cell: (row: (typeof rows)[number]) => row.name,
   },
 ];
+it("지원 열의 방향을 알리고 재조회 중 중복 정렬을 막는다", () => {
+  const change = vi.fn();
+  const props = {
+    caption: "목록",
+    rows,
+    columns: [{ ...columns[0]!, sortKey: "name" }],
+    getRowKey: (row: (typeof rows)[number]) => row.id,
+    emptyMessage: "없음",
+    onSortChange: change,
+  };
+  const view = render(
+    <DataTable {...props} sort={{ sort: "name", order: "asc" }} />,
+  );
+  expect(screen.getByRole("columnheader", { name: "제품" })).toHaveAttribute(
+    "aria-sort",
+    "ascending",
+  );
+  fireEvent.click(screen.getByRole("button", { name: "제품 내림차순 정렬" }));
+  expect(change).toHaveBeenCalledWith({ sort: "name", order: "desc" });
+  view.rerender(
+    <DataTable {...props} busy sort={{ sort: "name", order: "desc" }} />,
+  );
+  expect(
+    screen.getByRole("button", { name: "제품 오름차순 정렬" }),
+  ).toBeDisabled();
+  expect(screen.getByText("제품 A")).toBeInTheDocument();
+});
 it("재조회 중 표의 투명도를 바꾸거나 이전 행을 제거하지 않는다", () => {
   const view = render(
     <DataTable
@@ -44,15 +71,15 @@ it("재조회 중 표의 투명도를 바꾸거나 이전 행을 제거하지 �
   );
 });
 it("표 준비 영역은 기본 10건과 선택한 건수를 반영하고 점멸하지 않는다", () => {
-  const view = render(<TableSkeleton label="조회 중" />);
+  const view = render(<TableSkeleton label="조회 중" columns={columns} />);
+  expect(view.container.querySelector("thead")).toHaveTextContent("제품");
+  expect(view.container.querySelectorAll("tbody tr")).toHaveLength(10);
+  view.rerender(<TableSkeleton label="조회 중" rows={20} columns={columns} />);
+  expect(view.container.querySelectorAll("tbody tr")).toHaveLength(20);
+  expect(view.container.querySelector(".animate-pulse")).toBeNull();
   expect(
-    screen.getByRole("status").querySelector('[style="height: 600px;"]'),
-  ).not.toBeNull();
-  view.rerender(<TableSkeleton label="조회 중" rows={20} />);
-  expect(
-    screen.getByRole("status").querySelector('[style="height: 1160px;"]'),
-  ).not.toBeNull();
-  expect(screen.getByRole("status").querySelector(".animate-pulse")).toBeNull();
+    screen.getByRole("combobox", { name: "페이지당 표시 건수" }),
+  ).toBeDisabled();
 });
 it("순번은 페이지의 시작 번호부터 이어지며 식별자는 별도로 유지한다", () => {
   render(

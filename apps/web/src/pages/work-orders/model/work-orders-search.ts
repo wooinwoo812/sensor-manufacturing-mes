@@ -1,3 +1,4 @@
+import { readListSort, appendListSort, type ListSort } from "@/shared/lib";
 import { getPageSize, readPageSize } from "@/shared/lib";
 import {
   WORK_ORDER_DUE_OPTIONS,
@@ -8,7 +9,7 @@ import {
   type WorkOrderStatus,
 } from "@/entities/work-order";
 
-export interface WorkOrdersListSearch {
+export interface WorkOrdersListSearch extends ListSort {
   q?: string;
   status?: readonly WorkOrderStatus[];
   priority?: readonly WorkOrderPriority[];
@@ -66,6 +67,12 @@ export function readWorkOrdersSearch(
   const priority = parseEnumList(raw.priority, WORK_ORDER_PRIORITIES);
 
   return stripUndefinedSearch({
+    ...readListSort(raw, [
+      "dueDate",
+      "orderNumber",
+      "progressPercent",
+      "plannedQuantity",
+    ]),
     q,
     status,
     priority,
@@ -122,5 +129,6 @@ export function toWorkOrdersSearchParams(
     params.set("page", String(search.page));
   }
   params.set("pageSize", String(getPageSize(search.pageSize)));
+  appendListSort(params, search);
   return params;
 }

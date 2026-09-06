@@ -20,6 +20,7 @@ interface PaginationProps {
   totalItems?: number;
   pageSize?: number;
   busy?: boolean;
+  loading?: boolean;
   onPageChange: (page: number) => void;
   onPageSizeChange?: (pageSize: number) => void;
 }
@@ -34,6 +35,7 @@ export function Pagination({
   totalItems,
   pageSize = DEFAULT_PAGE_SIZE,
   busy = false,
+  loading = false,
 }: PaginationProps) {
   const lastPage = Math.max(1, totalPages);
   const page = Math.max(1, currentPage);
@@ -64,8 +66,13 @@ export function Pagination({
       className="@container px-3 py-3 sm:px-4"
     >
       <div className="grid grid-cols-2 items-center gap-x-3 gap-y-2 @min-[900px]:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
-        <p className="col-start-1 row-start-1 text-sm tabular-nums leading-5 text-text-muted">
-          {totalItems !== undefined ? (
+        <p className="col-start-1 row-start-1 min-h-10 text-sm tabular-nums leading-5 text-text-muted">
+          {loading ? (
+            <>
+              <span className="block">건수 확인 중</span>
+              <span aria-hidden="true">—</span>
+            </>
+          ) : totalItems !== undefined ? (
             <>
               <span className="block font-medium text-text">
                 총 {totalItems.toLocaleString("ko-KR")}건
@@ -167,9 +174,11 @@ export function Pagination({
             </div>
           ) : null}
           <p className="text-sm tabular-nums leading-5 text-text-muted">
-            {page > lastPage
-              ? "페이지를 선택해 주세요"
-              : page + " / " + lastPage + " 페이지"}
+            {loading
+              ? "— / — 페이지"
+              : page > lastPage
+                ? "페이지를 선택해 주세요"
+                : page + " / " + lastPage + " 페이지"}
           </p>
         </div>
       </div>
