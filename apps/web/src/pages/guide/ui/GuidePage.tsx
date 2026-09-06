@@ -12,6 +12,13 @@ export interface GuidePageProps {
   availableScreens: ReactNode;
   startingScreen: ReactNode;
   onStartTour: () => void;
+  onRestartTour?: () => void;
+  tourProgress?: {
+    index: number;
+    count: number;
+    title: string;
+    screen: string;
+  } | null;
 }
 
 export function GuidePage({
@@ -21,6 +28,8 @@ export function GuidePage({
   availableScreens,
   startingScreen,
   onStartTour,
+  onRestartTour,
+  tourProgress,
 }: GuidePageProps) {
   const active = search.tab ?? "overview";
   const selected = guideDocument(search);
@@ -41,6 +50,8 @@ export function GuidePage({
         availableScreens={availableScreens}
         startingScreen={startingScreen}
         onStartTour={onStartTour}
+        {...(onRestartTour ? { onRestartTour } : {})}
+        {...(tourProgress ? { tourProgress } : {})}
         onSearchChange={onSearchChange}
       />
     );

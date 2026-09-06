@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "@tanstack/react-router";
-import { ArrowRight, BookOpen, Compass, X } from "lucide-react";
+import { ArrowRight, BookOpen, Compass, Play, X } from "lucide-react";
 import type { RoleCode } from "@/entities/session";
 import { readNavigationSafety } from "@/shared/lib";
 import {
@@ -29,6 +30,11 @@ import { scrollToTourTarget } from "../model/tour-scroll";
 import { clearLoginGuide, hasLoginGuide } from "../model/login-guide-intent";
 import { ROLE_GUIDE_REQUEST } from "../model/onboarding-launcher";
 import { GuidedTourOverlay } from "./GuidedTourOverlay";
+import {
+  clearGuideProgress,
+  readGuideProgress,
+  saveGuideProgress,
+} from "../model/guide-progress";
 
 export function RoleOnboarding({
   userId,
@@ -49,17 +55,24 @@ export function RoleOnboarding({
   const storageKey = guideStorageKey(userId, roleCode);
   const steps = availableGuideSteps(roleCode, navigation, permissions);
   const [continueLoginGuide] = useState(() => hasLoginGuide(roleCode));
-  const [phase, setPhase] = useState<"closed" | "invite" | "tour">(() =>
-    steps.length === 0
-      ? "closed"
-      : continueLoginGuide
-        ? "tour"
-        : !hasGuideDecision(storageKey)
-          ? "invite"
-          : "closed",
+  const [restored] = useState(() => readGuideProgress(storageKey, steps));
+  const [phase, setPhase] = useState<"closed" | "invite" | "tour" | "paused">(
+    () =>
+      steps.length === 0
+        ? "closed"
+        : continueLoginGuide
+          ? "tour"
+          : restored
+            ? "paused"
+            : !hasGuideDecision(storageKey)
+              ? "invite"
+              : "closed",
   );
   const loginGuideHandled = useRef(false);
-  const [stepIndex, setStepIndex] = useState(0);
+  const [stepIndex, setStepIndex] = useState(
+    continueLoginGuide ? 0 : (restored?.index ?? 0),
+  );
+  const [dockDismissed, setDockDismissed] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [status, setStatus] = useState<
     "loading" | "ready" | "missing" | "error" | "limited"
@@ -68,13 +81,20 @@ export function RoleOnboarding({
   const [notice, setNotice] = useState("");
   const triggerRef = useRef<HTMLButtonElement>(null);
   const touringRef = useRef(phase === "tour");
-  const recordsRef = useRef(new Map<string, TourRecord | null>());
+  const recordsRef = useRef(
+    new Map<string, TourRecord | null>(
+      continueLoginGuide ? [] : restored?.records,
+    ),
+  );
+  const runRef = useRef<AbortController | null>(null);
   const step = steps[Math.min(stepIndex, steps.length - 1)];
 
   const finish = useCallback(
     (decision: "completed" | "skipped" = "skipped") => {
+      runRef.current?.abort();
       touringRef.current = false;
       saveGuideDecision(storageKey, decision);
+      clearGuideProgress(storageKey);
       setPhase("closed");
       setTarget(null);
       requestAnimationFrame(() =>
@@ -84,10 +104,58 @@ export function RoleOnboarding({
     [storageKey],
   );
   const stop = useCallback(() => finish(), [finish]);
+  const pause = useCallback(() => {
+    runRef.current?.abort();
+    if (step) saveGuideProgress(storageKey, step, recordsRef.current);
+    touringRef.current = false;
+    setTarget(null);
+    setPhase("paused");
+    setDockDismissed(false);
+    requestAnimationFrame(() =>
+      triggerRef.current?.focus({ preventScroll: true }),
+    );
+  }, [step, storageKey]);
+
+  const begin = useCallback(
+    (resume: boolean) => {
+      setDockDismissed(false);
+      setNotice("");
+      const safety = readNavigationSafety();
+      if (safety.pending) {
+        setNotice(
+          "저장 중인 작업이 있습니다. 처리가 끝난 뒤 안내를 시작해 주세요.",
+        );
+        setPhase((previous) => (previous === "closed" ? "invite" : previous));
+        return;
+      }
+      if (
+        safety.dirty &&
+        !window.confirm(
+          "저장하지 않은 입력 내용이 있습니다. 실제 화면을 이동하면 이 내용이 사라질 수 있습니다. 입력 내용을 버리고 안내를 시작하시겠어요?",
+        )
+      )
+        return;
+      const saved = resume ? readGuideProgress(storageKey, steps) : null;
+      recordsRef.current = new Map(saved?.records);
+      setStepIndex(saved?.index ?? 0);
+      setNotice("");
+      setStatus("loading");
+      setTarget(null);
+      touringRef.current = true;
+      setPhase("tour");
+    },
+    [storageKey, steps],
+  );
+
+  useEffect(() => {
+    if (phase === "tour" && step)
+      saveGuideProgress(storageKey, step, recordsRef.current);
+  }, [phase, step, storageKey, status]);
 
   useEffect(() => {
     if (phase !== "tour" || !step || !ready) return;
     const controller = new AbortController();
+    runRef.current = controller;
     const run = async () => {
       try {
         const signal = controller.signal;
@@ -184,42 +252,28 @@ export function RoleOnboarding({
   }, [phase, step, attempt, navigate, ready, continueLoginGuide]);
 
   useEffect(() => {
-    const invite = () => {
+    const invite = (event: Event) => {
       if (!touringRef.current) {
+        if ((event as CustomEvent<{ restart?: boolean }>).detail?.restart) {
+          begin(false);
+          return;
+        }
+        if (readGuideProgress(storageKey, steps)) {
+          begin(true);
+          return;
+        }
         setNotice("");
         setPhase("invite");
       }
     };
     window.addEventListener(ROLE_GUIDE_REQUEST, invite);
     return () => window.removeEventListener(ROLE_GUIDE_REQUEST, invite);
-  }, []);
+  }, [begin, storageKey, steps]);
 
   if (!step) return null;
 
-  function start() {
-    const safety = readNavigationSafety();
-    if (safety.pending) {
-      setNotice(
-        "저장 중인 작업이 있습니다. 처리가 끝난 뒤 안내를 시작해 주세요.",
-      );
-      return;
-    }
-    if (
-      safety.dirty &&
-      !window.confirm(
-        "저장하지 않은 입력 내용이 있습니다. 실제 화면을 이동하면 이 내용이 사라질 수 있습니다. 입력 내용을 버리고 안내를 시작하시겠어요?",
-      )
-    )
-      return;
-    setNotice("");
-    recordsRef.current.clear();
-    setStepIndex(0);
-    setStatus("loading");
-    setTarget(null);
-    touringRef.current = true;
-    setPhase("tour");
-  }
   function move(index: number) {
+    runRef.current?.abort();
     setTarget(null);
     setStatus("loading");
     setStepIndex(index);
@@ -244,6 +298,10 @@ export function RoleOnboarding({
         onOpenChange={(next) => {
           if (!ready) return;
           if (next) {
+            if (phase === "paused") {
+              begin(true);
+              return;
+            }
             setNotice("");
             setPhase("invite");
           } else if (!touringRef.current) finish();
@@ -259,7 +317,9 @@ export function RoleOnboarding({
             title="역할별 사용 안내"
           >
             <BookOpen className="size-4" aria-hidden="true" />
-            <span className="hidden md:inline">사용 안내</span>
+            <span className="hidden md:inline">
+              {phase === "paused" ? "안내 재개" : "사용 안내"}
+            </span>
           </Button>
         </DialogTrigger>
         <DialogContent
@@ -300,13 +360,14 @@ export function RoleOnboarding({
                 사용 안내를 시작하시겠어요?
               </DialogTitle>
               <DialogDescription className="mt-2 text-sm leading-6 text-text-muted">
-                실제 업무 화면으로 이동하며 확인할 곳을 짚어 드립니다.
-                목록부터 상세까지 둘러보며, 데이터는 변경하지 않습니다.
+                실제 업무 화면으로 이동하며 확인할 곳을 짚어 드립니다. 목록부터
+                상세까지 둘러보며, 데이터는 변경하지 않습니다.
               </DialogDescription>
             </div>
             <div className="rounded-panel border border-border bg-surface-subtle p-4">
               <p className="mb-3 text-sm font-semibold text-text-muted">
-                {screens.length}개 메뉴 · 목록과 상세를 포함한 {steps.length}단계
+                {screens.length}개 메뉴 · 목록과 상세를 포함한 {steps.length}
+                단계
               </p>
               <ol
                 className="grid grid-cols-2 gap-x-4 gap-y-2"
@@ -326,7 +387,7 @@ export function RoleOnboarding({
               </ol>
             </div>
             <p className="text-sm leading-6 text-text-muted">
-              언제든 종료하고 상단 ‘사용 안내’에서 다시 시작할 수 있습니다.
+              일시중지 후 상단 사용 안내·업무 가이드에서 이어서 볼 수 있습니다.
             </p>
             {notice ? (
               <p role="alert" className="text-sm leading-6 text-danger-strong">
@@ -338,7 +399,7 @@ export function RoleOnboarding({
             <Button variant="secondary" onClick={() => finish()}>
               지금은 건너뛰기
             </Button>
-            <Button onClick={start}>
+            <Button onClick={() => begin(false)}>
               네, 시작할게요{" "}
               <ArrowRight className="size-4" aria-hidden="true" />
             </Button>
@@ -353,6 +414,7 @@ export function RoleOnboarding({
           target={target}
           status={status}
           onClose={stop}
+          onPause={pause}
           onPrevious={() => move(Math.max(0, stepIndex - 1))}
           onNext={() =>
             stepIndex === steps.length - 1
@@ -366,6 +428,42 @@ export function RoleOnboarding({
             setAttempt((value) => value + 1);
           }}
         />
+      ) : null}
+      {phase === "paused" && ready && !dockDismissed ? createPortal(
+        <section
+          data-guided-tour="paused"
+          aria-label="일시중지한 사용 안내"
+          className="fixed bottom-4 right-4 z-40 w-[calc(100%-2rem)] max-w-sm rounded-panel border border-border bg-surface p-4 text-text-strong shadow-panel"
+        >
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm font-semibold">
+              사용 안내 일시중지 · {stepIndex + 1}/{steps.length}
+            </p>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="-my-2 -mr-2"
+              aria-label="재개 알림 숨기기"
+              onClick={() => setDockDismissed(true)}
+            >
+              <X className="size-4" aria-hidden="true" />
+            </Button>
+          </div>
+          <div className="mt-2 flex items-center justify-between gap-3">
+            <p className="min-w-0 flex-1 text-sm leading-5 text-text-muted">
+              {step.screen} 화면부터 이어서 볼 수 있습니다.
+            </p>
+            <Button onClick={() => begin(true)}>
+              <Play className="size-4" aria-hidden="true" />
+              이어서 보기
+            </Button>
+          </div>
+          {notice ? (
+            <p role="alert" className="mt-2 text-sm text-danger-strong">
+              {notice}
+            </p>
+          ) : null}
+        </section>, document.body
       ) : null}
     </>
   );

@@ -83,14 +83,14 @@ export function positionTourCard(
       top: clampY(viewportHeight - cardHeight - margin),
     };
   if (rect.right + gap + cardWidth <= viewportWidth - margin)
-    return { left: rect.right + gap, top: clampY(rect.top) };
+    return { left: clampX(rect.right + gap), top: clampY(rect.top) };
   if (rect.left - gap - cardWidth >= margin)
-    return { left: rect.left - gap - cardWidth, top: clampY(rect.top) };
+    return { left: clampX(rect.left - gap - cardWidth), top: clampY(rect.top) };
   const centeredX = clampX(rect.left + (rect.width - cardWidth) / 2);
   if (rect.bottom + gap + cardHeight <= viewportHeight - margin)
-    return { left: centeredX, top: rect.bottom + gap };
+    return { left: centeredX, top: clampY(rect.bottom + gap) };
   if (rect.top - gap - cardHeight >= margin)
-    return { left: centeredX, top: rect.top - gap - cardHeight };
+    return { left: centeredX, top: clampY(rect.top - gap - cardHeight) };
   return {
     left: centeredX,
     top: clampY(viewportHeight - cardHeight - margin),

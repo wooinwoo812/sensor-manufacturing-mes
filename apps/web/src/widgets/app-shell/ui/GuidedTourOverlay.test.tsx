@@ -8,6 +8,7 @@ const callbacks = {
   onPrevious: vi.fn(),
   onNext: vi.fn(),
   onClose: vi.fn(),
+  onPause: vi.fn(),
   onRetry: vi.fn(),
 };
 beforeEach(() => {

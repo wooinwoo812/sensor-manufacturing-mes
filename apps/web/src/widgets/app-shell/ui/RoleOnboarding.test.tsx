@@ -10,6 +10,7 @@ import { ROLE_CODES, type RoleCode } from "@/entities/session";
 import { useNavigationSafety } from "@/shared/lib";
 import { requestRoleOnboarding } from "../model/onboarding-launcher";
 import { RoleOnboarding } from "./RoleOnboarding";
+import { readGuideProgress } from "../model/guide-progress";
 import {
   availableGuideSteps,
   guideStorageKey,
@@ -234,6 +235,90 @@ async function start() {
   );
   return user;
 }
+
+it("일시중지하면 화면을 사용하고 같은 단계에서 이어서 볼 수 있다", async () => {
+  const action = vi.fn();
+  render(<Fixture id="pause-interact-resume" onAction={action} />);
+  const user = await start();
+  await user.click(screen.getByRole("button", { name: "다음" }));
+  await waitFor(() => expect(screen.getByLabelText("실제 검색")).toHaveFocus());
+  await user.click(screen.getByRole("button", { name: "일시중지" }));
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(document.querySelector("[data-tour-active]")).toBeNull();
+  expect(document.body.style.paddingBottom).toBe("");
+  await user.click(screen.getByRole("button", { name: "실제 새로고침" }));
+  expect(action).toHaveBeenCalledOnce();
+  await user.clear(screen.getByLabelText("실제 검색"));
+  await user.type(screen.getByLabelText("실제 검색"), "자유롭게 검색");
+  expect(screen.getByLabelText("실제 검색")).toHaveValue("자유롭게 검색");
+  await user.click(screen.getByRole("button", { name: "이어서 보기" }));
+  await waitFor(() => expect(screen.getByLabelText("실제 검색")).toHaveFocus());
+  expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "2");
+  expect(screen.getByLabelText("실제 검색")).toHaveValue("자유롭게 검색");
+});
+
+it("재마운트는 안내를 자동 실행하지 않고 중단한 위치를 복원한다", async () => {
+  const id = "restore-paused-tour";
+  const view = render(<Fixture id={id} />);
+  const user = await start();
+  await user.click(screen.getByRole("button", { name: "다음" }));
+  await waitFor(() => expect(screen.getByLabelText("실제 검색")).toHaveFocus());
+  view.unmount();
+  navigate.mockClear();
+  render(<Fixture id={id} />);
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(
+    screen.getByRole("region", { name: "일시중지한 사용 안내" }),
+  ).toHaveTextContent("2/24");
+  expect(navigate).not.toHaveBeenCalled();
+  await user.click(screen.getByRole("button", { name: "재개 알림 숨기기" }));
+  await user.click(screen.getByRole("button", { name: "역할별 사용 안내" }));
+  await waitFor(() => expect(screen.getByLabelText("실제 검색")).toHaveFocus());
+  await user.click(screen.getByRole("button", { name: "투어 종료" }));
+  expect(
+    readGuideProgress(
+      guideStorageKey(id, "PRODUCTION_PLANNER"),
+      ROLE_GUIDES.PRODUCTION_PLANNER,
+    ),
+  ).toBeNull();
+});
+
+it("일시중지 후 저장 중이면 재개를 막고 미저장 확인 취소는 화면을 유지한다", async () => {
+  const id = "resume-safety";
+  const view = render(<Fixture id={id} />);
+  const user = await start();
+  await user.click(screen.getByRole("button", { name: "일시중지" }));
+  navigate.mockClear();
+  view.rerender(<Fixture id={id} pending />);
+  await user.click(screen.getByRole("button", { name: "이어서 보기" }));
+  expect(screen.getByRole("alert")).toHaveTextContent("저장 중인 작업");
+  expect(navigate).not.toHaveBeenCalled();
+  view.rerender(<Fixture id={id} dirty />);
+  vi.spyOn(window, "confirm").mockReturnValue(false);
+  await user.click(screen.getByRole("button", { name: "이어서 보기" }));
+  expect(window.confirm).toHaveBeenCalledOnce();
+  expect(navigate).not.toHaveBeenCalled();
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+});
+
+it("업무 가이드의 이어보기는 재개하고 처음부터는 첫 단계로 돌아간다", async () => {
+  render(<Fixture id="guide-entry-resume" />);
+  const user = await start();
+  await user.click(screen.getByRole("button", { name: "다음" }));
+  await waitFor(() => expect(screen.getByLabelText("실제 검색")).toHaveFocus());
+  await user.click(screen.getByRole("button", { name: "일시중지" }));
+  act(() => requestRoleOnboarding());
+  await waitFor(() => expect(screen.getByLabelText("실제 검색")).toHaveFocus());
+  expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "2");
+  await user.click(screen.getByRole("button", { name: "일시중지" }));
+  act(() => requestRoleOnboarding({ restart: true }));
+  await waitFor(() =>
+    expect(screen.getByRole("progressbar")).toHaveAttribute(
+      "aria-valuenow",
+      "1",
+    ),
+  );
+});
 
 it.each(ROLE_CODES)(
   "%s 역할은 동의 후 실제 경로로 이동하고 실제 요소에 초점을 준다",

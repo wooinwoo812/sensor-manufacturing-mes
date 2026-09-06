@@ -30,6 +30,34 @@ const props: GuidePageProps = {
   onSearchChange: vi.fn(),
 };
 describe("guide documents", () => {
+  it("중단한 단계와 이어보기·처음부터 시작을 업무 가이드 상단에 표시한다", async () => {
+    const resume = vi.fn(),
+      restart = vi.fn();
+    render(
+      <GuidePage
+        {...props}
+        tourProgress={{
+          index: 5,
+          count: 24,
+          title: "자재 예약 확인",
+          screen: "작업지시",
+        }}
+        onStartTour={resume}
+        onRestartTour={restart}
+      />,
+    );
+    expect(
+      screen.getByText("6/24단계 · 작업지시 · 자재 예약 확인"),
+    ).toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole("button", { name: "화면 안내 이어서 보기" }),
+    );
+    expect(resume).toHaveBeenCalledOnce();
+    await userEvent.click(
+      screen.getByRole("button", { name: "처음부터" }),
+    );
+    expect(restart).toHaveBeenCalledOnce();
+  });
   it("whitelists IDs, keeps old links, and drops unrelated search fields", () => {
     expect(
       readGuideSearch({ tab: "invalid", doc: "../../secret", q: "x" }),
@@ -116,7 +144,7 @@ describe("guide documents", () => {
     const reading = screen.getByRole("heading", { name: "문서 바로가기" });
     const tour = screen.getByRole("heading", { name: "화면을 보며 시작하기" });
     expect(
-      reading.compareDocumentPosition(tour) & Node.DOCUMENT_POSITION_FOLLOWING,
+      tour.compareDocumentPosition(reading) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(
       screen.getByRole("link", { name: "내 업무로 이동" }),
