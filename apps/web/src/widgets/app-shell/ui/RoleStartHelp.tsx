@@ -70,7 +70,7 @@ export function RoleStartHelp({
             ))}
           </ol>
           <div className="mt-3 flex flex-wrap items-center gap-3">
-            <Button variant="secondary" onClick={requestRoleOnboarding}>
+            <Button variant="secondary" onClick={() => requestRoleOnboarding()}>
               화면 안내 시작
             </Button>
             <Link

@@ -26,6 +26,7 @@ export function GuidedTourOverlay({
   onPrevious,
   onNext,
   onClose,
+  onPause,
   onRetry,
 }: {
   step: GuideStep;
@@ -36,6 +37,7 @@ export function GuidedTourOverlay({
   onPrevious: () => void;
   onNext: () => void;
   onClose: () => void;
+  onPause: () => void;
   onRetry: () => void;
 }) {
   const cardRef = useRef<HTMLDivElement>(null);
@@ -213,7 +215,7 @@ export function GuidedTourOverlay({
   }, [measure, target]);
 
   useEffect(() => {
-    const closeOnBack = () => onClose();
+    const closeOnBack = () => onPause();
     const block = (event: Event) => {
       if (!cardRef.current?.contains(event.target as Node)) {
         event.preventDefault();
@@ -224,7 +226,7 @@ export function GuidedTourOverlay({
       if (event.key === "Escape") {
         event.preventDefault();
         event.stopImmediatePropagation();
-        onClose();
+        onPause();
         return;
       }
       if (
@@ -302,7 +304,7 @@ export function GuidedTourOverlay({
         document.removeEventListener(name, block, true);
       window.removeEventListener("popstate", closeOnBack);
     };
-  }, [target, onClose]);
+  }, [target, onPause]);
 
   return createPortal(
     <div
@@ -411,7 +413,7 @@ export function GuidedTourOverlay({
                   ? "현재 데이터나 화면 상태에서 안내 대상을 찾지 못했습니다. 다시 찾거나 다음 단계를 확인하세요."
                   : status === "error"
                     ? "화면 이동을 완료하지 못했습니다. 다시 시도하거나 투어를 종료할 수 있습니다."
-                    : "둘러보기 중에는 입력·저장하지 않습니다."}
+                    : "화면을 직접 사용하려면 일시중지하세요. 안내는 같은 단계에서 이어집니다."}
           </p>
           {status === "missing" || status === "error" ? (
             <Button
@@ -424,8 +426,8 @@ export function GuidedTourOverlay({
           ) : null}
         </div>
         <div className="flex shrink-0 items-center justify-between gap-2 border-t border-border pt-3">
-          <Button variant="ghost" className="px-2" onClick={onClose}>
-            그만 보기
+          <Button variant="ghost" className="px-2" onClick={onPause}>
+            일시중지
           </Button>
           <div className="flex gap-2">
             <Button

@@ -1,7 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { resolveShellContext } from "@/app/shell-config";
 import { GuidePage, readGuideSearch } from "@/pages/guide";
-import { requestRoleOnboarding } from "@/widgets/app-shell";
+import {
+  requestRoleOnboarding,
+  useRoleGuideProgress,
+} from "@/widgets/app-shell";
 import { roleLandingLabel } from "@/app/session-policy";
 
 export const Route = createFileRoute("/_authenticated/guide")({
@@ -14,11 +17,19 @@ export function GuideRoute() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const shell = resolveShellContext("/guide", session);
+  const tourProgress = useRoleGuideProgress(
+    session.user.id,
+    session.activeRole.code,
+    shell.navigation,
+    session.permissions,
+  );
   return (
     <GuidePage
       search={search}
       currentRole={session.activeRole.label}
-      onStartTour={requestRoleOnboarding}
+      onStartTour={() => requestRoleOnboarding()}
+      onRestartTour={() => requestRoleOnboarding({ restart: true })}
+      tourProgress={tourProgress}
       startingScreen={
         <Link
           to={session.landingRoute}

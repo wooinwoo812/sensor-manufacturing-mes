@@ -1,5 +1,18 @@
 import { positionTourCard, waitForTourTarget } from "./tour-target";
 
+it.each([
+  { top: 674, left: 16, right: 810, bottom: 780, width: 794, height: 106 },
+  { top: -200, left: 16, right: 810, bottom: -100, width: 794, height: 100 },
+  { top: 100, left: -600, right: -500, bottom: 200, width: 100, height: 100 },
+  { top: 100, left: 1100, right: 1200, bottom: 200, width: 100, height: 100 },
+])("회전 후 대상이 화면 밖에 있어도 안내 카드는 화면 안에 둔다", (rect) => {
+  const position = positionTourCard(rect, 844, 390, 360, 320);
+  expect(position.left).toBeGreaterThanOrEqual(16);
+  expect(position.left + 360).toBeLessThanOrEqual(828);
+  expect(position.top).toBeGreaterThanOrEqual(16);
+  expect(position.top + 320).toBeLessThanOrEqual(374);
+});
+
 it("좁은 화면에서 안내 카드를 화면 안에 배치한다", () => {
   const position = positionTourCard(
     { top: 90, left: 16, right: 280, bottom: 140, width: 264, height: 50 },

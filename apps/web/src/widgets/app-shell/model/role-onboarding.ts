@@ -2,6 +2,8 @@ import type { RoleCode } from "@/entities/session";
 import type { NavigationGroup, NavigationItem } from "./navigation";
 
 export interface GuideStep {
+  /** 같은 대상을 다른 시점에 설명할 때도 재개 위치를 구분한다. */
+  id?: string;
   title: string;
   screen: string;
   to: NonNullable<NavigationItem["to"]> | "/work-orders/new";
@@ -26,6 +28,7 @@ function listReadingSteps(screen: string, to: GuideStep["to"]): GuideStep[] {
       screen,
       to,
       anchor: "table-heading",
+      id: "list-reading",
       title: "목록 번호와 정렬을 읽습니다",
       description:
         "No는 조회 결과 안의 역순 번호이며 작업지시·LOT 같은 업무 식별자가 아닙니다. 업무 인계에는 No 대신 지시·LOT·대상 ID 등 실제 식별자를 사용하세요. 정렬을 지원하는 열의 제목과 방향 표시로 현재 정렬 기준을 확인합니다.",
@@ -144,6 +147,7 @@ export const ROLE_GUIDES: Record<RoleCode, GuideStep[]> = {
       screen: "작업지시 상세",
       to: "/work-orders",
       anchor: "order-flow",
+      id: "production-lot-flow",
       title: "생산 LOT별로 공정 흐름을 구분합니다",
       description:
         "공정 이름 옆 생산 LOT 번호와 순서를 함께 봅니다. 같은 작업지시에 여러 LOT가 연결될 수 있으므로, 한 LOT의 완료 상태를 다른 LOT의 상태로 읽지 마세요. 공정이 비어 있다면 초안·발행 상태부터 확인합니다.",
@@ -181,6 +185,7 @@ export const ROLE_GUIDES: Record<RoleCode, GuideStep[]> = {
       screen: "자재 예약",
       to: "/work-orders",
       anchor: "reservations",
+      id: "reservation-versus-consumption",
       title: "예약 수량과 실제 투입 실적을 구분합니다",
       description:
         "예약은 해당 지시를 위해 자재를 확보한 기록입니다. 예약됐다는 사실만으로 실제 투입이나 공정 완료를 판단하지 마세요. 지시 번호·LOT·예약 상태를 자재 담당자와 대조합니다.",
@@ -302,6 +307,7 @@ export const ROLE_GUIDES: Record<RoleCode, GuideStep[]> = {
       screen: "공정 실행",
       to: "/execution/queue",
       anchor: "table-heading",
+      id: "execution-actions",
       title: "시작과 완료 입력은 서로 다릅니다",
       description:
         "목록의 시작은 공정을 실제 진행 상태로 바꿉니다. 완료 입력은 양품·불량 실적을 기록하는 입구입니다. 안내 중에는 둘 다 실행하지 않습니다.",
@@ -319,6 +325,7 @@ export const ROLE_GUIDES: Record<RoleCode, GuideStep[]> = {
       screen: "공정 실행 상세",
       to: "/execution/queue",
       anchor: "execution-state",
+      id: "execution-timestamps",
       title: "시작·완료 시각으로 중복 처리를 점검합니다",
       description:
         "실행 상태와 시작·완료 시각을 함께 봅니다. 이미 시작되었거나 완료된 공정을 새 작업처럼 처리하지 마세요. 완료된 경우 표시되는 양품·불량 수량과 메모를 확인하고, 미완료라면 완료 기록과 구분합니다.",
@@ -359,6 +366,7 @@ export const ROLE_GUIDES: Record<RoleCode, GuideStep[]> = {
       screen: "공정 실행 상세",
       to: "/execution/queue",
       anchor: "execution-good",
+      id: "execution-quantity-review",
       title: "양품·불량 합계를 제출 전에 검토합니다",
       description:
         "같은 생산 LOT·공정의 실적인지 먼저 확인한 뒤 양품과 불량 합계를 현물 수량과 대조합니다. 불량을 양품에도 중복 포함하지 마세요. 계획과 차이가 나면 메모에 근거를 남기고 확인한 후 확정합니다.",
@@ -381,6 +389,7 @@ export const ROLE_GUIDES: Record<RoleCode, GuideStep[]> = {
       screen: "공정 실행",
       to: "/execution/queue",
       anchor: "table-heading",
+      id: "execution-next-step",
       title: "완료 후 다음 공정 상태를 확인합니다",
       description:
         "실제 업무에서 완료한 뒤에는 대기열에서 상태를 다시 확인하세요. 다음 공정이 차단되어 있으면 차단 사유를 확인하고 담당자에게 인계합니다.",
@@ -389,6 +398,7 @@ export const ROLE_GUIDES: Record<RoleCode, GuideStep[]> = {
       screen: "공정 실행",
       to: "/execution/queue",
       anchor: "table-heading",
+      id: "execution-handoff",
       title: "다음 담당자에게 인계할 내용을 정리합니다",
       description:
         "작업지시·생산 LOT·공정 번호와 확인한 실적, 남은 검사·차단 사유를 함께 전달합니다. 화면에서 완료를 확인하지 못했거나 저장 오류가 있었다면 완료됐다고 단정하거나 연속으로 재실행하지 마세요.",
@@ -397,6 +407,7 @@ export const ROLE_GUIDES: Record<RoleCode, GuideStep[]> = {
       screen: "공정 실행",
       to: "/execution/queue",
       anchor: "list-search",
+      id: "execution-complete",
       title: "작업 전·후 확인 순서를 기억하세요",
       description:
         "지시·LOT 대조 → 공정·차단 확인 → 작업 시작 → 양품·불량·메모 검토 → 완료 후 상태 확인 순서입니다. 안내 종료 후 본인 작업을 다시 검색하세요. 조건 변경은 조회 버튼으로 적용하고, 조건 초기화로 전체 목록을 다시 봅니다.",
@@ -442,6 +453,7 @@ export const ROLE_GUIDES: Record<RoleCode, GuideStep[]> = {
       screen: "자재 LOT 상세",
       to: "/materials/lots",
       anchor: "lot-reservations",
+      id: "reservation-history",
       title: "예약 이력 전체를 현재 예약으로 합산하지 않습니다",
       description:
         "예약 상태와 연결된 지시, 수량을 한 줄씩 확인합니다. 해제되거나 이미 처리된 예약을 현재 활성 예약과 섞어 합산하지 마세요. 현재 예약량은 수량 요약과 대조하고, 차이가 있으면 해당 지시의 예약 기록을 확인합니다.",
@@ -500,6 +512,7 @@ export const ROLE_GUIDES: Record<RoleCode, GuideStep[]> = {
       screen: "자재 예약",
       to: "/work-orders",
       anchor: "reservations",
+      id: "reservation-release",
       title: "예약 해제도 실제 수량에 영향을 줍니다",
       description:
         "불필요한 활성 예약을 해제하기 전에는 지시 취소·변경 여부를 확인하세요. 현장과 협의 없이 진행 중인 작업의 예약을 해제하지 않습니다.",
@@ -560,6 +573,7 @@ export const ROLE_GUIDES: Record<RoleCode, GuideStep[]> = {
       screen: "자재 LOT",
       to: "/materials/lots",
       anchor: "filters",
+      id: "material-recheck",
       title: "조사 후 품질·가용 상태를 다시 확인합니다",
       description:
         "계보 조사가 끝났다는 이유로 사용 가능 상태가 자동으로 바뀌지는 않습니다. 담당자가 실제 조치를 마친 뒤에는 대상 LOT를 다시 조회해 품질·가용 상태를 확인하고, 보관·투입 현황과 차이가 있으면 인계합니다.",
@@ -568,6 +582,7 @@ export const ROLE_GUIDES: Record<RoleCode, GuideStep[]> = {
       screen: "자재 LOT",
       to: "/materials/lots",
       anchor: "list-search",
+      id: "material-complete",
       title: "자재 담당자의 점검 순서입니다",
       description:
         "현물·LOT 대조 → 품질·가용 확인 → 기존 예약 검토 → 필요 수량 예약 → 이상 시 이력·계보 확인 순서입니다. 종료 후 실제 담당 LOT를 검색하세요. 조건 변경은 조회 버튼으로 적용하고, 조건 초기화로 전체 목록을 다시 봅니다.",
@@ -612,6 +627,7 @@ export const ROLE_GUIDES: Record<RoleCode, GuideStep[]> = {
       screen: "검사 상세",
       to: "/quality/inspections",
       anchor: "inspection-summary",
+      id: "inspection-evidence",
       title: "완료 일시와 판정 메모를 함께 읽습니다",
       description:
         "완료 일시가 없거나 메모가 비어 있는 상태를 검사 합격의 근거로 삼지 마세요. 이미 판정된 검사라면 대상·완료 시점·메모를 원본 검사 결과와 대조하고, 오류가 의심되면 담당자와 정정 절차를 확인합니다.",
@@ -686,6 +702,7 @@ export const ROLE_GUIDES: Record<RoleCode, GuideStep[]> = {
       screen: "부적합 사건 상세",
       to: "/quality/incidents",
       anchor: "incident-state",
+      id: "incident-versus-disposition",
       title: "사건 처리와 LOT 사용 가능 여부를 구분합니다",
       description:
         "사건의 처리 상태와 자재의 품질·가용 상태는 별도로 확인해야 합니다. 사건을 검토했다는 이유만으로 격리가 해제되거나 생산 투입이 허용됐다고 판단하지 마세요. 대상 LOT의 현재 상태와 조치 근거를 함께 확인합니다.",
@@ -755,6 +772,7 @@ export const ROLE_GUIDES: Record<RoleCode, GuideStep[]> = {
       screen: "품질 검사",
       to: "/quality/inspections",
       anchor: "list-search",
+      id: "quality-complete",
       title: "품질 업무의 확인 순서입니다",
       description:
         "대상·규격 대조 → 검사·판정 근거 확인 → 판정 이력 검토 → 부적합·계보 조사 순서입니다. 안내 종료 후 실제 담당 검사를 검색하세요. 조건 변경은 조회 버튼으로 적용하고, 조건 초기화로 전체 목록을 다시 봅니다.",
