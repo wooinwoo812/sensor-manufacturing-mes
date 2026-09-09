@@ -2,6 +2,7 @@ import type { RoleCode } from "@/entities/session";
 import type { NavigationGroup, NavigationItem } from "./navigation";
 
 export interface GuideStep {
+  tab?: "users" | "roles";
   /** 같은 대상을 다른 시점에 설명할 때도 재개 위치를 구분한다. */
   id?: string;
   title: string;
@@ -962,6 +963,7 @@ export const ROLE_GUIDES: Record<RoleCode, GuideStep[]> = {
       screen: "사용자",
       to: "/admin/users",
       anchor: "user-column-roles",
+      tab: "users",
       title: "사용자 역할과 최고관리자 범위를 확인합니다",
       description:
         "관리 버튼에서 기존 다섯 역할 중 하나를 지정합니다. 최고관리자로 바꾸면 모든 업무 실행 권한까지 부여되므로 변경 대상과 사유를 신중히 확인하세요.",
@@ -969,7 +971,10 @@ export const ROLE_GUIDES: Record<RoleCode, GuideStep[]> = {
     {
       screen: "사용자",
       to: "/admin/users",
-      anchor: "table-heading",
+      anchor: "role-permissions",
+      tab: "roles",
+      // Keep the saved resume point from before this step had its own target.
+      id: '["/admin/users","","table-heading"]',
       title: "역할별 권한표와 구현 상태를 구분합니다",
       description:
         "역할별 권한 탭에서 허용된 기능을 확인할 수 있습니다. 권한표 자체는 읽기 전용이며, 구현 예정 표시는 실행 가능한 기능이라는 뜻이 아닙니다.",
@@ -978,6 +983,7 @@ export const ROLE_GUIDES: Record<RoleCode, GuideStep[]> = {
       screen: "사용자",
       to: "/admin/users",
       anchor: "user-column-status",
+      tab: "users",
       title: "활성 상태 변경과 로그인 종료를 확인합니다",
       description:
         "역할·사용 상태를 바꾸면 대상 계정의 기존 로그인이 종료되고 변경 이력이 남습니다. 마지막 활성 최고관리자는 해제하거나 비활성화할 수 없습니다.",

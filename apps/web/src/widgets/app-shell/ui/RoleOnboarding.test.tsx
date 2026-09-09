@@ -8,9 +8,10 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ROLE_CODES, type RoleCode } from "@/entities/session";
 import { useNavigationSafety } from "@/shared/lib";
+import { DataTable, TableSkeleton } from "@/shared/ui";
 import { requestRoleOnboarding } from "../model/onboarding-launcher";
 import { RoleOnboarding } from "./RoleOnboarding";
-import { readGuideProgress } from "../model/guide-progress";
+import { readGuideProgress, saveGuideProgress } from "../model/guide-progress";
 import {
   availableGuideSteps,
   guideStorageKey,
@@ -136,6 +137,56 @@ it("does not start another role's login guide", () => {
 });
 afterEach(() => vi.restoreAllMocks());
 
+it("최고관리자 BOM 단계는 스켈레톤 교체 후 실제 표에 초점과 강조를 준다", async () => {
+  const id = "bom-loading-focus";
+  const step = ROLE_GUIDES.SYSTEM_ADMIN[10]!;
+  expect(step.to).toBe("/materials/boms");
+  saveGuideProgress(guideStorageKey(id, "SYSTEM_ADMIN"), step, new Map());
+  const columns = [
+    {
+      key: "revision",
+      header: "Revision",
+      align: "left" as const,
+      cell: (row: { id: string }) => row.id,
+    },
+  ];
+  function BomTour({ loading }: { loading: boolean }) {
+    return (
+      <>
+        {loading ? (
+          <TableSkeleton caption="BOM 목록" columns={columns} label="BOM 조회 중" />
+        ) : (
+          <DataTable
+            caption="BOM 목록"
+            columns={columns}
+            rows={[{ id: "BOM-001" }]}
+            getRowKey={(row) => row.id}
+            emptyMessage="없음"
+          />
+        )}
+        <RoleOnboarding
+          userId={id}
+          roleCode="SYSTEM_ADMIN"
+          roleLabel="최고관리자"
+          navigation={navigation}
+          permissions={permissions}
+        />
+      </>
+    );
+  }
+  const view = render(<BomTour loading />);
+  await userEvent.setup().click(screen.getByRole("button", { name: "이어서 보기" }));
+  await waitFor(() => expect(navigate).toHaveBeenCalled());
+  expect(screen.getByRole("dialog")).toHaveAttribute("aria-busy", "true");
+  expect(document.querySelector("[data-tour-active]")).toBeNull();
+  view.rerender(<BomTour loading={false} />);
+  await waitFor(() =>
+    expect(document.querySelector('[data-tour="table-heading"]')).toHaveFocus(),
+  );
+  expect(screen.getByRole("dialog")).toHaveAttribute("aria-busy", "false");
+  expect(document.querySelector("[data-tour-spotlight]")).not.toBeNull();
+});
+
 function Fixture({
   role = "PRODUCTION_PLANNER",
   id = "tour-" + ++sequence,
@@ -235,6 +286,39 @@ async function start() {
   );
   return user;
 }
+
+it("같은 사용자 경로에서도 권한표 탭으로 이동하고 이전 단계에서 목록을 복원한다", async () => {
+  const originalUrl = window.location.href;
+  const id = "admin-tour-tabs";
+  const step = ROLE_GUIDES.SYSTEM_ADMIN.find((item) => item.tab === "roles")!;
+  saveGuideProgress(guideStorageKey(id, "SYSTEM_ADMIN"), {
+    to: "/admin/users", anchor: "table-heading",
+    title: step.title, screen: step.screen, description: step.description,
+  }, new Map());
+  window.history.replaceState({}, "", "/admin/users");
+  const view = render(<Fixture id={id} role="SYSTEM_ADMIN" />);
+  const user = userEvent.setup();
+  try {
+    await user.click(screen.getByRole("button", { name: "이어서 보기" }));
+    await waitFor(() => expect(
+      document.querySelector('[data-tour="role-permissions"]'),
+    ).toHaveFocus());
+    expect(navigate).toHaveBeenLastCalledWith({
+      to: "/admin/users", search: { tab: "roles" }, replace: true, resetScroll: false,
+    });
+    window.history.replaceState({}, "", "/admin/users?tab=roles");
+    await user.click(screen.getByRole("button", { name: "이전 단계" }));
+    await waitFor(() => expect(
+      document.querySelector('[data-tour="user-column-roles"]'),
+    ).toHaveFocus());
+    expect(navigate).toHaveBeenLastCalledWith({
+      to: "/admin/users", search: {}, replace: true, resetScroll: false,
+    });
+  } finally {
+    view.unmount();
+    window.history.replaceState({}, "", originalUrl);
+  }
+});
 
 it("일시중지하면 화면을 사용하고 같은 단계에서 이어서 볼 수 있다", async () => {
   const action = vi.fn();

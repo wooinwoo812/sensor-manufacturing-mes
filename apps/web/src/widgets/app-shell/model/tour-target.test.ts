@@ -95,3 +95,33 @@ it("없는 타깃을 영구히 기다리지 않는다", async () => {
     waitForTourTarget("missing", new AbortController().signal, 5),
   ).resolves.toBeNull();
 });
+
+it.each(["replace", "reuse"])(
+  "로딩용 표를 제외하고 실제 표가 준비되면 찾는다: %s",
+  async (mode) => {
+    const region = document.createElement("div");
+    region.dataset.loadingPlaceholder = "true";
+    region.innerHTML = '<div data-tour="table-heading">조회 중</div>';
+    document.body.append(region);
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({
+      width: 100,
+    } as DOMRect);
+    const completed = vi.fn();
+    const pending = waitForTourTarget(
+      "table-heading",
+      new AbortController().signal,
+    ).then(completed);
+    try {
+      await Promise.resolve();
+      expect(completed).not.toHaveBeenCalled();
+      if (mode === "replace")
+        region.innerHTML = '<div data-tour="table-heading">실제 목록</div>';
+      region.removeAttribute("data-loading-placeholder");
+      await pending;
+      expect(completed).toHaveBeenCalledExactlyOnceWith(region.firstElementChild);
+    } finally {
+      region.remove();
+      vi.restoreAllMocks();
+    }
+  },
+);

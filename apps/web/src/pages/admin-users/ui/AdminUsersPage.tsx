@@ -181,7 +181,12 @@ export function AdminUsersPage({
           {notice}
         </p>
       ) : null}
-      <Tabs defaultValue="users">
+      <Tabs
+        value={search.tab ?? "users"}
+        onValueChange={(tab) =>
+          onSearchChange(readAdminUsersSearch({ ...search, tab }))
+        }
+      >
         <TabsList>
           <TabsTrigger value="users">사용자</TabsTrigger>
           <TabsTrigger value="roles">역할별 권한</TabsTrigger>

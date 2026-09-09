@@ -27,7 +27,12 @@ export function RolePermissionsPanel() {
   const role =
     state.roles.find((role) => role.code === roleCode) ?? state.roles[0];
   return (
-    <section className="grid gap-5" aria-label="읽기 전용 역할별 권한표">
+    <section
+      className="grid gap-5"
+      aria-label="읽기 전용 역할별 권한표"
+      data-tour="role-permissions"
+      data-tour-region
+    >
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="w-full max-w-xs">
           <Select
