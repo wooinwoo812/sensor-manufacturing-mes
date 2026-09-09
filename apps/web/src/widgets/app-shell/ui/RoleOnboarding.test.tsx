@@ -482,6 +482,54 @@ it("다음·이전에서 경로와 강조 대상을 바꾸고 완료·재실행�
   ).toBeInTheDocument();
 });
 
+it.each(ROLE_CODES)(
+  "%s 안내 완료 후 강조 위치에 남지 않고 화면 상단으로 돌아간다",
+  async (role) => {
+    const id = "completion-scroll-" + role;
+    const lastStep = ROLE_GUIDES[role].at(-1)!;
+    saveGuideProgress(guideStorageKey(id, role), lastStep, new Map());
+    render(<Fixture id={id} role={role} />);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "이어서 보기" }));
+    await waitFor(() =>
+      expect(document.querySelector('[data-tour-active="true"]')).toHaveFocus(),
+    );
+    vi.spyOn(window, "scrollY", "get").mockReturnValue(640);
+    vi.mocked(window.scrollTo).mockClear();
+
+    await user.click(screen.getByRole("button", { name: "안내 완료" }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "역할별 사용 안내" })).toHaveFocus(),
+    );
+    expect(window.scrollTo).toHaveBeenCalledExactlyOnceWith({
+      top: 0, left: 0, behavior: "instant",
+    });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(document.querySelector("[data-tour-active]")).toBeNull();
+    expect(document.body.style.paddingBottom).toBe("");
+    expect(localStorage.getItem(guideStorageKey(id, role))).toBe("completed");
+  },
+);
+
+it.each(["일시중지", "투어 종료"])(
+  "%s 시에는 보던 화면의 스크롤을 초기화하지 않는다",
+  async (button) => {
+    render(<Fixture id={"preserve-scroll-" + button} />);
+    const user = await start();
+    vi.spyOn(window, "scrollY", "get").mockReturnValue(640);
+    vi.mocked(window.scrollTo).mockClear();
+
+    await user.click(screen.getByRole("button", { name: button }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "역할별 사용 안내" })).toHaveFocus(),
+    );
+    expect(window.scrollTo).not.toHaveBeenCalled();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  },
+);
+
 it("실제 버튼 활성화와 입력 변경을 막고 Escape에서 초점·속성을 복원한다", async () => {
   const action = vi.fn();
   render(<Fixture onAction={action} />);

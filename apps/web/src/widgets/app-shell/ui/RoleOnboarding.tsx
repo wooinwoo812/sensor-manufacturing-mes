@@ -97,9 +97,12 @@ export function RoleOnboarding({
       clearGuideProgress(storageKey);
       setPhase("closed");
       setTarget(null);
-      requestAnimationFrame(() =>
-        triggerRef.current?.focus({ preventScroll: true }),
-      );
+      requestAnimationFrame(() => {
+        // Reset after the overlay removes its extra scroll space.
+        if (decision === "completed")
+          window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+        triggerRef.current?.focus({ preventScroll: true });
+      });
     },
     [storageKey],
   );
