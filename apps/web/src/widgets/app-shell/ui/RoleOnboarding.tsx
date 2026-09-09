@@ -206,10 +206,15 @@ export function RoleOnboarding({
               replace: true,
               resetScroll: false,
             });
-        } else if (window.location.pathname !== step.to) {
+        } else if (
+          window.location.pathname !== step.to ||
+          (step.tab &&
+            (new URLSearchParams(window.location.search).get("tab") ?? "users") !==
+              step.tab)
+        ) {
           await navigate({
             to: step.to,
-            search: {},
+            search: step.tab === "roles" ? { tab: "roles" } : {},
             replace: true,
             resetScroll: false,
           });

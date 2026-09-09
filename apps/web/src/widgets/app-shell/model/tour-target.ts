@@ -43,7 +43,11 @@ export function waitForTourTarget(
         target &&
         !target.matches(":disabled") &&
         target.getBoundingClientRect().width > 0 &&
-        !target.closest('[hidden], [aria-hidden="true"]')
+        // Skeletons share table anchors but are replaced when data arrives.
+        // Keep observing until the real content can retain focus and its spotlight.
+        !target.closest(
+          '[hidden], [aria-hidden="true"], [data-loading-placeholder="true"]',
+        )
       )
         finish(target);
     }
