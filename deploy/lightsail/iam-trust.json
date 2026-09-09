@@ -8,8 +8,8 @@
       "StringEquals": {
         "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
         "token.actions.githubusercontent.com:sub": [
-          "repo:wooinwoo/sensor-manufacturing-mes:ref:refs/heads/main",
-          "repo:wooinwoo@89918246/sensor-manufacturing-mes@1352368049:ref:refs/heads/main"
+          "repo:wooinwoo812/sensor-manufacturing-mes:ref:refs/heads/main",
+          "repo:wooinwoo812@207693678/sensor-manufacturing-mes@1352368049:ref:refs/heads/main"
         ]
       }
     }

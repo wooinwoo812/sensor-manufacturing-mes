@@ -4,7 +4,7 @@
 |---|---|
 | 문서 상태 | `Review-ready v1.3` |
 | 기준일 | 2026-09-01 |
-| 관련 Issue | [#2 제조 용어와 핵심 불변조건을 정의](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/2) |
+| 관련 Issue | [#2 제조 용어와 핵심 불변조건을 정의](https://github.com/wooinwoo812/sensor-manufacturing-mes/issues/2) |
 | 공개 근거 | [제조 도메인 공개 근거 재검증](source-review.md) |
 | 구현 범위 | #10~#17과 #22의 Web·API·DB·test가 공유할 업무 언어와 규칙 |
 
@@ -644,7 +644,7 @@ MVP의 변환 fixture는 동일 기준단위의 입력·출력 수량을 보존�
 |---|---|---|---|
 | server session·행위자 경계 | #10 | `RULE-25` | client actor 위조·권한 없음·역할 전환 |
 | 작업지시 생성·감사 기반 | #11 | `RULE-17`, `RULE-18`, `RULE-25` | 생성 rollback·idempotency·낙관적 잠금 |
-| 기준 revision·요구사항·릴리스 | [#22](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/22) | `RULE-08`, `RULE-17`, `RULE-18`, `RULE-25`, `RULE-32` | 정확한 요구량·snapshot·초기 LOT·상태·감사 원자성 |
+| 기준 revision·요구사항·릴리스 | [#22](https://github.com/wooinwoo812/sensor-manufacturing-mes/issues/22) | `RULE-08`, `RULE-17`, `RULE-18`, `RULE-25`, `RULE-32` | 정확한 요구량·snapshot·초기 LOT·상태·감사 원자성 |
 | 수량 원장·부분 예약 | #12 | `RULE-01`~`RULE-04`, `RULE-07`, `RULE-17`, `RULE-18`, `RULE-24`~`RULE-26`, `RULE-33` | 동시 예약·출고/해제 경쟁·요구량 초과·소유권·품질 차단 |
 | 실제 투입·공정 transaction | #13 | `RULE-05`, `RULE-06`, `RULE-09`~`RULE-12`, `RULE-16`, `RULE-17`, `RULE-25`~`RULE-30`, `RULE-33` | 중간 실패 rollback·WorkOrder 귀속·부분 분할 WIP·검사 gate·정정 |
 | 규격 snapshot·판정·완료 게이트 | #14 | `RULE-13`~`RULE-16`, `RULE-22`, `RULE-23`, `RULE-25`, `RULE-27`, `RULE-30`, `RULE-31` | 경계값·revision 변경·직전 공정 gate·PENDING 정정·종결 LOT 완료 |
