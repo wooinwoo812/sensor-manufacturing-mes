@@ -7,7 +7,7 @@
 | 항목       | 내용                                                                |
 | ---------- | ------------------------------------------------------------------- |
 | 상태       | 구현 v1.0                                                           |
-| 관련 Issue | [#9](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/9) |
+| 관련 Issue | [#9](https://github.com/wooinwoo812/sensor-manufacturing-mes/issues/9) |
 | 결정       | [ADR-0005](../adr/0005-code-owned-design-system.md)                 |
 | 화면 기준  | [UI 레이아웃·상태 계약](../product/ui-layout-contracts.md)          |
 | 구조 기준  | [Frontend 구조 계약](frontend-architecture.md)                      |

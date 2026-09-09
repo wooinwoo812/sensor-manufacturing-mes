@@ -5,7 +5,7 @@
 | 항목       | 내용                                                                                                                    |
 | ---------- | ----------------------------------------------------------------------------------------------------------------------- |
 | 상태       | 구현 v2.0 (2026-09-05)                                                                                                  |
-| 관련 Issue | [#28](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/28)                                                   |
+| 관련 Issue | [#28](https://github.com/wooinwoo812/sensor-manufacturing-mes/issues/28)                                                   |
 | 결정       | [ADR-0004](../adr/0004-frontend-architecture-and-routing.md)                                                            |
 | 화면·URL   | [Route 계약](../product/route-contract.md)                                                                              |
 | 업무·상태  | [제품·UX·기술 기획](../product/product-plan-cross-review.md), [도메인 계약](../domain/manufacturing-domain-contract.md) |

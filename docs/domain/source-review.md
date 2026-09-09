@@ -4,7 +4,7 @@
 |---|---|
 | 문서 상태 | `Review-ready v1.3` |
 | 기준일 | 2026-09-01 |
-| 관련 Issue | [#2 제조 용어와 핵심 불변조건을 정의](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/2) |
+| 관련 Issue | [#2 제조 용어와 핵심 불변조건을 정의](https://github.com/wooinwoo812/sensor-manufacturing-mes/issues/2) |
 | 적용 범위 | 센서 제조 MES 프로젝트의 용어·상태·계보·품질 계약 |
 
 ## 1. 조사 원칙
