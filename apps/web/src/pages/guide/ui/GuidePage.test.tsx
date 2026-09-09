@@ -259,6 +259,8 @@ describe("guide documents", () => {
     const view = render(
       <GuidePage {...baseProps} search={{ tab: "engineering" }} />,
     );
+    const heading = screen.getByRole("heading", { level: 1, name: "업무 가이드" });
+    const tabs = screen.getByRole("tablist", { name: "가이드 분류" });
     await user.click(screen.getByRole("combobox", { name: "문서 상태" }));
     await user.click(screen.getByRole("option", { name: "현재 기준" }));
     await user.type(screen.getByRole("textbox"), "api-reference.md");
@@ -274,9 +276,11 @@ describe("guide documents", () => {
     expect(onSearchChange).toHaveBeenLastCalledWith(documentSearch(doc.id));
 
     view.rerender(<GuidePage {...baseProps} search={documentSearch(doc.id)} />);
+    expect(screen.getByRole("heading", { level: 1 })).toBe(heading);
+    expect(screen.getByRole("tablist", { name: "가이드 분류" })).toBe(tabs);
     await screen.findByRole("article");
     expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "전체 문서" }));
+    await user.click(screen.getByRole("button", { name: "목록으로" }));
     expect(onSearchChange).toHaveBeenLastCalledWith({ tab: "engineering" });
 
     view.rerender(<GuidePage {...baseProps} search={{ tab: "engineering" }} />);
@@ -293,6 +297,7 @@ describe("guide documents", () => {
     ).toHaveAttribute("aria-pressed", "true");
 
     view.rerender(<GuidePage {...baseProps} search={{}} />);
+    expect(screen.getByRole("heading", { level: 1 })).toBe(heading);
     expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
     view.rerender(<GuidePage {...baseProps} search={{ tab: "engineering" }} />);
     expect(screen.getByRole("textbox")).toHaveValue("api-reference.md");
@@ -319,8 +324,9 @@ describe("guide documents", () => {
     expect(screen.getAllByRole("article")).toHaveLength(1);
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
-      doc.title,
+      "업무 가이드",
     );
+    expect(screen.getByRole("heading", { level: 2, name: doc.title })).toBeVisible();
     expect(
       screen.getByText(new RegExp(`원문: ${doc.path}`)),
     ).toBeInTheDocument();

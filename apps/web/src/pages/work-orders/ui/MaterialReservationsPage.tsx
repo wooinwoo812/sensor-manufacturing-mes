@@ -6,6 +6,7 @@ import { MaterialReservationPanel } from "@/features/material-reservations";
 import {
   Button,
   ErrorState,
+  FormActions,
   PageHeading,
   Skeleton,
   DataRegion,
@@ -82,6 +83,11 @@ export function MaterialReservationsPage({
                 }
               />
             </>
+            <FormActions>
+              <Button variant="secondary" onClick={onBack}>
+                작업지시로
+              </Button>
+            </FormActions>
           </>
         )}
       </DataRegion>

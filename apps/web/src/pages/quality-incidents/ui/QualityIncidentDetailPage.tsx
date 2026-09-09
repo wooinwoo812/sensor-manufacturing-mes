@@ -8,6 +8,7 @@ import {
   Badge,
   Button,
   ErrorState,
+  FormActions,
   PageHeading,
   Panel,
   Timeline,
@@ -136,6 +137,11 @@ export function QualityIncidentDetailPage({
                 )}
               </Panel>
             </div>
+            <FormActions>
+              <Button variant="secondary" onClick={onBack}>
+                목록으로
+              </Button>
+            </FormActions>
           </>
         )}
       </DataRegion>

@@ -9,6 +9,7 @@ import {
   Badge,
   Button,
   ErrorState,
+  FormActions,
   PageHeading,
   Panel,
   ContentGrid,
@@ -182,6 +183,11 @@ export function TraceNodeDetailPage({
                 tourAnchor="trace-downstream"
               />
             </ContentGrid>
+            <FormActions>
+              <Button variant="secondary" onClick={onBack}>
+                목록으로
+              </Button>
+            </FormActions>
           </>
         )}
       </DataRegion>

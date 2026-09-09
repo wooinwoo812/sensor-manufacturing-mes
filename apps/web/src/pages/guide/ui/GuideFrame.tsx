@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import { Main } from "@/widgets/app-shell";
 import {
+  Button,
+  FormActions,
   PageHeading,
   Tabs,
   TabsContent,
@@ -26,12 +28,10 @@ export function GuideFrame({
   const selected = guideDocument(search);
   return (
     <Main id="main-content" className="py-4 sm:py-6">
-      {!selected ? (
-        <PageHeading
-          title="업무 가이드"
-          description="업무 안내, 화면 규칙과 개발 문서를 한곳에서 확인합니다."
-        />
-      ) : null}
+      <PageHeading
+        title="업무 가이드"
+        description="업무 안내, 화면 규칙과 개발 문서를 한곳에서 확인합니다."
+      />
       <Tabs
         value={active}
         activationMode="manual"
@@ -66,6 +66,16 @@ export function GuideFrame({
           </TabsContent>
         ))}
       </Tabs>
+      {selected ? (
+        <FormActions>
+          <Button
+            variant="secondary"
+            onClick={() => onSearchChange({ tab: "engineering" })}
+          >
+            목록으로
+          </Button>
+        </FormActions>
+      ) : null}
     </Main>
   );
 }
