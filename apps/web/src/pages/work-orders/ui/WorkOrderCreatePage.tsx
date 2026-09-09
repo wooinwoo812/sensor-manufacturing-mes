@@ -112,6 +112,7 @@ export function WorkOrderCreatePage({
             description="필수 정보를 입력하고 초안으로 저장하세요."
           >
             <form
+              id="work-order-create"
               className="min-w-0"
               noValidate
               onSubmit={(event) => {
@@ -212,15 +213,6 @@ export function WorkOrderCreatePage({
                 생성 즉시 감사 이력이 기록됩니다. 발행은 상세 화면에서 별도
                 확정합니다.
               </p>
-              <FormActions>
-                <Button
-                  disabled={submitting}
-                  loading={submitting}
-                  type="submit"
-                >
-                  초안 생성
-                </Button>
-              </FormActions>
             </form>
           </Panel>
           <Panel
@@ -253,6 +245,26 @@ export function WorkOrderCreatePage({
           </Panel>
         </ContentGrid>
       )}
+      <FormActions>
+        <Button
+          variant="secondary"
+          type="button"
+          disabled={submitting}
+          onClick={onCancel}
+        >
+          목록으로
+        </Button>
+        {state.phase === "success" && products.length > 0 ? (
+          <Button
+            form="work-order-create"
+            disabled={submitting}
+            loading={submitting}
+            type="submit"
+          >
+            초안 생성
+          </Button>
+        ) : null}
+      </FormActions>
     </Main>
   );
 }

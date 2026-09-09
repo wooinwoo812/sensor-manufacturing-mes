@@ -37,7 +37,7 @@ export function ThemeSwitch() {
       <DropdownMenuTrigger asChild>
         <Button
           aria-label="테마 변경"
-          className="relative size-11 shrink-0 lg:size-9"
+          className="relative size-11 shrink-0 cursor-pointer lg:size-9"
           size="icon"
           type="button"
           variant="ghost"
@@ -56,6 +56,7 @@ export function ThemeSwitch() {
         {themes.map((option) => (
           <DropdownMenuItem
             key={option.value}
+            className="cursor-pointer"
             onClick={() => setTheme(option.value)}
           >
             {option.label}

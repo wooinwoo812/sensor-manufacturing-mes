@@ -32,12 +32,11 @@ export function GuideDocumentHeader({
           {document.group} · {document.state}
         </p>
       </div>
-      <h1
+      <h2
         className="max-w-[32ch] text-2xl font-bold leading-tight tracking-tight text-text-strong"
-        data-tour="page-title"
       >
         {document.title}
-      </h1>
+      </h2>
       {note ? (
         <p className="max-w-[78ch] border-l-2 border-border-strong pl-3 text-sm leading-6 text-text-muted">
           {note}
