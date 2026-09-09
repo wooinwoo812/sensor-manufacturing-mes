@@ -14,6 +14,7 @@ import {
   Badge,
   Button,
   ErrorState,
+  FormActions,
   PageHeading,
   Panel,
   Skeleton,
@@ -241,6 +242,11 @@ export function ProcessExecutionDetailPage({
                 />
               ) : null}
             </div>
+            <FormActions>
+              <Button variant="secondary" onClick={onBack}>
+                목록으로
+              </Button>
+            </FormActions>
           </>
         )}
       </DataRegion>

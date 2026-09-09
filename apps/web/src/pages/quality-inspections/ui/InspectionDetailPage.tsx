@@ -10,6 +10,7 @@ import {
   Badge,
   Button,
   ErrorState,
+  FormActions,
   KeyValue,
   KeyValueGrid,
   PageHeading,
@@ -271,6 +272,11 @@ export function InspectionDetailPage({
             }}
           />
         ) : null}
+        <FormActions>
+          <Button variant="secondary" onClick={onBack}>
+            목록으로
+          </Button>
+        </FormActions>
       </DataRegion>
     </Main>
   );
