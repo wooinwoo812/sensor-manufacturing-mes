@@ -5,7 +5,7 @@
 | 항목         | 내용                                                                                                                        |
 | ------------ | --------------------------------------------------------------------------------------------------------------------------- |
 | 상태         | 사전설계 v1.0                                                                                                               |
-| 관련 Issue   | [#28](https://github.com/wooinwoo/sensor-manufacturing-mes/issues/28)                                                       |
+| 관련 Issue   | [#28](https://github.com/wooinwoo812/sensor-manufacturing-mes/issues/28)                                                       |
 | Architecture | [ADR-0004](../adr/0004-frontend-architecture-and-routing.md), [Frontend 구조 계약](../engineering/frontend-architecture.md) |
 | 화면 기준    | [UI 레이아웃·상태 계약](ui-layout-contracts.md)                                                                             |
 

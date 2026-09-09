@@ -118,6 +118,8 @@ dc up -d --wait api caddy
 
 배포 권한 역할은 `fabriscope-github-deploy`, 저장소 변수는 `LIGHTSAIL_DEPLOY_ROLE_ARN`이다. [신뢰 정책](../../deploy/lightsail/iam-trust.json)과 [권한 정책](../../deploy/lightsail/iam-policy.json)을 코드로 보존한다. 서버를 새로 만들면 instance ARN을 갱신해야 한다.
 
+GitHub 배포 주체는 `wooinwoo812/sensor-manufacturing-mes`의 `main` 브랜치다. 저장소를 다른 계정으로 이전할 때는 GitHub OIDC의 실제 subject와 AWS 역할의 신뢰 조건을 함께 변경한다. 수락 대기 중에는 기존 주체를 유지하고, 이전 완료 후 이전 계정의 조건을 제거한다. 서비스 주소와 운영 데이터는 저장소 이전으로 바뀌지 않는다.
+
 **DB migration은 자동 역변환하지 않는다.** 이전 앱에서도 읽을 수 있는 호환 migration을 사용하고, 파괴적인 schema 변경은 별도 배포 계획을 세운다. 백업은 `/opt/fabriscope/backups/before-<release>.dump`에 보관하며 전체 DB 복원은 운영자가 데이터 영향을 확인한 뒤 수행한다. 이전 이미지·release·백업은 보존하고 여유 공간이 2GiB 미만이면 기존 앱을 유지한 채 배포를 중단한다.
 
 ### 공개 서버 검증 기록 — 2026-09-06
