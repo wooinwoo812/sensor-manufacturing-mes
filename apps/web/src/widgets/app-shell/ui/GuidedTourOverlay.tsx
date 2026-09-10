@@ -9,12 +9,11 @@ import { createPortal } from "react-dom";
 import { ArrowLeft, ArrowRight, Check, Compass, Pause, X } from "lucide-react";
 import { Button } from "@/shared/ui";
 import type { GuideStep } from "../model/role-onboarding";
-import { positionTourCard, type TourRect } from "../model/tour-target";
+import { positionTourCard, tourCardWidth, type TourRect } from "../model/tour-target";
 import { tourRegion } from "../model/tour-region";
 import {
   TOUR_CARD_HEIGHT,
   TOUR_CARD_WIDTH,
-  TOUR_DESKTOP_CARD_WIDTH,
   TOUR_BOTTOM_SPACE,
 } from "../model/tour-layout";
 
@@ -52,6 +51,7 @@ export function GuidedTourOverlay({
   }, [index, step.title]);
   const [geometry, setGeometry] = useState(() => ({
     rect: null as TourRect | null,
+    width: tourCardWidth(null, document.documentElement.clientWidth || innerWidth),
     ...positionTourCard(
       null,
       document.documentElement.clientWidth || innerWidth,
@@ -68,10 +68,6 @@ export function GuidedTourOverlay({
     const region = target?.isConnected ? tourRegion(target) : null;
     const r = region?.getBoundingClientRect();
     const card = cardRef.current?.getBoundingClientRect();
-    const width = card?.width || Math.min(
-      viewportWidth >= 768 ? TOUR_DESKTOP_CARD_WIDTH : TOUR_CARD_WIDTH,
-      viewportWidth - 32,
-    );
     const height = card?.height || Math.min(TOUR_CARD_HEIGHT, innerHeight - 32);
     const fullRect = r
       ? {
@@ -88,6 +84,9 @@ export function GuidedTourOverlay({
       fullRect.height = Math.max(0, fullRect.bottom - fullRect.top);
     }
     setGeometry((previous) => {
+      const width = fullRect
+        ? tourCardWidth(fullRect, viewportWidth)
+        : Math.min(previous.width, tourCardWidth(null, viewportWidth));
       const pos =
         !fullRect && viewportWidth >= 768
           ? {
@@ -120,7 +119,7 @@ export function GuidedTourOverlay({
         rect.bottom = Math.max(rect.top, pos.top - 16);
         rect.height = Math.max(0, rect.bottom - rect.top);
       }
-      const next = { rect, ...pos };
+      const next = { rect, width, ...pos };
       return JSON.stringify(previous) === JSON.stringify(next)
         ? previous
         : next;
@@ -369,6 +368,7 @@ export function GuidedTourOverlay({
         data-tour-card="true"
         className="pointer-events-auto fixed flex h-80 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-[360px] flex-col overflow-hidden rounded-panel border border-border bg-surface p-4 font-sans text-text-strong shadow-panel outline-none sm:p-5 md:h-auto md:min-h-80 md:max-w-[440px]"
         style={{
+          width: geometry.width,
           left: Math.round(geometry.left),
           top: Math.round(geometry.top),
         }}
