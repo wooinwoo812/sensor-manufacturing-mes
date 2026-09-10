@@ -395,7 +395,8 @@ export function RoleOnboarding({
               </ol>
             </div>
             <p className="text-sm leading-6 text-text-muted">
-              일시중지 후 상단 사용 안내·업무 가이드에서 이어서 볼 수 있습니다.
+              <span className="md:hidden">설명을 읽고 화면 보기를 누르면 안내창이 접힙니다. 스크롤로 살펴본 뒤 다음 단계로 이동하세요.</span>
+              <span className="hidden md:inline">일시중지 후 상단 사용 안내·업무 가이드에서 이어서 볼 수 있습니다.</span>
             </p>
             {notice ? (
               <p role="alert" className="text-sm leading-6 text-danger-strong">

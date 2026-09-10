@@ -52,6 +52,46 @@ function overlay(element: HTMLElement | null = target) {
   );
 }
 
+it("mobile screen viewing allows scrolling, keeps business actions blocked, and reopens the explanation", () => {
+  vi.stubGlobal("innerWidth", 390);
+  const businessAction = vi.fn();
+  target.addEventListener("click", businessAction);
+  const view = render(overlay());
+  expect(fireEvent.wheel(target)).toBe(false);
+  fireEvent.click(screen.getByRole("button", { name: "화면 보기" }));
+  expect(document.querySelector("[data-tour-viewing]")).toBeInTheDocument();
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "설명 보기" })).toHaveFocus();
+  expect(fireEvent.wheel(target)).toBe(true);
+  expect(fireEvent.touchMove(target)).toBe(true);
+  fireEvent.click(target);
+  expect(businessAction).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "설명 보기" }));
+  expect(screen.getByRole("dialog")).toBeInTheDocument();
+  expect(fireEvent.wheel(target)).toBe(false);
+  view.unmount();
+  expect(fireEvent.wheel(target)).toBe(true);
+  fireEvent.click(target);
+  expect(businessAction).toHaveBeenCalledOnce();
+});
+
+it("the next mobile step expands its explanation and pausing exits screen viewing", () => {
+  vi.stubGlobal("innerWidth", 390);
+  callbacks.onNext.mockClear();
+  callbacks.onPause.mockClear();
+  const view = render(overlay());
+  fireEvent.click(screen.getByRole("button", { name: "화면 보기" }));
+  fireEvent.click(screen.getByRole("button", { name: "다음" }));
+  expect(callbacks.onNext).toHaveBeenCalledOnce();
+  view.rerender(<GuidedTourOverlay {...callbacks} step={ROLE_GUIDES.PRODUCTION_PLANNER[1]!}
+    index={1} count={5} target={target} status="ready" />);
+  expect(screen.getByRole("dialog")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "화면 보기" })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "화면 보기" }));
+  fireEvent.click(screen.getByRole("button", { name: "일시중지" }));
+  expect(callbacks.onPause).toHaveBeenCalledOnce();
+});
+
 it("uses the left gutter for a tall permissions section without clipping its spotlight", () => {
   vi.stubGlobal("innerWidth", 1904);
   vi.stubGlobal("innerHeight", 940);
@@ -229,7 +269,7 @@ it("긴 설명의 키보드 스크롤은 본문만 움직이고 단계가 바뀌
     />,
   );
   expect(copy.scrollTop).toBe(0);
-  expect(card).toHaveClass("h-80", "md:h-auto", "md:max-w-[440px]");
+  expect(card).toHaveClass("h-auto", "max-h-[70dvh]", "md:max-h-[calc(100dvh-2rem)]");
 });
 it("단계 전환과 대기·오류 상태에서도 제목과 본문을 교체하거나 페이드하지 않는다", () => {
   const view = render(overlay());

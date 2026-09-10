@@ -6,11 +6,12 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
-import { ArrowLeft, ArrowRight, Check, Compass, Pause, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookOpen, Check, Compass, Eye, Pause, X } from "lucide-react";
 import { Button } from "@/shared/ui";
 import type { GuideStep } from "../model/role-onboarding";
 import { positionTourCard, tourCardWidth, type TourRect } from "../model/tour-target";
 import { tourRegion } from "../model/tour-region";
+import { scrollToTourTarget } from "../model/tour-scroll";
 import {
   TOUR_CARD_HEIGHT,
   TOUR_CARD_WIDTH,
@@ -42,6 +43,27 @@ export function GuidedTourOverlay({
 }) {
   const cardRef = useRef<HTMLDivElement>(null);
   const copyRef = useRef<HTMLDivElement>(null);
+  const [mobile, setMobile] = useState(() => window.innerWidth < 768);
+  const [viewingStep, setViewingStep] = useState<number | null>(null);
+  const alignController = useRef<AbortController | null>(null);
+  useEffect(() => () => alignController.current?.abort(), [index, target]);
+  const showExplanation = () => {
+    setViewingStep(null);
+    alignController.current?.abort();
+    const controller = new AbortController();
+    alignController.current = controller;
+    requestAnimationFrame(() => {
+      if (target) void scrollToTourTarget(target, controller.signal);
+    });
+  };
+  const viewing = mobile && viewingStep === index && (status === "ready" || status === "limited");
+  useEffect(() => {
+    const resize = () => setMobile(window.innerWidth < 768);
+    window.addEventListener("resize", resize);
+    return () => window.removeEventListener("resize", resize);
+  }, []);
+  const next = () => { setViewingStep(null); onNext(); };
+  const previous = () => { setViewingStep(null); onPrevious(); };
   const keyboardMovePending = useRef(false);
   useEffect(() => {
     if (status !== "loading") keyboardMovePending.current = false;
@@ -69,7 +91,7 @@ export function GuidedTourOverlay({
     const r = region?.getBoundingClientRect();
     const card = cardRef.current?.getBoundingClientRect();
     const height = card?.height || Math.min(TOUR_CARD_HEIGHT, innerHeight - 32);
-    const fullRect = r
+    let fullRect = r
       ? {
           left: Math.max(4, r.left - 6),
           top: Math.max(80, r.top - 6),
@@ -82,6 +104,7 @@ export function GuidedTourOverlay({
     if (fullRect) {
       fullRect.width = Math.max(0, fullRect.right - fullRect.left);
       fullRect.height = Math.max(0, fullRect.bottom - fullRect.top);
+      if (fullRect.width === 0 || fullRect.height === 0) fullRect = null;
     }
     setGeometry((previous) => {
       const width = fullRect
@@ -125,6 +148,11 @@ export function GuidedTourOverlay({
         : next;
     });
   }, [target]);
+
+  useLayoutEffect(() => {
+    measure();
+    if (mobile) cardRef.current?.querySelector<HTMLElement>("[data-tour-view-toggle]")?.focus({ preventScroll: true });
+  }, [viewing, mobile, measure]);
 
   useLayoutEffect(() => {
     const bodyPadding = document.body.style.paddingBottom;
@@ -233,6 +261,12 @@ export function GuidedTourOverlay({
         event.stopImmediatePropagation();
       }
     };
+    const blockScroll = (event: Event) => {
+      if (!viewing) block(event);
+    };
+    const blockControlFocus = (event: Event) => {
+      if (viewing && event.target instanceof Element && event.target.closest("input, textarea, select, button, a[href], [role='combobox']")) block(event);
+    };
     const keydown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
@@ -250,10 +284,13 @@ export function GuidedTourOverlay({
         if (event.repeat || status === "loading" || keyboardMovePending.current) return;
         if (event.key === "ArrowLeft" && index === 0) return;
         keyboardMovePending.current = true;
+        setViewingStep(null);
         if (event.key === "ArrowLeft") onPrevious();
         else onNext();
         return;
       }
+      if (viewing && !cardRef.current?.contains(event.target as Node) &&
+        ["PageUp", "PageDown", "Home", "End", "ArrowUp", "ArrowDown"].includes(event.key)) return;
       if (
         ["PageUp", "PageDown", "Home", "End", "ArrowUp", "ArrowDown"].includes(
           event.key,
@@ -315,32 +352,35 @@ export function GuidedTourOverlay({
         block(event);
     };
     document.addEventListener("keydown", keydown, true);
+    document.addEventListener("pointerdown", blockControlFocus, true);
     for (const name of ["click", "beforeinput", "submit"])
       document.addEventListener(name, block, true);
     // Background wheel/touch scrolling otherwise makes the card chase the target.
     for (const name of ["wheel", "touchmove"])
-      document.addEventListener(name, block, { capture: true, passive: false });
+      document.addEventListener(name, blockScroll, { capture: true, passive: false });
     window.addEventListener("popstate", closeOnBack);
     return () => {
       document.removeEventListener("keydown", keydown, true);
+      document.removeEventListener("pointerdown", blockControlFocus, true);
       for (const name of ["click", "beforeinput", "submit"])
         document.removeEventListener(name, block, true);
       for (const name of ["wheel", "touchmove"])
-        document.removeEventListener(name, block, true);
+        document.removeEventListener(name, blockScroll, true);
       window.removeEventListener("popstate", closeOnBack);
     };
-  }, [target, onPause, onPrevious, onNext, index, status]);
+  }, [target, onPause, onPrevious, onNext, index, status, viewing]);
 
   return createPortal(
     <div
       data-guided-tour="active"
+      data-tour-viewing={viewing || undefined}
       className="pointer-events-none fixed inset-0 z-[100]"
     >
       <div
         aria-hidden="true"
         className={
-          "pointer-events-auto absolute inset-0 " +
-          (target && geometry.rect ? "" : "bg-overlay")
+          (viewing ? "pointer-events-none absolute inset-0 " : "pointer-events-auto absolute inset-0 ") +
+          (viewing || (target && geometry.rect) ? "" : "bg-overlay")
         }
       />
       {target && geometry.rect ? (
@@ -353,26 +393,41 @@ export function GuidedTourOverlay({
             top: geometry.rect.top,
             width: geometry.rect.width,
             height: geometry.rect.height,
-            boxShadow: "0 0 0 9999px var(--color-overlay)",
+            boxShadow: viewing ? "none" : "0 0 0 9999px var(--color-overlay)",
           }}
         />
       ) : null}
       <div
         ref={cardRef}
-        role="dialog"
+        role={viewing ? "region" : "dialog"}
         aria-modal="false"
         aria-busy={status === "loading"}
         aria-labelledby="guided-tour-title"
-        aria-describedby="guided-tour-description"
+        aria-describedby={viewing ? undefined : "guided-tour-description"}
         tabIndex={-1}
         data-tour-card="true"
-        className="pointer-events-auto fixed flex h-80 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-[360px] flex-col overflow-hidden rounded-panel border border-border bg-surface p-4 font-sans text-text-strong shadow-panel outline-none sm:p-5 md:h-auto md:min-h-80 md:max-w-[440px]"
+        className={"pointer-events-auto fixed flex h-auto w-[calc(100%-2rem)] max-w-[440px] flex-col overflow-hidden rounded-panel border border-border bg-surface font-sans text-text-strong shadow-panel outline-none " + (viewing ? "p-2" : "max-h-[70dvh] p-4 sm:p-5 md:max-h-[calc(100dvh-2rem)] md:min-h-80")}
         style={{
           width: geometry.width,
           left: Math.round(geometry.left),
           top: Math.round(geometry.top),
         }}
       >
+        {viewing ? <>
+          <div className="mb-1 flex items-center justify-between gap-2 px-1 text-xs text-text-muted">
+            <span id="guided-tour-title">{step.screen} · {index + 1}/{count}</span>
+            <span>스크롤로 살펴보세요</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="secondary" className="min-h-11 px-3" data-tour-view-toggle aria-expanded="false" onClick={showExplanation}>
+              <BookOpen className="size-4" aria-hidden="true" />설명 보기
+            </Button>
+            <Button variant="ghost" size="icon" className="size-11 min-h-11 shrink-0" aria-label="일시중지" onClick={onPause}><Pause className="size-4" aria-hidden="true" /></Button>
+            <Button className="ml-auto min-h-11 px-3" onClick={next} aria-label={index === count - 1 ? "안내 완료" : "다음"}>
+              {index === count - 1 ? "완료" : "다음"}<ArrowRight className="size-4" aria-hidden="true" />
+            </Button>
+          </div>
+        </> : <>
         <div className="mb-3 flex shrink-0 items-center justify-between gap-2">
           <span className="flex items-center gap-2 text-xs font-semibold text-accent-strong">
             <Compass className="size-4" aria-hidden="true" />
@@ -416,7 +471,7 @@ export function GuidedTourOverlay({
           role="region"
           aria-label="안내 설명"
           tabIndex={0}
-          className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-3 [scrollbar-gutter:stable] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus md:flex-auto"
+          className="min-h-0 flex-auto overflow-y-auto overscroll-contain pb-3 [scrollbar-gutter:stable] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus"
         >
           <p
             id="guided-tour-description"
@@ -426,7 +481,9 @@ export function GuidedTourOverlay({
           </p>
           <p
             role="status"
-            className="mt-3 rounded-control bg-surface-subtle px-3 py-2 text-sm leading-5 text-text"
+            className={status === "ready"
+              ? "mt-2 text-sm leading-5 text-text-muted md:mt-3 md:rounded-control md:bg-surface-subtle md:px-3 md:py-2 md:text-text"
+              : "mt-3 rounded-control bg-surface-subtle px-3 py-2 text-sm leading-5 text-text"}
           >
             {status === "loading"
               ? "화면을 이동하고 안내 대상을 찾는 중입니다…"
@@ -436,7 +493,7 @@ export function GuidedTourOverlay({
                   ? "현재 데이터나 화면 상태에서 안내 대상을 찾지 못했습니다. 다시 찾거나 다음 단계를 확인하세요."
                   : status === "error"
                     ? "화면 이동을 완료하지 못했습니다. 다시 시도하거나 투어를 종료할 수 있습니다."
-                    : "화면을 직접 사용하려면 일시중지하세요. 안내는 같은 단계에서 이어집니다."}
+                    : <><span className="md:hidden">화면 보기로 접고 스크롤하며 살펴보세요.</span><span className="hidden md:inline">화면을 직접 사용하려면 일시중지하세요. 안내는 같은 단계에서 이어집니다.</span></>}
           </p>
           {status === "missing" || status === "error" ? (
             <Button
@@ -448,6 +505,10 @@ export function GuidedTourOverlay({
             </Button>
           ) : null}
         </div>
+        {mobile && (status === "ready" || status === "limited") ? <Button
+          className="mb-3 min-h-11 w-full" data-tour-view-toggle aria-expanded="true"
+          onClick={() => setViewingStep(index)}
+        ><Eye className="size-4" aria-hidden="true" />화면 보기</Button> : null}
         <div className="flex shrink-0 items-center justify-between gap-2 border-t border-border pt-3">
           <Button
             variant="secondary"
@@ -465,14 +526,15 @@ export function GuidedTourOverlay({
               aria-label="이전 단계"
               aria-keyshortcuts="ArrowLeft"
               disabled={index === 0 || status === "loading"}
-              onClick={onPrevious}
+              onClick={previous}
             >
               <ArrowLeft className="size-4" aria-hidden="true" />
             </Button>
             <Button
               className="px-3"
               disabled={status === "loading"}
-              onClick={onNext}
+              onClick={next}
+              variant={mobile ? "secondary" : "primary"}
               aria-keyshortcuts="ArrowRight"
             >
               {index === count - 1 ? "안내 완료" : "다음"}
@@ -490,9 +552,10 @@ export function GuidedTourOverlay({
             </Button>
           </div>
         </div>
-        <p className="mt-2 shrink-0 text-center text-sm leading-5 text-text-muted">
+        <p className="mt-2 hidden shrink-0 text-center text-sm leading-5 text-text-muted md:block">
           ← 이전 · → 다음 · Esc 일시중지
         </p>
+        </>}
       </div>
     </div>,
     document.body,
