@@ -137,6 +137,35 @@ it("does not start another role's login guide", () => {
 });
 afterEach(() => vi.restoreAllMocks());
 
+it.each(ROLE_CODES)("mobile %s keeps business UI usable and only limits the tour", async (role) => {
+  vi.spyOn(window, "matchMedia").mockReturnValue({
+    matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn(),
+  } as unknown as MediaQueryList);
+  const id = "mobile-notice-" + role;
+  prepareLoginGuide(role, true);
+  const key = guideStorageKey(id, role);
+  const steps = availableGuideSteps(role, navigation, permissions);
+  saveGuideProgress(key, steps[0]!, new Map());
+  const progress = readGuideProgress(key, steps);
+  const action = vi.fn();
+  render(<Fixture id={id} role={role} onAction={action} />);
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(document.querySelector("[data-guided-tour]")).toBeNull();
+  expect(navigate).not.toHaveBeenCalled();
+  const user = userEvent.setup();
+  await user.click(screen.getByRole("button", { name: "실제 새로고침" }));
+  expect(action).toHaveBeenCalledOnce();
+  await user.type(screen.getByLabelText("실제 검색"), "변경");
+  expect(screen.getByLabelText("실제 검색")).toHaveValue("원본 입력변경");
+  await user.click(screen.getByRole("button", { name: "역할별 사용 안내" }));
+  expect(screen.getByRole("dialog", { name: "단계별 안내는 PC에서 제공됩니다" })).toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "확인" }));
+  act(() => requestRoleOnboarding({ restart: true }));
+  expect(screen.getByRole("dialog", { name: "단계별 안내는 PC에서 제공됩니다" })).toBeInTheDocument();
+  expect(navigate).not.toHaveBeenCalled();
+  expect(readGuideProgress(key, steps)).toEqual(progress);
+});
+
 it("최고관리자 BOM 단계는 스켈레톤 교체 후 실제 표에 초점과 강조를 준다", async () => {
   const id = "bom-loading-focus";
   const step = ROLE_GUIDES.SYSTEM_ADMIN[10]!;

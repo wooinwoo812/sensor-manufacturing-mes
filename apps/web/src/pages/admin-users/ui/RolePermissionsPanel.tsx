@@ -53,13 +53,13 @@ export function RolePermissionsPanel() {
         </p>
       </div>
       <div className="overflow-x-auto rounded-panel border border-border bg-surface">
-        <table className="w-full table-fixed text-sm">
+        <table className="w-full text-sm">
           <caption className="sr-only">{role?.label}의 기능별 권한</caption>
           <thead>
             <tr className="h-11 border-b border-border bg-surface-subtle">
-              <th className="px-3 text-left font-medium sm:px-4">기능</th>
-              <th className="w-20 px-2 text-center font-medium sm:w-28 sm:px-4">권한</th>
-              <th className="w-24 px-2 text-center font-medium sm:w-32 sm:px-4">제공 상태</th>
+              <th className="px-4 text-left font-medium">기능</th>
+              <th className="w-28 px-4 text-center font-medium">권한</th>
+              <th className="w-32 px-4 text-center font-medium">제공 상태</th>
             </tr>
           </thead>
           <tbody>
@@ -70,8 +70,8 @@ export function RolePermissionsPanel() {
                   key={permission.code}
                   className="h-12 border-b border-border last:border-0"
                 >
-                  <td className="break-keep px-3 py-3 sm:px-4">{permission.label}</td>
-                  <td className="px-2 text-center sm:px-4">
+                  <td className="px-4 py-3">{permission.label}</td>
+                  <td className="px-4 text-center">
                     <Badge
                       tone={
                         role?.permissions.includes(permission.code)
@@ -84,7 +84,7 @@ export function RolePermissionsPanel() {
                         : "없음"}
                     </Badge>
                   </td>
-                  <td className="px-2 text-center text-text-muted sm:px-4">
+                  <td className="px-4 text-center text-text-muted">
                     {permission.implemented ? "제공 중" : "구현 예정"}
                   </td>
                 </tr>

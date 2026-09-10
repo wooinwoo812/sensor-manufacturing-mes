@@ -14,7 +14,7 @@ export function tourCardWidth(
   rect: Pick<TourRect, "left" | "right"> | null,
   viewportWidth: number,
 ) {
-  if (viewportWidth < 768) return Math.min(TOUR_DESKTOP_CARD_WIDTH, viewportWidth - 32);
+  if (viewportWidth < 768) return Math.min(TOUR_CARD_WIDTH, viewportWidth - 32);
   if (!rect) return TOUR_DESKTOP_CARD_WIDTH;
   const sideSpace = Math.floor(Math.max(rect.left - 32, viewportWidth - rect.right - 32));
   return sideSpace >= TOUR_CARD_WIDTH
