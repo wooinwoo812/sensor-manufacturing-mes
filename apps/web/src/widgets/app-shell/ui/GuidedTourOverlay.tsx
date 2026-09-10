@@ -374,17 +374,17 @@ export function GuidedTourOverlay({
         }}
       >
         <div className="mb-3 flex shrink-0 items-center justify-between gap-2">
-          <span className="flex items-center gap-2 text-xs font-semibold text-accent-strong">
-            <Compass className="size-4" aria-hidden="true" />
-            {step.screen}
+          <span className="flex min-w-0 items-center gap-2 text-xs font-semibold text-accent-strong">
+            <Compass className="size-4 shrink-0" aria-hidden="true" />
+            <span className="truncate" title={step.screen}>{step.screen}</span>
           </span>
-          <span className="text-xs text-text-muted">
+          <span className="shrink-0 text-xs text-text-muted">
             {index + 1} / {count}
           </span>
           <Button
             size="icon"
             variant="ghost"
-            className="-my-2 -mr-2"
+            className="-my-2 -mr-2 shrink-0"
             aria-label="투어 종료"
             onClick={onClose}
           >
@@ -448,7 +448,7 @@ export function GuidedTourOverlay({
             </Button>
           ) : null}
         </div>
-        <div className="flex shrink-0 items-center justify-between gap-2 border-t border-border pt-3">
+        <div className={"flex shrink-0 gap-2 border-t border-border pt-3 " + (geometry.width < 320 ? "flex-col items-stretch" : "items-center justify-between")}>
           <Button
             variant="secondary"
             className="shrink-0 border-accent-strong/50 bg-accent-soft px-2 text-accent-strong hover:border-accent-strong hover:bg-accent-soft [&>span]:gap-1.5"
@@ -458,7 +458,7 @@ export function GuidedTourOverlay({
             <Pause className="size-4 shrink-0" aria-hidden="true" />
             일시중지
           </Button>
-          <div className="flex gap-2">
+          <div className={"flex gap-2 " + (geometry.width < 320 ? "justify-between" : "")}>
             <Button
               size="icon"
               variant="secondary"

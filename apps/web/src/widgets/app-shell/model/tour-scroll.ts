@@ -22,7 +22,7 @@ export function scrollToTourTarget(
     viewportWidth - regionRect.right - 6 >= cardWidth + 32;
   const availableHeight = Math.max(
     120,
-    window.innerHeight - cardHeight - 120,
+    window.innerHeight - (fitsBesideRegion ? 0 : cardHeight) - 120,
   );
   // Show the whole section when it fits; keep a specific input visible in a long section.
   const rect =

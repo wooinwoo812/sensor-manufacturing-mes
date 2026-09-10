@@ -4,6 +4,8 @@ it.each([
   { left: 402, right: 1759, viewport: 1904, width: 370, side: "left" },
   { left: 145, right: 1502, viewport: 1904, width: 370, side: "right" },
   { left: 550, right: 1800, viewport: 1920, width: 440, side: "left" },
+  { left: 274, right: 1040, viewport: 1068, width: 242, side: "left" },
+  { left: 28, right: 794, viewport: 1068, width: 242, side: "right" },
 ])("fits a readable card beside a tall section: $side $width", ({ left, right, viewport, width, side }) => {
   const rect = { left, right, width: right - left, top: 82, bottom: 812, height: 730 };
   const cardWidth = tourCardWidth(rect, viewport);
@@ -15,7 +17,7 @@ it.each([
 });
 
 it("keeps full reading width when neither side fits and preserves mobile sizing", () => {
-  expect(tourCardWidth({ left: 280, right: 1400 }, 1440)).toBe(440);
+  expect(tourCardWidth({ left: 200, right: 1400 }, 1440)).toBe(440);
   expect(tourCardWidth({ left: 16, right: 374 }, 390)).toBe(358);
 });
 

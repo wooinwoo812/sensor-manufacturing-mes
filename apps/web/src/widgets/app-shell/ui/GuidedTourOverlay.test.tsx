@@ -52,6 +52,18 @@ function overlay(element: HTMLElement | null = target) {
   );
 }
 
+it("shrinks into the narrow desktop gutter and keeps reservation controls uncovered", () => {
+  vi.stubGlobal("innerWidth", 1068);
+  vi.stubGlobal("innerHeight", 900);
+  target.getBoundingClientRect = () => ({
+    left: 280, right: 1034, top: 104, bottom: 595, width: 754, height: 491,
+  }) as DOMRect;
+  render(overlay());
+  expect(screen.getByRole("dialog")).toHaveStyle({ left: "16px", top: "98px", width: "242px" });
+  expect(document.querySelector("[data-tour-spotlight]")).toHaveStyle({ height: "503px" });
+  expect(screen.getByRole("button", { name: "일시중지" }).parentElement).toHaveClass("flex-col");
+});
+
 it("uses the left gutter for a tall permissions section without clipping its spotlight", () => {
   vi.stubGlobal("innerWidth", 1904);
   vi.stubGlobal("innerHeight", 940);
@@ -151,9 +163,8 @@ it("입력의 초점은 유지하면서 제목·본문을 포함한 넓은 섹�
   const ring = document.querySelector<HTMLElement>("[data-tour-spotlight]")!;
   expect(parseFloat(ring.style.width)).toBeGreaterThan(1000);
   expect(parseFloat(ring.style.height)).toBeGreaterThan(400);
-  expect(
-    parseFloat(ring.style.top) + parseFloat(ring.style.height),
-  ).toBeLessThanOrEqual(1000 - TOUR_CARD_HEIGHT - 32);
+  expect(ring).toHaveStyle({ height: "712px" });
+  expect(screen.getByRole("dialog")).toHaveStyle({ left: "16px", width: "262px" });
   view.unmount();
   expect(section).not.toHaveAttribute("data-tour-region-active");
   section.remove();
