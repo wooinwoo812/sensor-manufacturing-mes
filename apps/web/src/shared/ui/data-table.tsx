@@ -42,6 +42,9 @@ interface DataTableProps<Row> {
   rows: Row[];
   getRowKey: (row: Row) => string;
   emptyMessage: string;
+  emptyContent?: ReactNode;
+  /** Keep paginated list geometry stable for loading, errors and short pages. */
+  minimumRows?: number;
   /** 조건이 바뀌어 다시 조회하는 동안 이전 결과를 그대로 유지한다(스켈레톤으로 교체하면 표가 깜빡인다). */
   busy?: boolean;
   loading?: boolean;
@@ -66,7 +69,9 @@ interface DataTableProps<Row> {
 
 function isInsideControl(event: MouseEvent | KeyboardEvent): boolean {
   const target = event.target as HTMLElement;
-  return target.closest("button, a, input, select, [role='combobox']") !== null;
+  return (
+    target.closest("button, a, input, select, [role='combobox']") !== null
+  );
 }
 
 /** 말줄임된 값도 마우스 오버와 접근성 트리에서 원문을 확인할 수 있다. */
@@ -96,6 +101,8 @@ export function DataTable<Row>({
   footer,
   columns,
   emptyMessage,
+  emptyContent,
+  minimumRows = 0,
   getRowKey,
   onRowClick,
   rowActionLabel = "상세 보기",
@@ -133,7 +140,7 @@ export function DataTable<Row>({
       aria-busy={busy || loading || undefined}
       data-loading-placeholder={loading || undefined}
       style={loading ? { height: loadingRegionHeight("table") } : undefined}
-      className="overflow-hidden rounded-panel border border-border bg-surface"
+      className="@container overflow-hidden rounded-panel border border-border bg-surface"
     >
       <div
         data-tour="table-heading"
@@ -151,7 +158,10 @@ export function DataTable<Row>({
             className={cn(!overflows && "invisible")}
             title="표를 좌우로 스크롤할 수 있습니다"
           >
-            <ArrowLeftRight className="inline size-3.5" aria-hidden="true" />{" "}
+            <ArrowLeftRight
+              className="inline size-3.5"
+              aria-hidden="true"
+            />{" "}
             <span className="hidden sm:inline">좌우로 이동</span>
           </span>
           <LoaderCircle
@@ -185,7 +195,6 @@ export function DataTable<Row>({
         tabIndex={0}
       >
         <table
-          aria-hidden={loading || undefined}
           style={{ minWidth: minimumWidth }}
           className="w-full table-fixed border-collapse text-sm leading-5 [&[data-tour-column-focus]_[data-sticky-column]]:static"
         >
@@ -228,7 +237,9 @@ export function DataTable<Row>({
                         : "none"
                       : undefined
                   }
-                  data-sticky-column={columnIndex === 0 ? "true" : undefined}
+                  data-sticky-column={
+                    columnIndex === 0 ? "true" : undefined
+                  }
                   data-tour={
                     tourRecord
                       ? `${tourRecord}-column-${column.key}`
@@ -238,7 +249,11 @@ export function DataTable<Row>({
                   style={{
                     textAlign: column.align ?? "left",
                     left:
-                      columnIndex === 0 ? (showRowNumbers ? 64 : 0) : undefined,
+                      columnIndex === 0
+                        ? showRowNumbers
+                          ? 64
+                          : 0
+                        : undefined,
                   }}
                 >
                   {column.sortKey && onSortChange ? (
@@ -246,7 +261,8 @@ export function DataTable<Row>({
                       type="button"
                       className={cn(
                         "inline-flex max-w-full min-h-6 items-center gap-1 rounded-sm font-medium outline-offset-4 hover:text-accent-strong focus-visible:outline-2 focus-visible:outline-focus disabled:cursor-wait",
-                        sort?.sort === column.sortKey && "text-accent-strong",
+                        sort?.sort === column.sortKey &&
+                          "text-accent-strong",
                       )}
                       disabled={busy || loading}
                       aria-label={`${column.header} ${sort?.sort === column.sortKey && sort.order === "asc" ? "내림차순" : "오름차순"} 정렬`}
@@ -261,7 +277,9 @@ export function DataTable<Row>({
                         })
                       }
                     >
-                      <span className="min-w-0 truncate">{column.header}</span>
+                      <span className="min-w-0 truncate">
+                        {column.header}
+                      </span>
                       {sort?.sort === column.sortKey ? (
                         sort.order === "asc" ? (
                           <ArrowUp
@@ -296,36 +314,20 @@ export function DataTable<Row>({
               ) : null}
             </tr>
           </thead>
-          <tbody className="divide-y divide-border">
-            {loading
+          <tbody
+            className="divide-y divide-border"
+            inert={busy || loading || undefined}
+          >
+            {loading && rows.length === 0
               ? Array.from({ length: loadingRows }, (_, rowIndex) => (
                   <tr
                     key={rowIndex}
                     aria-hidden="true"
                     className="h-[60px] bg-surface"
                   >
-                    {showRowNumbers ? (
-                      <td className="px-3 py-2">
-                        <span className="mx-auto block h-3 w-5 rounded bg-border" />
-                      </td>
-                    ) : null}
-                    {columns.map((column, columnIndex) => (
-                      <td key={column.key} className="px-3 py-2">
-                        <span
-                          className={cn(
-                            "block h-3 rounded bg-border",
-                            column.align === "center" && "mx-auto",
-                            column.align === "right" && "ml-auto",
-                          )}
-                          style={{ width: `${rowIndex % 3 === 0 ? 65 : 80}%` }}
-                        />
-                        {column.wrap ? (
-                          <span className="mt-2 block h-3 w-2/5 rounded bg-surface-subtle" />
-                        ) : null}
-                        {columnIndex === 0 ? (
-                          <span className="sr-only">조회 중</span>
-                        ) : null}
-                      </td>
+                    {showRowNumbers ? <td /> : null}
+                    {columns.map((column) => (
+                      <td key={column.key} />
                     ))}
                     {clickable ? <td /> : null}
                   </tr>
@@ -341,7 +343,9 @@ export function DataTable<Row>({
                 )}
                 key={getRowKey(row)}
                 data-tour={tourRecord ? `record-${tourRecord}` : undefined}
-                data-tour-record-id={tourRecord ? getRowKey(row) : undefined}
+                data-tour-record-id={
+                  tourRecord ? getRowKey(row) : undefined
+                }
                 data-tour-context={getTourContext?.(row)}
                 data-tour-preferred={
                   isTourPreferred?.(row) ? "true" : undefined
@@ -349,7 +353,7 @@ export function DataTable<Row>({
                 onClick={
                   clickable
                     ? (event) => {
-                        if (!isInsideControl(event)) {
+                        if (!busy && !loading && !isInsideControl(event)) {
                           onRowClick(row);
                         }
                       }
@@ -359,6 +363,8 @@ export function DataTable<Row>({
                   clickable
                     ? (event) => {
                         if (
+                          !busy &&
+                          !loading &&
                           (event.key === "Enter" || event.key === " ") &&
                           !isInsideControl(event)
                         ) {
@@ -385,7 +391,8 @@ export function DataTable<Row>({
                       className={cn(
                         "overflow-hidden px-3 py-2 align-middle text-text tabular-nums last:pr-4",
                         columnIndex === 0 && "sticky z-[1] bg-inherit",
-                        column.align === "center" && "[&>.flex]:justify-center",
+                        column.align === "center" &&
+                          "[&>.flex]:justify-center",
                         column.wrap
                           ? "min-w-32 whitespace-normal [&_.rounded-full]:h-auto [&_.rounded-full]:min-h-6 [&_.rounded-full]:whitespace-normal [&_.rounded-full]:py-1 [&_.rounded-full]:leading-4 [&_svg]:shrink-0"
                           : "text-ellipsis whitespace-nowrap [&>button]:max-w-full [&>button]:truncate [&>button]:align-middle [&>a]:inline-block [&>a]:max-w-full [&>a]:truncate [&>a]:align-middle",
@@ -440,18 +447,58 @@ export function DataTable<Row>({
                     (clickable ? 1 : 0)
                   }
                 >
-                  <SearchX
-                    className="mx-auto mb-3 size-6 text-text-subtle"
-                    aria-hidden="true"
-                  />
-                  {emptyMessage}
+                  <div
+                    style={
+                      minimumRows
+                        ? { minHeight: Math.max(0, minimumRows * 60 - 80) }
+                        : undefined
+                    }
+                    className="sticky left-4 grid w-[calc(100cqw-2rem)] max-w-full content-center"
+                  >
+                    {emptyContent ?? (
+                      <>
+                        <SearchX
+                          className="mx-auto mb-3 size-6 text-text-subtle"
+                          aria-hidden="true"
+                        />
+                        {emptyMessage}
+                      </>
+                    )}
+                  </div>
                 </td>
+              </tr>
+            ) : null}
+            {!loading && rows.length > 0 && rows.length < minimumRows ? (
+              <tr
+                aria-hidden="true"
+                style={{ height: (minimumRows - rows.length) * 60 }}
+              >
+                <td
+                  colSpan={
+                    columns.length +
+                    (showRowNumbers ? 1 : 0) +
+                    (clickable ? 1 : 0)
+                  }
+                />
               </tr>
             ) : null}
           </tbody>
         </table>
+        {busy || loading ? (
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 top-28 z-10 flex justify-center"
+          >
+            <span className="flex items-center gap-2 rounded-control border border-border bg-surface px-3 py-2 text-sm text-text-muted">
+              <LoaderCircle className="size-4 animate-spin motion-reduce:animate-none" />
+              {loading ? "조회 중" : "갱신 중"}
+            </span>
+          </div>
+        ) : null}
       </div>
-      {footer ? <div className="border-t border-border">{footer}</div> : null}
+      {footer ? (
+        <div className="border-t border-border">{footer}</div>
+      ) : null}
     </div>
   );
 }

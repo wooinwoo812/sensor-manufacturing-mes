@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -17,7 +17,9 @@ vi.mock("@/entities/work-order", async (importOriginal) => {
 });
 
 const fetchMock = vi.mocked(fetchWorkOrders);
-beforeEach(() => fetchMock.mockReset());
+beforeEach(() => {
+  fetchMock.mockReset();
+});
 
 function sampleResult(
   overrides: Partial<WorkOrderListResult> = {},
@@ -78,6 +80,43 @@ function renderPage(search: WorkOrdersListSearch = {}) {
 }
 
 describe("WorkOrdersPage", () => {
+  it("최초 조회·빈 결과·오류·재시도에도 검색조건과 표·페이지 탐색을 유지한다", async () => {
+    let finish!: (result: WorkOrderListResult) => void;
+    let fail!: (reason: Error) => void;
+    fetchMock.mockImplementation(() => new Promise((resolve, reject) => {
+      finish = resolve;
+      fail = reject;
+    }));
+    const props = { search: {}, onSearchChange: vi.fn(), onOpenDetail: vi.fn(), canCreate: false, onCreate: vi.fn() };
+    const view = render(<WorkOrdersPage {...props} />);
+    const table = screen.getByRole("table", { name: "작업지시 목록" });
+    const filters = view.container.querySelector('[data-tour="filters"]');
+    const pagination = screen.getByRole("navigation", { name: "작업지시 페이지 탐색" });
+    const expectFrame = () => {
+      expect(screen.getByRole("table")).toBe(table);
+      expect(view.container.querySelector('[data-tour="filters"]')).toBe(filters);
+      expect(screen.getByRole("navigation", { name: "작업지시 페이지 탐색" })).toBe(pagination);
+      expect(screen.getByRole("columnheader", { name: "작업지시" })).toBeInTheDocument();
+    };
+    expect(screen.getByRole("combobox", { name: "페이지당 표시 건수" })).toBeDisabled();
+    await act(async () => finish(sampleResult({ pageSize: 10 })));
+    expectFrame();
+    view.rerender(<WorkOrdersPage {...props} search={{ q: "없는 결과" }} />);
+    expect(screen.getByText("WO-2026-091")).toBeInTheDocument();
+    await act(async () => finish(sampleResult({ items: [], total: 0, pageSize: 10 })));
+    expectFrame();
+    expect(screen.getByText("조건에 맞는 작업지시가 없습니다")).toBeInTheDocument();
+    view.rerender(<WorkOrdersPage {...props} search={{ q: "다른 조건" }} />);
+    await act(async () => fail(new Error("network")));
+    expectFrame();
+    expect(screen.getByRole("alert")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "다시 시도" }));
+    expectFrame();
+    await act(async () => finish(sampleResult({ pageSize: 10 })));
+    expectFrame();
+    expect(screen.getByText("WO-2026-091")).toBeInTheDocument();
+  });
+
   it("열 정렬은 적용된 필터를 보존하고 첫 페이지의 전체 결과를 요청한다", async () => {
     fetchMock.mockResolvedValue(sampleResult());
     const { onSearchChange } = renderPage({

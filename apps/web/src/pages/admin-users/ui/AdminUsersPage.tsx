@@ -11,7 +11,6 @@ import {
   ErrorState,
   PageHeading,
   Pagination,
-  TableSkeleton,
   Tabs,
   TabsList,
   TabsTrigger,
@@ -149,24 +148,25 @@ export function AdminUsersPage({
         a.id.localeCompare(b.id),
     );
   }, [state, search.sort, search.order]);
-  const pagination =
-    state.phase === "success" ? (
-      <Pagination
-        label="사용자 페이지 탐색"
-        currentPage={page}
-        pageSize={pageSize}
-        totalItems={total}
-        totalPages={Math.max(1, Math.ceil(total / pageSize))}
-        onPageChange={(next) =>
-          onSearchChange(readAdminUsersSearch({ ...search, page: next }))
-        }
-        onPageSizeChange={(size) =>
-          onSearchChange(
-            readAdminUsersSearch({ ...search, page: 1, pageSize: size }),
-          )
-        }
-      />
-    ) : null;
+  const pagination = (
+    <Pagination
+      loading={state.phase === "loading"}
+      busy={state.phase === "loading" || isRefreshing}
+      label="사용자 페이지 탐색"
+      currentPage={page}
+      pageSize={pageSize}
+      totalItems={total}
+      totalPages={Math.max(1, Math.ceil(total / pageSize))}
+      onPageChange={(next) =>
+        onSearchChange(readAdminUsersSearch({ ...search, page: next }))
+      }
+      onPageSizeChange={(size) =>
+        onSearchChange(
+          readAdminUsersSearch({ ...search, page: 1, pageSize: size }),
+        )
+      }
+    />
+  );
 
   return (
     <Main id="main-content" tabIndex={-1}>
@@ -199,64 +199,54 @@ export function AdminUsersPage({
             <p className="text-sm text-text-muted">
               역할·사용 상태 변경은 각 행의 관리에서 진행합니다.
             </p>
-            <Button variant="secondary" loading={isRefreshing} onClick={reload}>
+            <Button
+              variant="secondary"
+              loading={isRefreshing}
+              onClick={reload}
+            >
               목록 새로고침
             </Button>
           </div>
-          {state.phase === "loading" ? (
-            <TableSkeleton
-              columns={columns}
-              caption="사용자 목록"
-              sort={{
-                sort: search.sort ?? "displayName",
-                order: search.order ?? "asc",
-              }}
-              onSortChange={(next) =>
-                onSearchChange({ ...search, ...next, page: 1 })
-              }
-              rows={getPageSize(search.pageSize)}
-              label="사용자 조회 중"
-            />
-          ) : state.phase === "error" ? (
-            <ErrorState
-              title="사용자 목록을 불러올 수 없습니다"
-              description={state.message}
-              action={
-                <Button variant="secondary" onClick={() => reload()}>
-                  다시 시도
-                </Button>
-              }
-            />
-          ) : state.items.length === 0 ? (
-            <EmptyState
-              title="사용자가 없습니다"
-              description="가상 데모 계정이 시드되면 여기에 표시됩니다."
-            />
-          ) : (
-            <DataTable
-              sort={{
-                sort: search.sort ?? "displayName",
-                order: search.order ?? "asc",
-              }}
-              onSortChange={(next) =>
-                onSearchChange({ ...search, ...next, page: 1 })
-              }
-              caption="사용자 목록"
-              busy={isRefreshing}
-              columns={columns}
-              rows={sortedItems.slice((page - 1) * pageSize, page * pageSize)}
-              rowNumberStart={total - (page - 1) * pageSize}
-              footer={pagination}
-              getRowKey={(row) => row.id}
-              tourRecord="user"
-              emptyMessage="사용자가 없습니다."
-            />
-          )}
-          {state.phase === "success" && state.items.length === 0 ? (
-            <div className="rounded-panel border border-border bg-surface">
-              {pagination}
-            </div>
-          ) : null}
+          <DataTable
+            loading={state.phase === "loading"}
+            loadingLabel="사용자 조회 중"
+            loadingRows={pageSize}
+            minimumRows={pageSize}
+            emptyContent={
+              state.phase === "error" ? (
+                <ErrorState
+                  title="사용자 목록을 불러올 수 없습니다"
+                  description={state.message}
+                  action={
+                    <Button variant="secondary" onClick={() => reload()}>
+                      다시 시도
+                    </Button>
+                  }
+                />
+              ) : (
+                <EmptyState
+                  title="사용자가 없습니다"
+                  description="가상 데모 계정이 시드되면 여기에 표시됩니다."
+                />
+              )
+            }
+            sort={{
+              sort: search.sort ?? "displayName",
+              order: search.order ?? "asc",
+            }}
+            onSortChange={(next) =>
+              onSearchChange({ ...search, ...next, page: 1 })
+            }
+            caption="사용자 목록"
+            busy={isRefreshing}
+            columns={columns}
+            rows={sortedItems.slice((page - 1) * pageSize, page * pageSize)}
+            rowNumberStart={total - (page - 1) * pageSize}
+            footer={pagination}
+            getRowKey={(row) => row.id}
+            tourRecord="user"
+            emptyMessage="사용자가 없습니다."
+          />
         </TabsContent>
       </Tabs>
       {selected ? (

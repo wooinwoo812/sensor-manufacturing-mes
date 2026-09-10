@@ -153,3 +153,23 @@ it("빈 결과의 셀 폭은 순번과 상세 이동 열까지 포함한다", ()
     "3",
   );
 });
+
+it("재조회 중 이전 행의 클릭과 키보드 이동을 막고 완료 후 다시 허용한다", () => {
+  const open = vi.fn();
+  const props = {
+    caption: "목록", rows, columns,
+    getRowKey: (row: (typeof rows)[number]) => row.id,
+    emptyMessage: "없음", onRowClick: open,
+  };
+  const view = render(<DataTable {...props} />);
+  const row = screen.getByText("제품 A").closest("tr")!;
+  view.rerender(<DataTable {...props} busy />);
+  expect(row.parentElement).toHaveAttribute("inert");
+  fireEvent.click(row);
+  fireEvent.keyDown(row, { key: "Enter" });
+  expect(open).not.toHaveBeenCalled();
+  view.rerender(<DataTable {...props} />);
+  expect(row.parentElement).not.toHaveAttribute("inert");
+  fireEvent.keyDown(row, { key: "Enter" });
+  expect(open).toHaveBeenCalledWith(rows[0]);
+});

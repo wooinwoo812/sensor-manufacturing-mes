@@ -24,7 +24,6 @@ import {
   Pagination,
   PriorityBadge,
   Select,
-  TableSkeleton,
   type BadgeTone,
   type DataTableColumn,
 } from "@/shared/ui";
@@ -243,28 +242,29 @@ export function WorkOrdersPage({
       ? Math.max(1, Math.ceil(state.total / pageSize))
       : 1;
 
-  const pagination =
-    state.phase === "success" ? (
-      <Pagination
-        currentPage={currentPage}
-        totalItems={state.total}
-        pageSize={pageSize}
-        onPageSizeChange={(size) =>
-          onSearchChange(
-            mergeWorkOrdersSearch(search, {
-              pageSize: size === 10 ? undefined : size,
-              page: undefined,
-            }),
-          )
-        }
-        busy={isRefreshing}
-        label="작업지시 페이지 탐색"
-        onPageChange={(page) =>
-          onSearchChange(mergeWorkOrdersSearch(search, { page }))
-        }
-        totalPages={totalPages}
-      />
-    ) : null;
+  const pagination = (
+    <Pagination
+      loading={state.phase === "loading"}
+      busy={state.phase === "loading" || isRefreshing}
+      currentPage={currentPage}
+      totalItems={state.phase === "success" ? state.total : 0}
+      pageSize={pageSize}
+      onPageSizeChange={(size) =>
+        onSearchChange(
+          mergeWorkOrdersSearch(search, {
+            pageSize: size === 10 ? undefined : size,
+            page: undefined,
+          }),
+        )
+      }
+
+      label="작업지시 페이지 탐색"
+      onPageChange={(page) =>
+        onSearchChange(mergeWorkOrdersSearch(search, { page }))
+      }
+      totalPages={totalPages}
+    />
+  );
 
   return (
     <Main id="main-content" tabIndex={-1}>
@@ -294,7 +294,9 @@ export function WorkOrdersPage({
           data-tour="list-search"
           aria-label="작업지시 검색"
           value={draft.q ?? ""}
-          onChange={(event) => setDraft({ ...draft, q: event.target.value })}
+          onChange={(event) =>
+            setDraft({ ...draft, q: event.target.value })
+          }
           id="work-order-q"
           label="검색"
           name="q"
@@ -355,7 +357,9 @@ export function WorkOrdersPage({
             })),
           ]}
           value={
-            draft.priority?.length === 1 ? (draft.priority[0] ?? "all") : "all"
+            draft.priority?.length === 1
+              ? (draft.priority[0] ?? "all")
+              : "all"
           }
           onValueChange={(value) =>
             setDraft(
@@ -376,7 +380,9 @@ export function WorkOrdersPage({
             { label: "차단만", value: "true" },
             { label: "차단 제외", value: "false" },
           ]}
-          value={draft.blocked === undefined ? "all" : String(draft.blocked)}
+          value={
+            draft.blocked === undefined ? "all" : String(draft.blocked)
+          }
           onValueChange={(value) =>
             setDraft(
               mergeWorkOrdersSearch(draft, {
@@ -388,69 +394,55 @@ export function WorkOrdersPage({
         />
       </FilterBar>
 
-      {state.phase === "loading" ? (
-        <TableSkeleton
-          columns={columns}
-          caption="작업지시 목록"
-          clickable
-          sort={{
-            sort: search.sort ?? "dueDate",
-            order: search.order ?? "asc",
-          }}
-          onSortChange={(next) =>
-            onSearchChange({ ...search, ...next, page: 1 })
-          }
-          label="작업지시 조회 중"
-          rows={pageSize}
-        />
-      ) : state.phase === "error" ? (
-        <ErrorState
-          description={state.message}
-          action={<Button onClick={() => reload()}>다시 시도</Button>}
-        />
-      ) : state.items.length === 0 ? (
-        <EmptyState
-          title="조건에 맞는 작업지시가 없습니다"
-          description="조회 조건을 초기화하거나 다른 조건으로 확인해 주세요."
-          action={
-            hasActiveFilter ? (
-              <Button variant="secondary" onClick={reset}>
-                조건 초기화
-              </Button>
-            ) : undefined
-          }
-        />
-      ) : (
-        <>
-          <DataTable
-            sort={{
-              sort: search.sort ?? "dueDate",
-              order: search.order ?? "asc",
-            }}
-            onSortChange={(next) =>
-              onSearchChange({ ...search, ...next, page: 1 })
-            }
-            footer={pagination}
-            rowNumberStart={state.total - (currentPage - 1) * pageSize}
-            onRowClick={(row) => onOpenDetail(row.id)}
-            busy={isRefreshing}
-            caption="작업지시 목록"
-            columns={columns}
-            emptyMessage="조건에 맞는 작업지시가 없습니다."
-            getRowKey={(row) => row.id}
-            tourRecord="work-order"
-            isTourPreferred={(row) =>
-              row.status === "RELEASED" || row.status === "IN_PROGRESS"
-            }
-            rows={state.items}
-          />
-        </>
-      )}
-      {state.phase === "success" && state.items.length === 0 ? (
-        <div className="rounded-panel border border-border bg-surface">
-          {pagination}
-        </div>
-      ) : null}
+      <DataTable
+        loading={state.phase === "loading"}
+        loadingLabel="작업지시 조회 중"
+        loadingRows={pageSize}
+        minimumRows={pageSize}
+        emptyContent={
+          state.phase === "error" ? (
+            <ErrorState
+              description={state.message}
+              action={<Button onClick={() => reload()}>다시 시도</Button>}
+            />
+          ) : (
+            <EmptyState
+              title="조건에 맞는 작업지시가 없습니다"
+              description="조회 조건을 초기화하거나 다른 조건으로 확인해 주세요."
+              action={
+                hasActiveFilter ? (
+                  <Button variant="secondary" onClick={reset}>
+                    조건 초기화
+                  </Button>
+                ) : undefined
+              }
+            />
+          )
+        }
+        sort={{
+          sort: search.sort ?? "dueDate",
+          order: search.order ?? "asc",
+        }}
+        onSortChange={(next) =>
+          onSearchChange({ ...search, ...next, page: 1 })
+        }
+        footer={pagination}
+        rowNumberStart={
+          (state.phase === "success" ? state.total : 0) -
+          (currentPage - 1) * pageSize
+        }
+        onRowClick={(row) => onOpenDetail(row.id)}
+        busy={isRefreshing}
+        caption="작업지시 목록"
+        columns={columns}
+        emptyMessage="조건에 맞는 작업지시가 없습니다."
+        getRowKey={(row) => row.id}
+        tourRecord="work-order"
+        isTourPreferred={(row) =>
+          row.status === "RELEASED" || row.status === "IN_PROGRESS"
+        }
+        rows={state.phase === "success" ? state.items : []}
+      />
     </Main>
   );
 }
