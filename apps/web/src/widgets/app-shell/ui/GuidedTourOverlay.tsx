@@ -14,6 +14,7 @@ import { tourRegion } from "../model/tour-region";
 import {
   TOUR_CARD_HEIGHT,
   TOUR_CARD_WIDTH,
+  TOUR_DESKTOP_CARD_WIDTH,
   TOUR_BOTTOM_SPACE,
 } from "../model/tour-layout";
 
@@ -42,6 +43,10 @@ export function GuidedTourOverlay({
 }) {
   const cardRef = useRef<HTMLDivElement>(null);
   const copyRef = useRef<HTMLDivElement>(null);
+  const keyboardMovePending = useRef(false);
+  useEffect(() => {
+    if (status !== "loading") keyboardMovePending.current = false;
+  }, [index, status]);
   useLayoutEffect(() => {
     if (copyRef.current) copyRef.current.scrollTop = 0;
   }, [index, step.title]);
@@ -63,7 +68,10 @@ export function GuidedTourOverlay({
     const region = target?.isConnected ? tourRegion(target) : null;
     const r = region?.getBoundingClientRect();
     const card = cardRef.current?.getBoundingClientRect();
-    const width = card?.width || Math.min(TOUR_CARD_WIDTH, viewportWidth - 32);
+    const width = card?.width || Math.min(
+      viewportWidth >= 768 ? TOUR_DESKTOP_CARD_WIDTH : TOUR_CARD_WIDTH,
+      viewportWidth - 32,
+    );
     const height = card?.height || Math.min(TOUR_CARD_HEIGHT, innerHeight - 32);
     const fullRect = r
       ? {
@@ -123,11 +131,15 @@ export function GuidedTourOverlay({
     const bodyPadding = document.body.style.paddingBottom;
     const reserveSpace = () => {
       // Wide section spotlights also need room below short desktop pages.
-      document.body.style.paddingBottom = `${TOUR_BOTTOM_SPACE}px`;
+      const cardHeight = cardRef.current?.getBoundingClientRect().height ?? 0;
+      document.body.style.paddingBottom = `${Math.max(TOUR_BOTTOM_SPACE, cardHeight + 60)}px`;
     };
     reserveSpace();
     window.addEventListener("resize", reserveSpace);
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(reserveSpace);
+    if (cardRef.current) observer?.observe(cardRef.current);
     return () => {
+      observer?.disconnect();
       window.removeEventListener("resize", reserveSpace);
       document.body.style.paddingBottom = bodyPadding;
     };
@@ -230,6 +242,20 @@ export function GuidedTourOverlay({
         return;
       }
       if (
+        (event.key === "ArrowLeft" || event.key === "ArrowRight") &&
+        !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey &&
+        !event.isComposing
+      ) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        if (event.repeat || status === "loading" || keyboardMovePending.current) return;
+        if (event.key === "ArrowLeft" && index === 0) return;
+        keyboardMovePending.current = true;
+        if (event.key === "ArrowLeft") onPrevious();
+        else onNext();
+        return;
+      }
+      if (
         ["PageUp", "PageDown", "Home", "End", "ArrowUp", "ArrowDown"].includes(
           event.key,
         ) &&
@@ -304,7 +330,7 @@ export function GuidedTourOverlay({
         document.removeEventListener(name, block, true);
       window.removeEventListener("popstate", closeOnBack);
     };
-  }, [target, onPause]);
+  }, [target, onPause, onPrevious, onNext, index, status]);
 
   return createPortal(
     <div
@@ -341,10 +367,8 @@ export function GuidedTourOverlay({
         aria-describedby="guided-tour-description"
         tabIndex={-1}
         data-tour-card="true"
-        className="pointer-events-auto fixed flex max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] flex-col overflow-hidden rounded-panel border border-border bg-surface p-4 font-sans text-text-strong shadow-panel outline-none sm:p-5"
+        className="pointer-events-auto fixed flex h-80 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-[360px] flex-col overflow-hidden rounded-panel border border-border bg-surface p-4 font-sans text-text-strong shadow-panel outline-none sm:p-5 md:h-auto md:min-h-80 md:max-w-[440px]"
         style={{
-          height: TOUR_CARD_HEIGHT,
-          maxWidth: TOUR_CARD_WIDTH,
           left: Math.round(geometry.left),
           top: Math.round(geometry.top),
         }}
@@ -392,7 +416,7 @@ export function GuidedTourOverlay({
           role="region"
           aria-label="안내 설명"
           tabIndex={0}
-          className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-3 [scrollbar-gutter:stable] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus"
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-3 [scrollbar-gutter:stable] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus md:flex-auto"
         >
           <p
             id="guided-tour-description"
@@ -429,6 +453,7 @@ export function GuidedTourOverlay({
             variant="secondary"
             className="shrink-0 border-accent-strong/50 bg-accent-soft px-2 text-accent-strong hover:border-accent-strong hover:bg-accent-soft [&>span]:gap-1.5"
             onClick={onPause}
+            aria-keyshortcuts="Escape"
           >
             <Pause className="size-4 shrink-0" aria-hidden="true" />
             일시중지
@@ -438,6 +463,7 @@ export function GuidedTourOverlay({
               size="icon"
               variant="secondary"
               aria-label="이전 단계"
+              aria-keyshortcuts="ArrowLeft"
               disabled={index === 0 || status === "loading"}
               onClick={onPrevious}
             >
@@ -447,6 +473,7 @@ export function GuidedTourOverlay({
               className="px-3"
               disabled={status === "loading"}
               onClick={onNext}
+              aria-keyshortcuts="ArrowRight"
             >
               {index === count - 1 ? "안내 완료" : "다음"}
               {index === count - 1 ? (
@@ -463,6 +490,9 @@ export function GuidedTourOverlay({
             </Button>
           </div>
         </div>
+        <p className="mt-2 shrink-0 text-center text-sm leading-5 text-text-muted">
+          ← 이전 · → 다음 · Esc 일시중지
+        </p>
       </div>
     </div>,
     document.body,

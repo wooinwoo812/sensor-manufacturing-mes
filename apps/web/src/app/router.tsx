@@ -6,7 +6,7 @@ export const router = createRouter({
   // Before-load auth checks should run on navigation, not pointer hover/focus.
   defaultPreload: false,
   // Keep the committed screen mounted while navigation checks auth and loads code.
-  // AppRouter supplies a non-replacing progress indicator; initial boot is separate.
+  // Loading feedback belongs to the destination's data region; initial boot is separate.
   defaultPendingMs: Infinity,
   scrollRestoration: true,
 });

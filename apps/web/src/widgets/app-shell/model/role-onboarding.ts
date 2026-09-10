@@ -32,7 +32,7 @@ function listReadingSteps(screen: string, to: GuideStep["to"]): GuideStep[] {
       id: "list-reading",
       title: "목록 번호와 정렬을 읽습니다",
       description:
-        "No는 조회 결과 안의 역순 번호이며 작업지시·LOT 같은 업무 식별자가 아닙니다. 업무 인계에는 No 대신 지시·LOT·대상 ID 등 실제 식별자를 사용하세요. 정렬을 지원하는 열의 제목과 방향 표시로 현재 정렬 기준을 확인합니다.",
+        "No는 조회 결과 안의 역순 번호입니다. 업무 인계에는 지시·LOT·대상 ID 같은 실제 식별자를 사용하세요. 정렬 가능한 열 제목은 오름차순 → 내림차순 → 해제 순서로 바뀌며, 세 번째 누르면 기본 순서로 돌아갑니다.",
     },
     {
       screen,
@@ -640,7 +640,7 @@ export const ROLE_GUIDES: Record<RoleCode, GuideStep[]> = {
       anchor: "inspection-verdict",
       title: "검사 근거에 맞게 판정합니다",
       description:
-        "대기·진행 상태일 때 판정 입력란이 나타납니다. PASS·FAIL·HOLD를 검사 결과에 맞게 선택하세요. FAIL·HOLD는 후속 진행에 영향을 줄 수 있습니다.",
+        "공정 준비 조건을 충족한 대기·진행 검사는 PASS·FAIL·HOLD로 판정합니다. LOT 최종 판정은 모든 공정이 완료돼야 합니다. 보류 검토에서는 PASS·FAIL을 선택하며 기존 판정과 검토 이력을 보존합니다.",
       detail: "inspection",
       permission: "inspection:execute",
       fallbackAnchor: "inspection-summary",

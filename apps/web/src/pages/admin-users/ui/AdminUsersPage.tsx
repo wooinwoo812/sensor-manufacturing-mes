@@ -1,3 +1,4 @@
+import { applyListSort } from "@/shared/lib";
 import { UserAccessSheet } from "@/features/user-access";
 import { RolePermissionsPanel } from "./RolePermissionsPanel";
 import { useMemo, useState } from "react";
@@ -230,12 +231,9 @@ export function AdminUsersPage({
                 />
               )
             }
-            sort={{
-              sort: search.sort ?? "displayName",
-              order: search.order ?? "asc",
-            }}
+            sort={search}
             onSortChange={(next) =>
-              onSearchChange({ ...search, ...next, page: 1 })
+              onSearchChange(applyListSort(search, next))
             }
             caption="사용자 목록"
             busy={isRefreshing}

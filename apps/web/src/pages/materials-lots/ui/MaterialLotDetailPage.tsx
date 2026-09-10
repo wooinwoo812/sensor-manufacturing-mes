@@ -262,7 +262,6 @@ export function MaterialLotDetailPage({
           </Button>
           {onOpenTrace !== undefined ? (
             <Button
-              variant="secondary"
               onClick={() => onOpenTrace(detail.lotNumber)}
             >
               계보 추적하기

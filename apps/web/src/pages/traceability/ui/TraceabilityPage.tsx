@@ -1,3 +1,4 @@
+import { applyListSort } from "@/shared/lib";
 import { getPageSize } from "@/shared/lib";
 import { useMemo } from "react";
 import {
@@ -254,12 +255,9 @@ export function TraceabilityPage({
             />
           )
         }
-        sort={{
-          sort: search.sort ?? "label",
-          order: search.order ?? "asc",
-        }}
+        sort={search}
         onSortChange={(next) =>
-          onSearchChange({ ...search, ...next, page: 1 })
+          onSearchChange(applyListSort(search, next))
         }
         footer={pagination}
         rowNumberStart={

@@ -51,6 +51,56 @@ function overlay(element: HTMLElement | null = target) {
     />
   );
 }
+
+it("방향키는 단계별로 한 번 이동하고 준비 중·길게 누르기는 건너뛰지 않는다", () => {
+  callbacks.onNext.mockClear();
+  callbacks.onPrevious.mockClear();
+  const view = render(overlay());
+  expect(screen.getByText("← 이전 · → 다음 · Esc 일시중지")).toBeInTheDocument();
+  fireEvent.keyDown(target, { key: "ArrowLeft" });
+  expect(callbacks.onPrevious).not.toHaveBeenCalled();
+  fireEvent.keyDown(target, { key: "ArrowRight", repeat: true });
+  expect(callbacks.onNext).not.toHaveBeenCalled();
+  fireEvent.keyDown(target, { key: "ArrowRight" });
+  fireEvent.keyDown(target, { key: "ArrowRight" });
+  expect(callbacks.onNext).toHaveBeenCalledTimes(1);
+  const step = (status: "loading" | "ready") => (
+    <GuidedTourOverlay {...callbacks} step={ROLE_GUIDES.PRODUCTION_PLANNER[1]!}
+      index={1} count={5} target={status === "ready" ? target : null} status={status} />
+  );
+  view.rerender(step("loading"));
+  fireEvent.keyDown(screen.getByRole("dialog"), { key: "ArrowRight" });
+  fireEvent.keyDown(screen.getByRole("dialog"), { key: "ArrowLeft" });
+  expect(callbacks.onNext).toHaveBeenCalledTimes(1);
+  expect(callbacks.onPrevious).not.toHaveBeenCalled();
+  view.rerender(step("ready"));
+  fireEvent.keyDown(target, { key: "ArrowLeft", repeat: true });
+  expect(callbacks.onPrevious).not.toHaveBeenCalled();
+  fireEvent.keyDown(screen.getByRole("dialog"), { key: "ArrowLeft" });
+  expect(callbacks.onPrevious).toHaveBeenCalledTimes(1);
+  view.unmount();
+  fireEvent.keyDown(target, { key: "ArrowRight" });
+  expect(callbacks.onNext).toHaveBeenCalledTimes(1);
+});
+
+it("조합 입력과 브라우저·텍스트 선택 단축키는 단계 이동으로 처리하지 않는다", () => {
+  callbacks.onNext.mockClear();
+  render(overlay());
+  for (const modifier of ["altKey", "ctrlKey", "metaKey", "shiftKey", "isComposing"]) {
+    fireEvent.keyDown(target, { key: "ArrowRight", [modifier]: true });
+  }
+  expect(callbacks.onNext).not.toHaveBeenCalled();
+});
+
+it("마지막 단계의 오른쪽 방향키는 완료 동작을 한 번 실행한다", () => {
+  callbacks.onNext.mockClear();
+  render(<GuidedTourOverlay {...callbacks} step={ROLE_GUIDES.PRODUCTION_PLANNER.at(-1)!}
+    index={4} count={5} target={target} status="ready" />);
+  expect(screen.getByRole("button", { name: "안내 완료" })).toHaveAttribute("aria-keyshortcuts", "ArrowRight");
+  fireEvent.keyDown(target, { key: "ArrowRight" });
+  fireEvent.keyDown(target, { key: "ArrowRight", repeat: true });
+  expect(callbacks.onNext).toHaveBeenCalledTimes(1);
+});
 it("표의 다른 열을 안내할 때만 고정 열 겹침을 해제하고 종료 시 복원한다", () => {
   const table = document.createElement("table");
   table.innerHTML = "<thead><tr><th>사용자</th><th>역할</th></tr></thead>";
@@ -166,7 +216,7 @@ it("긴 설명의 키보드 스크롤은 본문만 움직이고 단계가 바뀌
     />,
   );
   expect(copy.scrollTop).toBe(0);
-  expect(card).toHaveStyle({ height: TOUR_CARD_HEIGHT + "px" });
+  expect(card).toHaveClass("h-80", "md:h-auto", "md:max-w-[440px]");
 });
 it("단계 전환과 대기·오류 상태에서도 제목과 본문을 교체하거나 페이드하지 않는다", () => {
   const view = render(overlay());

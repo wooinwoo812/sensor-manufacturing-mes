@@ -1,3 +1,4 @@
+import { applyListSort } from "@/shared/lib";
 import { getPageSize } from "@/shared/lib";
 import { useMemo, useState } from "react";
 import {
@@ -413,12 +414,9 @@ export function MaterialLotsPage({
               />
             )
           }
-          sort={{
-            sort: search.sort ?? "receivedAt",
-            order: search.order ?? "desc",
-          }}
+          sort={search}
           onSortChange={(next) =>
-            onSearchChange({ ...search, ...next, page: 1 })
+            onSearchChange(applyListSort(search, next))
           }
           footer={pagination}
           rowNumberStart={

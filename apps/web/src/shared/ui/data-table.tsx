@@ -17,7 +17,7 @@ import {
   type MouseEvent,
   type ReactNode,
 } from "react";
-import { cn, loadingRegionHeight, type SortOrder } from "@/shared/lib";
+import { cn, loadingRegionHeight, type ListSort } from "@/shared/lib";
 import { Pagination } from "./pagination";
 
 export interface DataTableColumn<Row> {
@@ -50,8 +50,8 @@ interface DataTableProps<Row> {
   loading?: boolean;
   loadingRows?: number;
   loadingLabel?: string;
-  sort?: { sort: string; order: SortOrder };
-  onSortChange?: (next: { sort: string; order: SortOrder }) => void;
+  sort?: ListSort;
+  onSortChange?: (next: ListSort) => void;
   /**
    * 있으면 행 전체가 상세로 가는 입구가 된다. 식별자 글자만 눌러야 하는 표는
    * "무엇을 눌러야 하는지" 알 수 없었다. 행 hover 배경·오른쪽 chevron·cursor 로 갈 수 있음을 보인다.
@@ -164,23 +164,12 @@ export function DataTable<Row>({
             />{" "}
             <span className="hidden sm:inline">좌우로 이동</span>
           </span>
-          <LoaderCircle
-            className={cn(
-              "size-4 shrink-0",
-              busy || loading
-                ? "animate-spin motion-reduce:animate-none"
-                : "invisible",
-            )}
-            aria-hidden="true"
-          />
           <span className="min-w-16 text-right">
             {loading ? (
               <>
-                <span aria-hidden="true">조회 중</span>
+                <span aria-hidden="true">—건 표시</span>
                 <span className="sr-only">{loadingLabel}</span>
               </>
-            ) : busy ? (
-              "갱신 중"
             ) : (
               `${rows.length.toLocaleString("ko-KR")}건 표시`
             )}
@@ -265,16 +254,20 @@ export function DataTable<Row>({
                           "text-accent-strong",
                       )}
                       disabled={busy || loading}
-                      aria-label={`${column.header} ${sort?.sort === column.sortKey && sort.order === "asc" ? "내림차순" : "오름차순"} 정렬`}
+                      aria-label={`${column.header} ${sort?.sort === column.sortKey ? sort.order === "desc" ? "정렬 해제" : "내림차순 정렬" : "오름차순 정렬"}`}
                       onClick={() =>
-                        onSortChange({
-                          sort: column.sortKey!,
-                          order:
-                            sort?.sort === column.sortKey &&
-                            sort?.order === "asc"
-                              ? "desc"
-                              : "asc",
-                        })
+                        onSortChange(
+                          sort?.sort === column.sortKey && sort?.order === "desc"
+                            ? {}
+                            : {
+                                sort: column.sortKey!,
+                                order:
+                                  sort?.sort === column.sortKey &&
+                                  sort?.order === "asc"
+                                    ? "desc"
+                                    : "asc",
+                              },
+                        )
                       }
                     >
                       <span className="min-w-0 truncate">
@@ -485,20 +478,33 @@ export function DataTable<Row>({
           </tbody>
         </table>
         {busy || loading ? (
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-x-0 top-28 z-10 flex justify-center"
-          >
-            <span className="flex items-center gap-2 rounded-control border border-border bg-surface px-3 py-2 text-sm text-text-muted">
-              <LoaderCircle className="size-4 animate-spin motion-reduce:animate-none" />
-              {loading ? "조회 중" : "갱신 중"}
-            </span>
-          </div>
+          <TableLoadingIndicator label={loading ? "조회 중" : "갱신 중"} />
         ) : null}
       </div>
       {footer ? (
         <div className="border-t border-border">{footer}</div>
       ) : null}
+    </div>
+  );
+}
+
+/** 빠른 조회는 표시 없이 끝내고, 느린 요청만 표 안에서 알린다. */
+function TableLoadingIndicator({ label }: { label: string }) {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setVisible(true), 400);
+    return () => window.clearTimeout(timer);
+  }, []);
+  if (!visible) return null;
+  return (
+    <div
+      role="status"
+      className="pointer-events-none absolute inset-x-0 top-28 z-10 flex justify-center"
+    >
+      <span className="flex items-center gap-2 rounded-control border border-border bg-surface px-3 py-2 text-sm text-text-muted">
+        <LoaderCircle aria-hidden="true" className="size-4 animate-spin motion-reduce:animate-none" />
+        {label}
+      </span>
     </div>
   );
 }
@@ -509,8 +515,8 @@ interface TableSkeletonProps<Row> {
   columns: DataTableColumn<Row>[];
   clickable?: boolean;
   rows?: number;
-  sort?: { sort: string; order: SortOrder };
-  onSortChange?: (next: { sort: string; order: SortOrder }) => void;
+  sort?: ListSort;
+  onSortChange?: (next: ListSort) => void;
 }
 
 /**
