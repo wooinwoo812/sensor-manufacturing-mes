@@ -1,5 +1,6 @@
 import { tourRegion } from "./tour-region";
-import { TOUR_CARD_HEIGHT, TOUR_CARD_WIDTH, TOUR_DESKTOP_CARD_WIDTH } from "./tour-layout";
+import { TOUR_CARD_HEIGHT } from "./tour-layout";
+import { tourCardWidth } from "./tour-target";
 
 export const TOUR_SCROLL_DURATION = 320;
 
@@ -14,14 +15,14 @@ export function scrollToTourTarget(
   const focusRect = target.getBoundingClientRect();
   const cardRect = document.querySelector<HTMLElement>("[data-tour-card]")?.getBoundingClientRect();
   const cardHeight = cardRect?.height || TOUR_CARD_HEIGHT;
-  const cardWidth = cardRect?.width ||
-    (window.innerWidth >= 768 ? TOUR_DESKTOP_CARD_WIDTH : TOUR_CARD_WIDTH);
+  const viewportWidth = document.documentElement.clientWidth || window.innerWidth;
+  const cardWidth = tourCardWidth({ left: regionRect.left - 6, right: regionRect.right + 6 }, viewportWidth);
   const fitsBesideRegion =
-    regionRect.left >= cardWidth + 32 ||
-    window.innerWidth - regionRect.right >= cardWidth + 32;
+    regionRect.left - 6 >= cardWidth + 32 ||
+    viewportWidth - regionRect.right - 6 >= cardWidth + 32;
   const availableHeight = Math.max(
     120,
-    window.innerHeight - cardHeight - 120,
+    window.innerHeight - (fitsBesideRegion ? 0 : cardHeight) - 120,
   );
   // Show the whole section when it fits; keep a specific input visible in a long section.
   const rect =
@@ -30,7 +31,7 @@ export function scrollToTourTarget(
       : regionRect;
   const start = window.scrollY;
   const viewportBottom =
-    region !== target || !fitsBesideRegion
+    !fitsBesideRegion
       ? window.innerHeight - cardHeight - 32
       : window.innerHeight - 16;
   const desired =

@@ -50,7 +50,7 @@ it("reserves the measured desktop card height below a wide pagination target", a
   document.body.append(card);
   target.setAttribute("data-tour-region", "true");
   vi.mocked(target.getBoundingClientRect).mockReturnValue({
-    top: 416, bottom: 500, height: 84, left: 284, right: 1320, width: 1036,
+    top: 416, bottom: 500, height: 84, left: 200, right: 1320, width: 1120,
   } as DOMRect);
   await scrollToTourTarget(target, new AbortController().signal);
   const scroll = vi.mocked(window.scrollTo).mock.calls[0]![0] as ScrollToOptions;
@@ -150,9 +150,9 @@ it("데스크톱에서도 섹션 하단 입력을 안내 카드 위에 확보한
       top: 273,
       bottom: 649,
       height: 376,
-      left: 284,
+      left: 200,
       right: 1397,
-      width: 1113,
+      width: 1197,
     }) as DOMRect;
   vi.mocked(target.getBoundingClientRect).mockReturnValue({
     top: 588,
@@ -171,6 +171,25 @@ it("데스크톱에서도 섹션 하단 입력을 안내 카드 위에 확보한
   });
   section.remove();
 });
+it("keeps the complete reservation section visible when a narrow card fits beside it", async () => {
+  vi.stubGlobal("innerWidth", 1068);
+  vi.stubGlobal("innerHeight", 900);
+  const card = document.createElement("div");
+  card.setAttribute("data-tour-card", "true");
+  card.getBoundingClientRect = () => ({ height: 569 }) as DOMRect;
+  document.body.append(card);
+  const section = document.createElement("section");
+  section.setAttribute("data-tour-region", "true");
+  document.body.append(section);
+  section.append(target);
+  section.getBoundingClientRect = () => ({
+    left: 280, right: 1034, top: 104, bottom: 595, width: 754, height: 491,
+  }) as DOMRect;
+  await scrollToTourTarget(target, new AbortController().signal);
+  expect(window.scrollTo).not.toHaveBeenCalled();
+  section.remove();
+});
+
 it("이미 보이는 데스크톱 대상은 추가 스크롤을 하지 않는다", async () => {
   vi.stubGlobal("innerWidth", 1440);
   await scrollToTourTarget(target, new AbortController().signal);

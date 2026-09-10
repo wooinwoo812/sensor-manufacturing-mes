@@ -9,12 +9,11 @@ import { createPortal } from "react-dom";
 import { ArrowLeft, ArrowRight, Check, Compass, Pause, X } from "lucide-react";
 import { Button } from "@/shared/ui";
 import type { GuideStep } from "../model/role-onboarding";
-import { positionTourCard, type TourRect } from "../model/tour-target";
+import { positionTourCard, tourCardWidth, type TourRect } from "../model/tour-target";
 import { tourRegion } from "../model/tour-region";
 import {
   TOUR_CARD_HEIGHT,
   TOUR_CARD_WIDTH,
-  TOUR_DESKTOP_CARD_WIDTH,
   TOUR_BOTTOM_SPACE,
 } from "../model/tour-layout";
 
@@ -52,6 +51,7 @@ export function GuidedTourOverlay({
   }, [index, step.title]);
   const [geometry, setGeometry] = useState(() => ({
     rect: null as TourRect | null,
+    width: tourCardWidth(null, document.documentElement.clientWidth || innerWidth),
     ...positionTourCard(
       null,
       document.documentElement.clientWidth || innerWidth,
@@ -68,10 +68,6 @@ export function GuidedTourOverlay({
     const region = target?.isConnected ? tourRegion(target) : null;
     const r = region?.getBoundingClientRect();
     const card = cardRef.current?.getBoundingClientRect();
-    const width = card?.width || Math.min(
-      viewportWidth >= 768 ? TOUR_DESKTOP_CARD_WIDTH : TOUR_CARD_WIDTH,
-      viewportWidth - 32,
-    );
     const height = card?.height || Math.min(TOUR_CARD_HEIGHT, innerHeight - 32);
     const fullRect = r
       ? {
@@ -88,6 +84,9 @@ export function GuidedTourOverlay({
       fullRect.height = Math.max(0, fullRect.bottom - fullRect.top);
     }
     setGeometry((previous) => {
+      const width = fullRect
+        ? tourCardWidth(fullRect, viewportWidth)
+        : Math.min(previous.width, tourCardWidth(null, viewportWidth));
       const pos =
         !fullRect && viewportWidth >= 768
           ? {
@@ -120,7 +119,7 @@ export function GuidedTourOverlay({
         rect.bottom = Math.max(rect.top, pos.top - 16);
         rect.height = Math.max(0, rect.bottom - rect.top);
       }
-      const next = { rect, ...pos };
+      const next = { rect, width, ...pos };
       return JSON.stringify(previous) === JSON.stringify(next)
         ? previous
         : next;
@@ -369,22 +368,23 @@ export function GuidedTourOverlay({
         data-tour-card="true"
         className="pointer-events-auto fixed flex h-80 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-[360px] flex-col overflow-hidden rounded-panel border border-border bg-surface p-4 font-sans text-text-strong shadow-panel outline-none sm:p-5 md:h-auto md:min-h-80 md:max-w-[440px]"
         style={{
+          width: geometry.width,
           left: Math.round(geometry.left),
           top: Math.round(geometry.top),
         }}
       >
         <div className="mb-3 flex shrink-0 items-center justify-between gap-2">
-          <span className="flex items-center gap-2 text-xs font-semibold text-accent-strong">
-            <Compass className="size-4" aria-hidden="true" />
-            {step.screen}
+          <span className="flex min-w-0 items-center gap-2 text-xs font-semibold text-accent-strong">
+            <Compass className="size-4 shrink-0" aria-hidden="true" />
+            <span className="truncate" title={step.screen}>{step.screen}</span>
           </span>
-          <span className="text-xs text-text-muted">
+          <span className="shrink-0 text-xs text-text-muted">
             {index + 1} / {count}
           </span>
           <Button
             size="icon"
             variant="ghost"
-            className="-my-2 -mr-2"
+            className="-my-2 -mr-2 shrink-0"
             aria-label="투어 종료"
             onClick={onClose}
           >
@@ -448,7 +448,7 @@ export function GuidedTourOverlay({
             </Button>
           ) : null}
         </div>
-        <div className="flex shrink-0 items-center justify-between gap-2 border-t border-border pt-3">
+        <div className={"flex shrink-0 gap-2 border-t border-border pt-3 " + (geometry.width < 320 ? "flex-col items-stretch" : "items-center justify-between")}>
           <Button
             variant="secondary"
             className="shrink-0 border-accent-strong/50 bg-accent-soft px-2 text-accent-strong hover:border-accent-strong hover:bg-accent-soft [&>span]:gap-1.5"
@@ -458,7 +458,7 @@ export function GuidedTourOverlay({
             <Pause className="size-4 shrink-0" aria-hidden="true" />
             일시중지
           </Button>
-          <div className="flex gap-2">
+          <div className={"flex gap-2 " + (geometry.width < 320 ? "justify-between" : "")}>
             <Button
               size="icon"
               variant="secondary"

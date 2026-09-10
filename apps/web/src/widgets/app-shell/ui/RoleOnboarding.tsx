@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "@tanstack/react-router";
 import { ArrowRight, BookOpen, Compass, Play, X } from "lucide-react";
@@ -36,7 +36,46 @@ import {
   saveGuideProgress,
 } from "../model/guide-progress";
 
-export function RoleOnboarding({
+const TOUR_DESKTOP_QUERY = "(width < 64rem), (hover: none) and (pointer: coarse)";
+function subscribeTourDevice(onChange: () => void) {
+  const query = window.matchMedia(TOUR_DESKTOP_QUERY);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+}
+
+export function RoleOnboarding(props: Parameters<typeof DesktopRoleOnboarding>[0]) {
+  const mobile = useSyncExternalStore(
+    subscribeTourDevice,
+    () => window.matchMedia(TOUR_DESKTOP_QUERY).matches,
+    () => false,
+  );
+  return mobile ? <MobileTourNotice ready={props.ready ?? true} /> : <DesktopRoleOnboarding {...props} />;
+}
+
+function MobileTourNotice({ ready }: { ready: boolean }) {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    const showNotice = () => setOpen(true);
+    window.addEventListener(ROLE_GUIDE_REQUEST, showNotice);
+    return () => window.removeEventListener(ROLE_GUIDE_REQUEST, showNotice);
+  }, []);
+  return <Dialog open={open} onOpenChange={setOpen}>
+    <DialogTrigger asChild>
+      <Button disabled={!ready} variant="ghost" className="size-11 shrink-0 px-2" aria-label="역할별 사용 안내" title="단계별 안내는 PC에서 제공됩니다">
+        <BookOpen className="size-4" aria-hidden="true" />
+      </Button>
+    </DialogTrigger>
+    <DialogContent showCloseButton={false} className="max-w-sm">
+      <DialogTitle>단계별 안내는 PC에서 제공됩니다</DialogTitle>
+      <DialogDescription className="text-base leading-7">
+        모바일에서도 업무 화면은 사용할 수 있습니다. 화면을 따라가는 단계별 안내는 PC 브라우저에서 실행해 주세요.
+      </DialogDescription>
+      <Button className="min-h-11" onClick={() => setOpen(false)}>확인</Button>
+    </DialogContent>
+  </Dialog>;
+}
+
+function DesktopRoleOnboarding({
   userId,
   roleCode,
   roleLabel,

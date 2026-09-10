@@ -1,3 +1,5 @@
+import { TOUR_CARD_WIDTH, TOUR_DESKTOP_CARD_WIDTH } from "./tour-layout";
+
 export interface TourRect {
   top: number;
   left: number;
@@ -5,6 +7,19 @@ export interface TourRect {
   height: number;
   right: number;
   bottom: number;
+}
+
+/** Use readable side space before falling back to a card above/below the section. */
+export function tourCardWidth(
+  rect: Pick<TourRect, "left" | "right"> | null,
+  viewportWidth: number,
+) {
+  if (viewportWidth < 768) return Math.min(TOUR_CARD_WIDTH, viewportWidth - 32);
+  if (!rect) return TOUR_DESKTOP_CARD_WIDTH;
+  const sideSpace = Math.floor(Math.max(rect.left - 32, viewportWidth - rect.right - 32));
+  return sideSpace >= 240
+    ? Math.min(TOUR_DESKTOP_CARD_WIDTH, sideSpace)
+    : TOUR_DESKTOP_CARD_WIDTH;
 }
 
 /** Wait for the real, visible target after route/data rendering. No business action is invoked. */
