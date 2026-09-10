@@ -1,3 +1,4 @@
+import { applyListSort } from "@/shared/lib";
 import { getPageSize } from "@/shared/lib";
 import { useMemo } from "react";
 import {
@@ -17,7 +18,6 @@ import {
   PageHeading,
   Pagination,
   Select,
-  TableSkeleton,
   type BadgeTone,
   type DataTableColumn,
 } from "@/shared/ui";
@@ -165,28 +165,29 @@ export function BomsPage({ search, onSearchChange }: BomsPageProps) {
       ? Math.max(1, Math.ceil(state.total / pageSize))
       : 1;
 
-  const pagination =
-    state.phase === "success" ? (
-      <Pagination
-        currentPage={currentPage}
-        totalItems={state.total}
-        pageSize={pageSize}
-        onPageSizeChange={(size) =>
-          onSearchChange(
-            mergeBomsSearch(search, {
-              pageSize: size === 10 ? undefined : size,
-              page: undefined,
-            }),
-          )
-        }
-        busy={isRefreshing}
-        label="BOM 페이지 탐색"
-        onPageChange={(page) =>
-          onSearchChange(mergeBomsSearch(search, { page }))
-        }
-        totalPages={totalPages}
-      />
-    ) : null;
+  const pagination = (
+    <Pagination
+      loading={state.phase === "loading"}
+      busy={state.phase === "loading" || isRefreshing}
+      currentPage={currentPage}
+      totalItems={state.phase === "success" ? state.total : 0}
+      pageSize={pageSize}
+      onPageSizeChange={(size) =>
+        onSearchChange(
+          mergeBomsSearch(search, {
+            pageSize: size === 10 ? undefined : size,
+            page: undefined,
+          }),
+        )
+      }
+
+      label="BOM 페이지 탐색"
+      onPageChange={(page) =>
+        onSearchChange(mergeBomsSearch(search, { page }))
+      }
+      totalPages={totalPages}
+    />
+  );
 
   return (
     <Main id="main-content" tabIndex={-1}>
@@ -210,7 +211,9 @@ export function BomsPage({ search, onSearchChange }: BomsPageProps) {
         <Input
           aria-label="BOM 검색"
           value={draft.q ?? ""}
-          onChange={(event) => setDraft({ ...draft, q: event.target.value })}
+          onChange={(event) =>
+            setDraft({ ...draft, q: event.target.value })
+          }
           id="bom-q"
           label="검색"
           name="q"
@@ -220,10 +223,12 @@ export function BomsPage({ search, onSearchChange }: BomsPageProps) {
           label="상태"
           options={[
             { label: "전체 상태", value: "all" },
-            ...Object.entries(BOM_LIFECYCLE_LABELS).map(([value, label]) => ({
-              label,
-              value,
-            })),
+            ...Object.entries(BOM_LIFECYCLE_LABELS).map(
+              ([value, label]) => ({
+                label,
+                value,
+              }),
+            ),
           ]}
           value={
             draft.lifecycle?.length === 1
@@ -242,67 +247,53 @@ export function BomsPage({ search, onSearchChange }: BomsPageProps) {
         />
       </FilterBar>
 
-      {state.phase === "loading" ? (
-        <TableSkeleton
-          columns={columns}
-          caption="BOM revision 목록"
-          sort={{
-            sort: search.sort ?? "createdAt",
-            order: search.order ?? "desc",
-          }}
-          onSortChange={(next) =>
-            onSearchChange({ ...search, ...next, page: 1 })
-          }
-          label="BOM 목록 조회 중"
-          rows={pageSize}
-        />
-      ) : state.phase === "error" ? (
-        <ErrorState
-          title="BOM 목록을 불러올 수 없습니다"
-          description={state.message}
-          action={
-            <Button variant="secondary" onClick={() => reload()}>
-              다시 시도
-            </Button>
-          }
-        />
-      ) : state.items.length === 0 ? (
-        <EmptyState
-          title={
-            hasActiveFilter
-              ? "조건에 맞는 BOM이 없습니다"
-              : "아직 BOM revision이 없습니다"
-          }
-          description={
-            hasActiveFilter
-              ? "검색어나 상태 조건을 바꿔보세요."
-              : "기준정보가 등록되면 여기에 표시됩니다."
-          }
-        />
-      ) : (
-        <DataTable
-          sort={{
-            sort: search.sort ?? "createdAt",
-            order: search.order ?? "desc",
-          }}
-          onSortChange={(next) =>
-            onSearchChange({ ...search, ...next, page: 1 })
-          }
-          footer={pagination}
-          rowNumberStart={state.total - (currentPage - 1) * pageSize}
-          busy={isRefreshing}
-          caption="BOM revision 목록"
-          columns={columns}
-          rows={state.items}
-          getRowKey={(row) => row.id}
-          emptyMessage="조건에 맞는 BOM이 없습니다."
-        />
-      )}
-      {state.phase === "success" && state.items.length === 0 ? (
-        <div className="rounded-panel border border-border bg-surface">
-          {pagination}
-        </div>
-      ) : null}
+      <DataTable
+        loading={state.phase === "loading"}
+        loadingLabel="BOM 목록 조회 중"
+        loadingRows={pageSize}
+        minimumRows={pageSize}
+        emptyContent={
+          state.phase === "error" ? (
+            <ErrorState
+              title="BOM 목록을 불러올 수 없습니다"
+              description={state.message}
+              action={
+                <Button variant="secondary" onClick={() => reload()}>
+                  다시 시도
+                </Button>
+              }
+            />
+          ) : (
+            <EmptyState
+              title={
+                hasActiveFilter
+                  ? "조건에 맞는 BOM이 없습니다"
+                  : "아직 BOM revision이 없습니다"
+              }
+              description={
+                hasActiveFilter
+                  ? "검색어나 상태 조건을 바꿔보세요."
+                  : "기준정보가 등록되면 여기에 표시됩니다."
+              }
+            />
+          )
+        }
+        sort={search}
+        onSortChange={(next) =>
+          onSearchChange(applyListSort(search, next))
+        }
+        footer={pagination}
+        rowNumberStart={
+          (state.phase === "success" ? state.total : 0) -
+          (currentPage - 1) * pageSize
+        }
+        busy={isRefreshing}
+        caption="BOM revision 목록"
+        columns={columns}
+        rows={state.phase === "success" ? state.items : []}
+        getRowKey={(row) => row.id}
+        emptyMessage="조건에 맞는 BOM이 없습니다."
+      />
     </Main>
   );
 }

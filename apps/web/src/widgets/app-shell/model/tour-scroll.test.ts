@@ -36,8 +36,26 @@ beforeEach(() => {
 });
 afterEach(() => {
   target.remove();
+  document.querySelectorAll("[data-tour-card]").forEach((card) => card.remove());
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
+});
+it("reserves the measured desktop card height below a wide pagination target", async () => {
+  vi.stubGlobal("innerWidth", 1366);
+  vi.stubGlobal("innerHeight", 768);
+  vi.mocked(window.matchMedia).mockReturnValue({ matches: true } as MediaQueryList);
+  const card = document.createElement("div");
+  card.setAttribute("data-tour-card", "true");
+  card.getBoundingClientRect = () => ({ width: 440, height: 396 }) as DOMRect;
+  document.body.append(card);
+  target.setAttribute("data-tour-region", "true");
+  vi.mocked(target.getBoundingClientRect).mockReturnValue({
+    top: 416, bottom: 500, height: 84, left: 284, right: 1320, width: 1036,
+  } as DOMRect);
+  await scrollToTourTarget(target, new AbortController().signal);
+  const scroll = vi.mocked(window.scrollTo).mock.calls[0]![0] as ScrollToOptions;
+  expect(scroll.top).toBeGreaterThan(0);
+  expect(500 - scroll.top! + 16 + 396).toBeLessThanOrEqual(768 - 16);
 });
 it("목표까지 여러 프레임으로 감속하며 이동한 후에 완료한다", async () => {
   const completed = vi.fn();

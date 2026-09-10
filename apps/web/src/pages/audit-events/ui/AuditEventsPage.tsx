@@ -1,3 +1,4 @@
+import { applyListSort } from "@/shared/lib";
 import { getPageSize } from "@/shared/lib";
 import { useMemo } from "react";
 import {
@@ -18,7 +19,6 @@ import {
   PageHeading,
   Pagination,
   Select,
-  TableSkeleton,
   type DataTableColumn,
 } from "@/shared/ui";
 import { useLoadState, useQueryDraft } from "@/shared/lib";
@@ -173,28 +173,29 @@ export function AuditEventsPage({
       ? Math.max(1, Math.ceil(state.total / pageSize))
       : 1;
 
-  const pagination =
-    state.phase === "success" ? (
-      <Pagination
-        currentPage={currentPage}
-        totalItems={state.total}
-        pageSize={pageSize}
-        onPageSizeChange={(size) =>
-          onSearchChange(
-            mergeAuditEventsSearch(search, {
-              pageSize: size === 10 ? undefined : size,
-              page: undefined,
-            }),
-          )
-        }
-        busy={isRefreshing}
-        label="감사 이벤트 페이지 탐색"
-        onPageChange={(page) =>
-          onSearchChange(mergeAuditEventsSearch(search, { page }))
-        }
-        totalPages={totalPages}
-      />
-    ) : null;
+  const pagination = (
+    <Pagination
+      loading={state.phase === "loading"}
+      busy={state.phase === "loading" || isRefreshing}
+      currentPage={currentPage}
+      totalItems={state.phase === "success" ? state.total : 0}
+      pageSize={pageSize}
+      onPageSizeChange={(size) =>
+        onSearchChange(
+          mergeAuditEventsSearch(search, {
+            pageSize: size === 10 ? undefined : size,
+            page: undefined,
+          }),
+        )
+      }
+
+      label="감사 이벤트 페이지 탐색"
+      onPageChange={(page) =>
+        onSearchChange(mergeAuditEventsSearch(search, { page }))
+      }
+      totalPages={totalPages}
+    />
+  );
 
   return (
     <Main id="main-content" tabIndex={-1}>
@@ -218,7 +219,9 @@ export function AuditEventsPage({
         <Input
           aria-label="감사 이벤트 검색"
           value={draft.q ?? ""}
-          onChange={(event) => setDraft({ ...draft, q: event.target.value })}
+          onChange={(event) =>
+            setDraft({ ...draft, q: event.target.value })
+          }
           id="audit-q"
           data-tour="audit-search"
           label="검색"
@@ -259,10 +262,12 @@ export function AuditEventsPage({
           tourAnchor="audit-action"
           options={[
             { label: "전체 행동", value: "all" },
-            ...Object.entries(AUDIT_ACTION_LABELS).map(([value, label]) => ({
-              label,
-              value,
-            })),
+            ...Object.entries(AUDIT_ACTION_LABELS).map(
+              ([value, label]) => ({
+                label,
+                value,
+              }),
+            ),
           ]}
           value={
             draft.action?.length === 1 ? (draft.action[0] ?? "all") : "all"
@@ -281,64 +286,48 @@ export function AuditEventsPage({
         />
       </FilterBar>
 
-      {state.phase === "loading" ? (
-        <TableSkeleton
-          columns={columns}
-          caption="감사 이벤트 목록"
-          sort={{
-            sort: search.sort ?? "occurredAt",
-            order: search.order ?? "desc",
-          }}
-          onSortChange={(next) =>
-            onSearchChange({ ...search, ...next, page: 1 })
-          }
-          label="감사 이벤트 조회 중"
-          rows={pageSize}
-        />
-      ) : state.phase === "error" ? (
-        <ErrorState
-          description={state.message}
-          action={<Button onClick={() => reload()}>다시 시도</Button>}
-        />
-      ) : state.items.length === 0 ? (
-        <EmptyState
-          title="조건에 맞는 감사 이벤트가 없습니다"
-          description="조회 조건을 초기화하거나 다른 조건으로 확인해 주세요."
-          action={
-            hasActiveFilter ? (
-              <Button variant="secondary" onClick={reset}>
-                조건 초기화
-              </Button>
-            ) : undefined
-          }
-        />
-      ) : (
-        <>
-          <DataTable
-            sort={{
-              sort: search.sort ?? "occurredAt",
-              order: search.order ?? "desc",
-            }}
-            onSortChange={(next) =>
-              onSearchChange({ ...search, ...next, page: 1 })
-            }
-            footer={pagination}
-            rowNumberStart={state.total - (currentPage - 1) * pageSize}
-            busy={isRefreshing}
-            caption="감사 이벤트 목록"
-            columns={columns}
-            emptyMessage="조건에 맞는 감사 이벤트가 없습니다."
-            getRowKey={(row) => row.id}
-            tourRecord="audit"
-            rows={state.items}
-          />
-        </>
-      )}
-      {state.phase === "success" && state.items.length === 0 ? (
-        <div className="rounded-panel border border-border bg-surface">
-          {pagination}
-        </div>
-      ) : null}
+      <DataTable
+        loading={state.phase === "loading"}
+        loadingLabel="감사 이벤트 조회 중"
+        loadingRows={pageSize}
+        minimumRows={pageSize}
+        emptyContent={
+          state.phase === "error" ? (
+            <ErrorState
+              description={state.message}
+              action={<Button onClick={() => reload()}>다시 시도</Button>}
+            />
+          ) : (
+            <EmptyState
+              title="조건에 맞는 감사 이벤트가 없습니다"
+              description="조회 조건을 초기화하거나 다른 조건으로 확인해 주세요."
+              action={
+                hasActiveFilter ? (
+                  <Button variant="secondary" onClick={reset}>
+                    조건 초기화
+                  </Button>
+                ) : undefined
+              }
+            />
+          )
+        }
+        sort={search}
+        onSortChange={(next) =>
+          onSearchChange(applyListSort(search, next))
+        }
+        footer={pagination}
+        rowNumberStart={
+          (state.phase === "success" ? state.total : 0) -
+          (currentPage - 1) * pageSize
+        }
+        busy={isRefreshing}
+        caption="감사 이벤트 목록"
+        columns={columns}
+        emptyMessage="조건에 맞는 감사 이벤트가 없습니다."
+        getRowKey={(row) => row.id}
+        tourRecord="audit"
+        rows={state.phase === "success" ? state.items : []}
+      />
     </Main>
   );
 }

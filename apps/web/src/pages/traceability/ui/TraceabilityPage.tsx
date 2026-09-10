@@ -1,3 +1,4 @@
+import { applyListSort } from "@/shared/lib";
 import { getPageSize } from "@/shared/lib";
 import { useMemo } from "react";
 import {
@@ -17,7 +18,6 @@ import {
   PageHeading,
   Pagination,
   Select,
-  TableSkeleton,
   type BadgeTone,
   type DataTableColumn,
 } from "@/shared/ui";
@@ -141,28 +141,29 @@ export function TraceabilityPage({
       ? Math.max(1, Math.ceil(state.total / pageSize))
       : 1;
 
-  const pagination =
-    state.phase === "success" ? (
-      <Pagination
-        currentPage={currentPage}
-        totalItems={state.total}
-        pageSize={pageSize}
-        onPageSizeChange={(size) =>
-          onSearchChange(
-            mergeTraceabilitySearch(search, {
-              pageSize: size === 10 ? undefined : size,
-              page: undefined,
-            }),
-          )
-        }
-        busy={isRefreshing}
-        label="추적 노드 페이지 탐색"
-        onPageChange={(page) =>
-          onSearchChange(mergeTraceabilitySearch(search, { page }))
-        }
-        totalPages={totalPages}
-      />
-    ) : null;
+  const pagination = (
+    <Pagination
+      loading={state.phase === "loading"}
+      busy={state.phase === "loading" || isRefreshing}
+      currentPage={currentPage}
+      totalItems={state.phase === "success" ? state.total : 0}
+      pageSize={pageSize}
+      onPageSizeChange={(size) =>
+        onSearchChange(
+          mergeTraceabilitySearch(search, {
+            pageSize: size === 10 ? undefined : size,
+            page: undefined,
+          }),
+        )
+      }
+
+      label="추적 노드 페이지 탐색"
+      onPageChange={(page) =>
+        onSearchChange(mergeTraceabilitySearch(search, { page }))
+      }
+      totalPages={totalPages}
+    />
+  );
 
   return (
     <Main id="main-content" tabIndex={-1}>
@@ -187,7 +188,9 @@ export function TraceabilityPage({
           data-tour="list-search"
           aria-label="추적 노드 검색"
           value={draft.q ?? ""}
-          onChange={(event) => setDraft({ ...draft, q: event.target.value })}
+          onChange={(event) =>
+            setDraft({ ...draft, q: event.target.value })
+          }
           id="trace-q"
           label="검색"
           name="q"
@@ -197,13 +200,17 @@ export function TraceabilityPage({
           label="구분"
           options={[
             { label: "전체 구분", value: "all" },
-            ...Object.entries(TRACE_NODE_TYPE_LABELS).map(([value, label]) => ({
-              label,
-              value,
-            })),
+            ...Object.entries(TRACE_NODE_TYPE_LABELS).map(
+              ([value, label]) => ({
+                label,
+                value,
+              }),
+            ),
           ]}
           value={
-            draft.nodeType?.length === 1 ? (draft.nodeType[0] ?? "all") : "all"
+            draft.nodeType?.length === 1
+              ? (draft.nodeType[0] ?? "all")
+              : "all"
           }
           onValueChange={(value) =>
             setDraft(
@@ -217,64 +224,55 @@ export function TraceabilityPage({
         />
       </FilterBar>
 
-      {state.phase === "loading" ? (
-        <TableSkeleton
-          columns={columns}
-          caption="추적 노드 목록"
-          clickable
-          sort={{ sort: search.sort ?? "label", order: search.order ?? "asc" }}
-          onSortChange={(next) =>
-            onSearchChange({ ...search, ...next, page: 1 })
-          }
-          label="추적 노드 조회 중"
-          rows={pageSize}
-        />
-      ) : state.phase === "error" ? (
-        <ErrorState
-          title="추적 노드를 불러올 수 없습니다"
-          description={state.message}
-          action={
-            <Button variant="secondary" onClick={() => reload()}>
-              다시 시도
-            </Button>
-          }
-        />
-      ) : state.items.length === 0 ? (
-        <EmptyState
-          title={
-            hasActiveFilter
-              ? "조건에 맞는 추적 노드가 없습니다"
-              : "아직 추적 노드가 없습니다"
-          }
-          description={
-            hasActiveFilter
-              ? "검색어나 구분 조건을 바꿔보세요."
-              : "공정을 시작하면 투입 자재의 계보가 기록됩니다."
-          }
-        />
-      ) : (
-        <DataTable
-          sort={{ sort: search.sort ?? "label", order: search.order ?? "asc" }}
-          onSortChange={(next) =>
-            onSearchChange({ ...search, ...next, page: 1 })
-          }
-          footer={pagination}
-          rowNumberStart={state.total - (currentPage - 1) * pageSize}
-          onRowClick={(row) => onOpenDetail(row.id)}
-          busy={isRefreshing}
-          caption="추적 노드 목록"
-          columns={columns}
-          rows={state.items}
-          getRowKey={(row) => row.id}
-          tourRecord="trace-node"
-          emptyMessage="조건에 맞는 추적 노드가 없습니다."
-        />
-      )}
-      {state.phase === "success" && state.items.length === 0 ? (
-        <div className="rounded-panel border border-border bg-surface">
-          {pagination}
-        </div>
-      ) : null}
+      <DataTable
+        loading={state.phase === "loading"}
+        loadingLabel="추적 노드 조회 중"
+        loadingRows={pageSize}
+        minimumRows={pageSize}
+        emptyContent={
+          state.phase === "error" ? (
+            <ErrorState
+              title="추적 노드를 불러올 수 없습니다"
+              description={state.message}
+              action={
+                <Button variant="secondary" onClick={() => reload()}>
+                  다시 시도
+                </Button>
+              }
+            />
+          ) : (
+            <EmptyState
+              title={
+                hasActiveFilter
+                  ? "조건에 맞는 추적 노드가 없습니다"
+                  : "아직 추적 노드가 없습니다"
+              }
+              description={
+                hasActiveFilter
+                  ? "검색어나 구분 조건을 바꿔보세요."
+                  : "공정을 시작하면 투입 자재의 계보가 기록됩니다."
+              }
+            />
+          )
+        }
+        sort={search}
+        onSortChange={(next) =>
+          onSearchChange(applyListSort(search, next))
+        }
+        footer={pagination}
+        rowNumberStart={
+          (state.phase === "success" ? state.total : 0) -
+          (currentPage - 1) * pageSize
+        }
+        onRowClick={(row) => onOpenDetail(row.id)}
+        busy={isRefreshing}
+        caption="추적 노드 목록"
+        columns={columns}
+        rows={state.phase === "success" ? state.items : []}
+        getRowKey={(row) => row.id}
+        tourRecord="trace-node"
+        emptyMessage="조건에 맞는 추적 노드가 없습니다."
+      />
     </Main>
   );
 }

@@ -480,7 +480,7 @@ export function WorkOrderDetailPage({
             (canReadReservations && onOpenReservations !== undefined) ? (
               <>
                 {canReadReservations && onOpenReservations ? (
-                  <Button variant="secondary" onClick={onOpenReservations}>
+                  <Button onClick={onOpenReservations}>
                     자재 예약
                   </Button>
                 ) : null}

@@ -1,3 +1,4 @@
+import { applyListSort } from "@/shared/lib";
 import { getPageSize } from "@/shared/lib";
 import { useMemo, useState } from "react";
 import {
@@ -23,7 +24,6 @@ import {
   PageHeading,
   Pagination,
   Select,
-  TableSkeleton,
   type BadgeTone,
   type DataTableColumn,
 } from "@/shared/ui";
@@ -246,28 +246,29 @@ export function ExecutionQueuePage({
       ? Math.max(1, Math.ceil(state.total / pageSize))
       : 1;
 
-  const pagination =
-    state.phase === "success" ? (
-      <Pagination
-        currentPage={currentPage}
-        totalItems={state.total}
-        pageSize={pageSize}
-        onPageSizeChange={(size) =>
-          onSearchChange(
-            mergeExecutionQueueSearch(search, {
-              pageSize: size === 10 ? undefined : size,
-              page: undefined,
-            }),
-          )
-        }
-        busy={isRefreshing}
-        label="공정 대기열 페이지 탐색"
-        onPageChange={(page) =>
-          onSearchChange(mergeExecutionQueueSearch(search, { page }))
-        }
-        totalPages={totalPages}
-      />
-    ) : null;
+  const pagination = (
+    <Pagination
+      loading={state.phase === "loading"}
+      busy={state.phase === "loading" || isRefreshing}
+      currentPage={currentPage}
+      totalItems={state.phase === "success" ? state.total : 0}
+      pageSize={pageSize}
+      onPageSizeChange={(size) =>
+        onSearchChange(
+          mergeExecutionQueueSearch(search, {
+            pageSize: size === 10 ? undefined : size,
+            page: undefined,
+          }),
+        )
+      }
+
+      label="공정 대기열 페이지 탐색"
+      onPageChange={(page) =>
+        onSearchChange(mergeExecutionQueueSearch(search, { page }))
+      }
+      totalPages={totalPages}
+    />
+  );
 
   return (
     <Main id="main-content" tabIndex={-1}>
@@ -292,7 +293,9 @@ export function ExecutionQueuePage({
           data-tour="list-search"
           aria-label="공정 대기열 검색"
           value={draft.q ?? ""}
-          onChange={(event) => setDraft({ ...draft, q: event.target.value })}
+          onChange={(event) =>
+            setDraft({ ...draft, q: event.target.value })
+          }
           id="execution-q"
           label="검색"
           name="q"
@@ -318,63 +321,51 @@ export function ExecutionQueuePage({
         />
       </FilterBar>
 
-      {state.phase === "loading" ? (
-        <TableSkeleton
-          columns={columns}
-          caption="공정 실행 대기열"
-          clickable
-          sort={{
-            sort: search.sort ?? "orderNumber",
-            order: search.order ?? "asc",
-          }}
-          onSortChange={(next) =>
-            onSearchChange({ ...search, ...next, page: 1 })
-          }
-          label="공정 대기열 조회 중"
-          rows={pageSize}
-        />
-      ) : state.phase === "error" ? (
-        <ErrorState
-          description={state.message}
-          action={<Button onClick={() => reload()}>다시 시도</Button>}
-        />
-      ) : state.items.length === 0 ? (
-        <EmptyState
-          title="조건에 맞는 공정이 없습니다"
-          description="조회 조건을 초기화하거나 다른 준비 상태로 확인해 주세요."
-          action={
-            hasActiveFilter ? (
-              <Button variant="secondary" onClick={reset}>
-                조건 초기화
-              </Button>
-            ) : undefined
-          }
-        />
-      ) : (
-        <>
-          <DataTable
-            sort={{
-              sort: search.sort ?? "orderNumber",
-              order: search.order ?? "asc",
-            }}
-            onSortChange={(next) =>
-              onSearchChange({ ...search, ...next, page: 1 })
-            }
-            footer={pagination}
-            rowNumberStart={state.total - (currentPage - 1) * pageSize}
-            busy={isRefreshing}
-            onRowClick={onOpenDetail}
-            caption="공정 실행 대기열"
-            columns={columns}
-            emptyMessage="조건에 맞는 공정이 없습니다."
-            getRowKey={(row) => row.id}
-            tourRecord="execution"
-            getTourContext={(row) => row.productionLotNumber}
-            isTourPreferred={(row) => row.readiness === "IN_PROGRESS"}
-            rows={state.items}
-          />
-        </>
-      )}
+      <DataTable
+        loading={state.phase === "loading"}
+        loadingLabel="공정 대기열 조회 중"
+        loadingRows={pageSize}
+        minimumRows={pageSize}
+        emptyContent={
+          state.phase === "error" ? (
+            <ErrorState
+              description={state.message}
+              action={<Button onClick={() => reload()}>다시 시도</Button>}
+            />
+          ) : (
+            <EmptyState
+              title="조건에 맞는 공정이 없습니다"
+              description="조회 조건을 초기화하거나 다른 준비 상태로 확인해 주세요."
+              action={
+                hasActiveFilter ? (
+                  <Button variant="secondary" onClick={reset}>
+                    조건 초기화
+                  </Button>
+                ) : undefined
+              }
+            />
+          )
+        }
+        sort={search}
+        onSortChange={(next) =>
+          onSearchChange(applyListSort(search, next))
+        }
+        footer={pagination}
+        rowNumberStart={
+          (state.phase === "success" ? state.total : 0) -
+          (currentPage - 1) * pageSize
+        }
+        busy={isRefreshing}
+        onRowClick={onOpenDetail}
+        caption="공정 실행 대기열"
+        columns={columns}
+        emptyMessage="조건에 맞는 공정이 없습니다."
+        getRowKey={(row) => row.id}
+        tourRecord="execution"
+        getTourContext={(row) => row.productionLotNumber}
+        isTourPreferred={(row) => row.readiness === "IN_PROGRESS"}
+        rows={state.phase === "success" ? state.items : []}
+      />
 
       <ActionSheet
         open={completionTarget !== null}
@@ -404,11 +395,6 @@ export function ExecutionQueuePage({
           </>
         ) : null}
       </ActionSheet>
-      {state.phase === "success" && state.items.length === 0 ? (
-        <div className="rounded-panel border border-border bg-surface">
-          {pagination}
-        </div>
-      ) : null}
     </Main>
   );
 }

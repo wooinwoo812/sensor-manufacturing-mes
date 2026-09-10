@@ -98,8 +98,8 @@ describe("TraceabilityPage", () => {
     const { onOpenDetail } = renderPage();
 
     // 행 전체가 상세 입구다(별도의 "계보 열기" 버튼은 없앴다).
-    const rows = await screen.findAllByRole("row");
-    await userEvent.click(rows[1]!);
+    const record = await screen.findByText("ML-2026-0331");
+    await userEvent.click(record.closest("tr")!);
 
     expect(onOpenDetail).toHaveBeenCalledWith("trace-m-3");
   });

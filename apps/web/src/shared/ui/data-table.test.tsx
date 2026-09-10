@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { DataTable, TableSkeleton } from "./data-table";
 const rows = [
   { id: "one", name: "제품 A" },
@@ -23,8 +23,11 @@ it("지원 열의 방향을 알리고 재조회 중 중복 정렬을 막는다",
     onSortChange: change,
   };
   const view = render(
-    <DataTable {...props} sort={{ sort: "name", order: "asc" }} />,
+    <DataTable {...props} />,
   );
+  fireEvent.click(screen.getByRole("button", { name: "제품 오름차순 정렬" }));
+  expect(change).toHaveBeenLastCalledWith({ sort: "name", order: "asc" });
+  view.rerender(<DataTable {...props} sort={{ sort: "name", order: "asc" }} />);
   expect(screen.getByRole("columnheader", { name: "제품" })).toHaveAttribute(
     "aria-sort",
     "ascending",
@@ -35,9 +38,45 @@ it("지원 열의 방향을 알리고 재조회 중 중복 정렬을 막는다",
     <DataTable {...props} busy sort={{ sort: "name", order: "desc" }} />,
   );
   expect(
-    screen.getByRole("button", { name: "제품 오름차순 정렬" }),
+    screen.getByRole("button", { name: "제품 정렬 해제" }),
   ).toBeDisabled();
   expect(screen.getByText("제품 A")).toBeInTheDocument();
+  view.rerender(<DataTable {...props} sort={{ sort: "name", order: "desc" }} />);
+  fireEvent.click(screen.getByRole("button", { name: "제품 정렬 해제" }));
+  expect(change).toHaveBeenLastCalledWith({});
+  view.rerender(<DataTable {...props} sort={{}} />);
+  expect(screen.getByRole("columnheader", { name: "제품" })).toHaveAttribute("aria-sort", "none");
+  fireEvent.click(screen.getByRole("button", { name: "제품 오름차순 정렬" }));
+  expect(change).toHaveBeenLastCalledWith({ sort: "name", order: "asc" });
+});
+
+it("빠른 조회는 로딩 표시 없이 끝나고 느린 조회만 알리며 건수와 행은 유지한다", () => {
+  vi.useFakeTimers();
+  try {
+    const props = { caption: "목록", rows, columns, getRowKey: (r: (typeof rows)[number]) => r.id, emptyMessage: "없음" };
+    const view = render(<DataTable {...props} />);
+    const count = screen.getByText("2건 표시");
+    const row = screen.getByText("제품 A");
+    view.rerender(<DataTable {...props} busy />);
+    act(() => vi.advanceTimersByTime(399));
+    expect(screen.queryByText("갱신 중")).not.toBeInTheDocument();
+    view.rerender(<DataTable {...props} />);
+    act(() => vi.advanceTimersByTime(1000));
+    expect(screen.queryByText("갱신 중")).not.toBeInTheDocument();
+    view.rerender(<DataTable {...props} busy />);
+    act(() => vi.advanceTimersByTime(399));
+    expect(screen.queryByText("갱신 중")).not.toBeInTheDocument();
+    act(() => vi.advanceTimersByTime(1));
+    expect(screen.getByText("갱신 중")).toBeInTheDocument();
+    expect(screen.getByText("2건 표시")).toBe(count);
+    expect(screen.getByText("제품 A")).toBe(row);
+    view.rerender(<DataTable {...props} />);
+    expect(screen.queryByText("갱신 중")).not.toBeInTheDocument();
+    view.unmount();
+    expect(vi.getTimerCount()).toBe(0);
+  } finally {
+    vi.useRealTimers();
+  }
 });
 it("재조회 중 표의 투명도를 바꾸거나 이전 행을 제거하지 않는다", () => {
   const view = render(
@@ -152,4 +191,24 @@ it("빈 결과의 셀 폭은 순번과 상세 이동 열까지 포함한다", ()
     "colspan",
     "3",
   );
+});
+
+it("재조회 중 이전 행의 클릭과 키보드 이동을 막고 완료 후 다시 허용한다", () => {
+  const open = vi.fn();
+  const props = {
+    caption: "목록", rows, columns,
+    getRowKey: (row: (typeof rows)[number]) => row.id,
+    emptyMessage: "없음", onRowClick: open,
+  };
+  const view = render(<DataTable {...props} />);
+  const row = screen.getByText("제품 A").closest("tr")!;
+  view.rerender(<DataTable {...props} busy />);
+  expect(row.parentElement).toHaveAttribute("inert");
+  fireEvent.click(row);
+  fireEvent.keyDown(row, { key: "Enter" });
+  expect(open).not.toHaveBeenCalled();
+  view.rerender(<DataTable {...props} />);
+  expect(row.parentElement).not.toHaveAttribute("inert");
+  fireEvent.keyDown(row, { key: "Enter" });
+  expect(open).toHaveBeenCalledWith(rows[0]);
 });

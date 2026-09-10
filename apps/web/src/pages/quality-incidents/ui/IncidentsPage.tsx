@@ -1,3 +1,4 @@
+import { applyListSort } from "@/shared/lib";
 import { getPageSize } from "@/shared/lib";
 import { useMemo, useState } from "react";
 import {
@@ -19,7 +20,6 @@ import {
   PageHeading,
   Pagination,
   Select,
-  TableSkeleton,
   type BadgeTone,
   type DataTableColumn,
 } from "@/shared/ui";
@@ -183,28 +183,29 @@ export function IncidentsPage({
       ? Math.max(1, Math.ceil(state.total / pageSize))
       : 1;
 
-  const pagination =
-    state.phase === "success" ? (
-      <Pagination
-        currentPage={currentPage}
-        totalItems={state.total}
-        pageSize={pageSize}
-        onPageSizeChange={(size) =>
-          onSearchChange(
-            mergeIncidentsSearch(search, {
-              pageSize: size === 10 ? undefined : size,
-              page: undefined,
-            }),
-          )
-        }
-        busy={isRefreshing}
-        label="부적합 사건 페이지 탐색"
-        onPageChange={(page) =>
-          onSearchChange(mergeIncidentsSearch(search, { page }))
-        }
-        totalPages={totalPages}
-      />
-    ) : null;
+  const pagination = (
+    <Pagination
+      loading={state.phase === "loading"}
+      busy={state.phase === "loading" || isRefreshing}
+      currentPage={currentPage}
+      totalItems={state.phase === "success" ? state.total : 0}
+      pageSize={pageSize}
+      onPageSizeChange={(size) =>
+        onSearchChange(
+          mergeIncidentsSearch(search, {
+            pageSize: size === 10 ? undefined : size,
+            page: undefined,
+          }),
+        )
+      }
+
+      label="부적합 사건 페이지 탐색"
+      onPageChange={(page) =>
+        onSearchChange(mergeIncidentsSearch(search, { page }))
+      }
+      totalPages={totalPages}
+    />
+  );
 
   return (
     <Main id="main-content" tabIndex={-1}>
@@ -218,7 +219,6 @@ export function IncidentsPage({
         meta={<span>가상 데모 데이터</span>}
         title="부적합·격리"
       />
-
       <FilterBar
         onSearch={submit}
         onReset={reset}
@@ -234,7 +234,9 @@ export function IncidentsPage({
           data-tour="list-search"
           aria-label="부적합 사건 검색"
           value={draft.q ?? ""}
-          onChange={(event) => setDraft({ ...draft, q: event.target.value })}
+          onChange={(event) =>
+            setDraft({ ...draft, q: event.target.value })
+          }
           id="incident-q"
           label="검색"
           name="q"
@@ -257,7 +259,9 @@ export function IncidentsPage({
                 status:
                   value === "all"
                     ? undefined
-                    : [value as keyof typeof QUALITY_INCIDENT_STATUS_LABELS],
+                    : [
+                        value as keyof typeof QUALITY_INCIDENT_STATUS_LABELS,
+                      ],
                 page: undefined,
               }),
             )
@@ -291,68 +295,48 @@ export function IncidentsPage({
           }
         />
       </FilterBar>
-
-      {state.phase === "loading" ? (
-        <TableSkeleton
-          columns={columns}
-          caption="부적합 사건 목록"
-          clickable
-          sort={{
-            sort: search.sort ?? "detectedAt",
-            order: search.order ?? "desc",
-          }}
-          onSortChange={(next) =>
-            onSearchChange({ ...search, ...next, page: 1 })
-          }
-          label="부적합 사건 조회 중"
-          rows={pageSize}
-        />
-      ) : state.phase === "error" ? (
-        <ErrorState
-          description={state.message}
-          action={<Button onClick={() => reload()}>다시 시도</Button>}
-        />
-      ) : state.items.length === 0 && !hasActiveFilter && !canRegister ? (
-        <EmptyState
-          title="부적합 사건이 없습니다"
-          description="사후 품질 문제가 발견되면 이 화면에서 사건을 등록하고 격리를 관리합니다."
-        />
-      ) : state.items.length === 0 ? (
-        <EmptyState
-          title="조건에 맞는 부적합 사건이 없습니다"
-          description="조회 조건을 초기화하거나 다른 조건으로 확인해 주세요."
-          action={
-            hasActiveFilter ? (
-              <Button variant="secondary" onClick={reset}>
-                조건 초기화
-              </Button>
-            ) : undefined
-          }
-        />
-      ) : (
-        <>
-          <DataTable
-            sort={{
-              sort: search.sort ?? "detectedAt",
-              order: search.order ?? "desc",
-            }}
-            onSortChange={(next) =>
-              onSearchChange({ ...search, ...next, page: 1 })
-            }
-            footer={pagination}
-            rowNumberStart={state.total - (currentPage - 1) * pageSize}
-            onRowClick={(row) => onOpenDetail(row.id)}
-            busy={isRefreshing}
-            caption="부적합 사건 목록"
-            columns={columns}
-            emptyMessage="조건에 맞는 부적합 사건이 없습니다."
-            getRowKey={(row) => row.id}
-            tourRecord="incident"
-            rows={state.items}
-          />
-        </>
-      )}
-
+      <DataTable
+        loading={state.phase === "loading"}
+        loadingLabel="부적합 사건 조회 중"
+        loadingRows={pageSize}
+        minimumRows={pageSize}
+        emptyContent={
+          state.phase === "error" ? (
+            <ErrorState
+              description={state.message}
+              action={<Button onClick={() => reload()}>다시 시도</Button>}
+            />
+          ) : hasActiveFilter ? (
+            <EmptyState
+              title="조건에 맞는 부적합 사건이 없습니다"
+              description="조회 조건을 초기화하거나 다른 조건으로 확인해 주세요."
+              action={<Button variant="secondary" onClick={reset}>조건 초기화</Button>}
+            />
+          ) : (
+            <EmptyState
+              title="부적합 사건이 없습니다"
+              description="사후 품질 문제가 발견되면 이 화면에서 사건을 등록하고 격리를 관리합니다."
+            />
+          )
+        }
+        sort={search}
+        onSortChange={(next) =>
+          onSearchChange(applyListSort(search, next))
+        }
+        footer={pagination}
+        rowNumberStart={
+          (state.phase === "success" ? state.total : 0) -
+          (currentPage - 1) * pageSize
+        }
+        onRowClick={(row) => onOpenDetail(row.id)}
+        busy={isRefreshing}
+        caption="부적합 사건 목록"
+        columns={columns}
+        emptyMessage="조건에 맞는 부적합 사건이 없습니다."
+        getRowKey={(row) => row.id}
+        tourRecord="incident"
+        rows={state.phase === "success" ? state.items : []}
+      />
       <ActionSheet
         open={canRegister && registerOpen}
         onOpenChange={setRegisterOpen}
@@ -371,11 +355,6 @@ export function IncidentsPage({
           ) : null
         ) : null}
       </ActionSheet>
-      {state.phase === "success" && state.items.length === 0 ? (
-        <div className="rounded-panel border border-border bg-surface">
-          {pagination}
-        </div>
-      ) : null}
     </Main>
   );
 }

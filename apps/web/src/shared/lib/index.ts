@@ -8,6 +8,7 @@ export { cn } from "./cn";
 export {
   readListSort,
   appendListSort,
+  applyListSort,
   type ListSort,
   type SortOrder,
 } from "./list-sort";
